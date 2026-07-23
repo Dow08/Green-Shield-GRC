@@ -1,6 +1,0 @@
-__pycache__/
-*.pyc
-.venv/
-.streamlit/secrets.toml
-rapport_auditcraft_grc.md
-.DS_Store

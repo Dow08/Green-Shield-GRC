@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+/* ---- Design tokens GREEN SHIELD (SaaS arrondi, accent vert) ---- */
+:root {
+  --bg: #070f14;
+  --bg2: #0a1620;
+  --ink: #eaf4f0;
+  --soft: #8ea6a0;
+  --faint: #5d746e;
+  --stroke: rgba(255, 255, 255, 0.09);
+  --g1: #2ee6a0;
+  --g2: #19c6c6;
+  --g3: #7bf3c8;
+  --rose: #ff6f91;
+  --amber: #ffcf6b;
+  --sky: #5cc8ff;
+  --violet: #8b7bff;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background:
+    radial-gradient(1200px 700px at 88% -10%, rgba(46, 230, 160, 0.1), transparent 55%),
+    radial-gradient(900px 600px at -6% 4%, rgba(25, 198, 198, 0.08), transparent 50%),
+    var(--bg);
+}
+
+/* Carte "verre" arrondie */
+.glass {
+  border: 1px solid var(--stroke);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.045);
+}
+.glass-2 {
+  border: 1px solid var(--stroke);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+/* Pastille d'icône ronde à dégradé */
+.tile {
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  flex: 0 0 auto;
+}
+.tile-green { background: linear-gradient(140deg, var(--g1), var(--g2)); color: #04150e; }
+.tile-rose { background: linear-gradient(140deg, #ff6f91, rgba(255, 111, 145, 0.55)); color: #2a0410; }
+.tile-amber { background: linear-gradient(140deg, #ffcf6b, rgba(255, 180, 60, 0.65)); color: #2a1c02; }
+.tile-sky { background: linear-gradient(140deg, #5cc8ff, rgba(56, 140, 248, 0.6)); color: #02121f; }
+.tile-violet { background: linear-gradient(140deg, #8b7bff, rgba(110, 90, 255, 0.6)); color: #0c0430; }
+.tile-muted { background: rgba(255, 255, 255, 0.06); color: var(--faint); }
+
+.brand-grad {
+  background: linear-gradient(90deg, var(--g1), var(--g3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Scrollbar discrète */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}

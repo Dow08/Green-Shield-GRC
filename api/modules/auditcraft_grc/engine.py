@@ -14,7 +14,7 @@ from pathlib import Path
 
 import yaml
 
-import parser as cfg_parser
+from . import parser as cfg_parser
 
 # Statuts possibles d'un contrôle.
 COMPLIANT = "CONFORME"

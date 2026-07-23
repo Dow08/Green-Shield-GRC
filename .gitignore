@@ -7,8 +7,10 @@ venv/
 .pytest_cache/
 .mypy_cache/
 
-# --- Streamlit ---
-.streamlit/secrets.toml
+# --- Node / frontend ---
+node_modules/
+dist/
+.vite/
 
 # --- Livrables générés ---
 rapport_auditcraft_grc.md

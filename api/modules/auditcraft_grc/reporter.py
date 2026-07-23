@@ -6,7 +6,7 @@ normatif, et Plan d'Action d'Amélioration (PAA) priorisé par gravité.
 """
 from __future__ import annotations
 
-from engine import AuditResult, ControlResult, COMPLIANT, NON_COMPLIANT, NOT_APPLICABLE
+from .engine import AuditResult, ControlResult, COMPLIANT, NON_COMPLIANT, NOT_APPLICABLE
 
 _STATUS_ICON = {COMPLIANT: "🟢", NON_COMPLIANT: "🔴", NOT_APPLICABLE: "⚪"}
 _STATUS_LABEL = {COMPLIANT: "Conforme", NON_COMPLIANT: "Non conforme", NOT_APPLICABLE: "Non applicable"}
