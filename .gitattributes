@@ -1,0 +1,12 @@
+# Portabilité Linux / Windows : on force LF dans le dépôt.
+# Indispensable pour Docker, make et les configs lues dans des conteneurs Linux
+# (un Makefile ou un sshd_config en CRLF casse sur Linux).
+* text=auto eol=lf
+
+# Fichiers binaires : jamais de normalisation.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.gif binary
+*.pdf binary
