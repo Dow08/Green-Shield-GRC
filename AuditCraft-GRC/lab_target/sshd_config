@@ -1,0 +1,32 @@
+# ------------------------------------------------------------------
+# sshd_config — CIBLE D'AUDIT (fichier volontairement vulnérable)
+# Ne PAS déployer en production. Sert de cible au lab AuditCraft GRC.
+# ------------------------------------------------------------------
+
+Port 22
+AddressFamily any
+ListenAddress 0.0.0.0
+
+# --- Protocole ---
+# [FAILLE] Protocole SSHv1 activé : cryptographie cassée, MITM trivial.
+Protocol 1
+
+# --- Authentification ---
+# [FAILLE] Connexion root distante autorisée : élévation de privilèges directe.
+PermitRootLogin yes
+
+# [FAILLE] Mots de passe vides acceptés : accès sans authentification.
+PermitEmptyPasswords yes
+
+# [FAILLE] Authentification par mot de passe (préférer les clés).
+PasswordAuthentication yes
+
+PubkeyAuthentication yes
+ChallengeResponseAuthentication no
+UsePAM yes
+
+# --- Divers ---
+X11Forwarding yes
+PrintMotd no
+ClientAliveInterval 0
+Subsystem sftp /usr/lib/openssh/sftp-server

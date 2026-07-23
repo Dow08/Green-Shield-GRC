@@ -1,0 +1,150 @@
+# ==================================================================
+# grc_rules.yaml — Le "Cerveau GRC" (Policy-as-Code)
+# ------------------------------------------------------------------
+# Référentiel externe liant un écart TECHNIQUE (clé de configuration)
+# à un impact NORMATIF (ISO 27001 / RGPD) et à un risque EBIOS RM.
+#
+# Opérateurs supportés par le moteur (engine.py) :
+#   must_equal        -> conforme si la valeur == 'expected'
+#   must_not_equal    -> non conforme si la valeur == 'expected'
+#   must_not_contain  -> non conforme si un token de 'forbidden' est présent
+#
+# Sévérité : Critique | Élevé | Moyen | Faible
+# EBIOS gravity : 1 (mineure) .. 4 (critique)
+# ==================================================================
+
+metadata:
+  name: "Référentiel de durcissement — Serveurs Linux exposés"
+  version: "1.0.0"
+  author: "DP Cyber Consulting"
+
+rules:
+  # ---------------------------------------------------------------- SSH
+  - id: "SSH-PROTO-01"
+    title: "Protocole SSH obsolète (SSHv1)"
+    target_file: "sshd_config"
+    key: "Protocol"
+    operator: "must_equal"
+    expected: "2"
+    severity: "Critique"
+    ebios:
+      event: "Interception et déchiffrement du trafic d'administration (MITM)"
+      gravity: 4
+    frameworks:
+      - "ISO 27001:2022 — A.8.24 Utilisation de la cryptographie"
+      - "ISO 27001:2022 — A.8.20 Sécurité des réseaux"
+      - "RGPD — Art. 32 Sécurité du traitement (confidentialité)"
+    recommendation: "Forcer 'Protocol 2'. Le protocole SSHv1 comporte des faiblesses cryptographiques irrémédiables et doit être désactivé."
+    rationale: "SSHv1 est vulnérable à des attaques de type MITM et à l'injection ; sa cryptographie est considérée comme cassée depuis des années."
+
+  - id: "SSH-ROOT-01"
+    title: "Connexion root distante autorisée"
+    target_file: "sshd_config"
+    key: "PermitRootLogin"
+    operator: "must_equal"
+    expected: "no"
+    severity: "Critique"
+    ebios:
+      event: "Élévation de privilèges et prise de contrôle totale du serveur"
+      gravity: 4
+    frameworks:
+      - "ISO 27001:2022 — A.8.2 Droits d'accès privilégiés"
+      - "ISO 27001:2022 — A.8.5 Authentification sécurisée"
+      - "RGPD — Art. 32 Sécurité du traitement"
+    recommendation: "Positionner 'PermitRootLogin no'. Administrer via un compte nominatif puis 'sudo' pour garantir l'imputabilité."
+    rationale: "L'accès root direct supprime la traçabilité des actions et offre une cible unique à fort impact aux attaquants (brute force)."
+
+  - id: "SSH-EMPTY-01"
+    title: "Mots de passe vides acceptés"
+    target_file: "sshd_config"
+    key: "PermitEmptyPasswords"
+    operator: "must_equal"
+    expected: "no"
+    severity: "Critique"
+    ebios:
+      event: "Accès non authentifié à un compte du système"
+      gravity: 4
+    frameworks:
+      - "ISO 27001:2022 — A.8.5 Authentification sécurisée"
+      - "RGPD — Art. 32 Sécurité du traitement"
+    recommendation: "Positionner 'PermitEmptyPasswords no' et imposer une politique de mots de passe robustes."
+    rationale: "Autoriser les mots de passe vides permet un accès sans secret : équivalent à une absence d'authentification."
+
+  - id: "SSH-PWDAUTH-01"
+    title: "Authentification par mot de passe activée"
+    target_file: "sshd_config"
+    key: "PasswordAuthentication"
+    operator: "must_equal"
+    expected: "no"
+    severity: "Moyen"
+    ebios:
+      event: "Compromission de compte par attaque en force brute / bourrage d'identifiants"
+      gravity: 3
+    frameworks:
+      - "ISO 27001:2022 — A.8.5 Authentification sécurisée"
+      - "RGPD — Art. 32 Sécurité du traitement"
+    recommendation: "Privilégier l'authentification par clés publiques ('PasswordAuthentication no') et désactiver les mots de passe pour l'accès distant."
+    rationale: "L'authentification par mot de passe expose à la force brute ; les clés cryptographiques offrent un facteur bien plus robuste."
+
+  - id: "SSH-PUBKEY-01"
+    title: "Authentification par clé publique activée"
+    target_file: "sshd_config"
+    key: "PubkeyAuthentication"
+    operator: "must_equal"
+    expected: "yes"
+    severity: "Moyen"
+    ebios:
+      event: "Absence de facteur d'authentification robuste pour l'administration"
+      gravity: 2
+    frameworks:
+      - "ISO 27001:2022 — A.8.5 Authentification sécurisée"
+    recommendation: "Maintenir 'PubkeyAuthentication yes' pour permettre l'authentification forte par clés."
+    rationale: "Contrôle de bonne pratique : l'authentification par clés est le socle d'un accès SSH durci."
+
+  - id: "SSH-CHALLENGE-01"
+    title: "Authentification challenge-response désactivée"
+    target_file: "sshd_config"
+    key: "ChallengeResponseAuthentication"
+    operator: "must_equal"
+    expected: "no"
+    severity: "Faible"
+    ebios:
+      event: "Surface d'authentification élargie inutilement"
+      gravity: 1
+    frameworks:
+      - "ISO 27001:2022 — A.8.9 Gestion des configurations"
+    recommendation: "Maintenir 'ChallengeResponseAuthentication no' si non requis."
+    rationale: "Contrôle de bonne pratique : réduire la surface d'authentification aux mécanismes maîtrisés."
+
+  # -------------------------------------------------------------- NGINX
+  - id: "TLS-PROTO-01"
+    title: "Protocoles TLS obsolètes autorisés"
+    target_file: "nginx.conf"
+    key: "ssl_protocols"
+    operator: "must_not_contain"
+    forbidden: ["TLSv1", "TLSv1.1", "SSLv2", "SSLv3"]
+    severity: "Élevé"
+    ebios:
+      event: "Déchiffrement des communications chiffrées (POODLE, BEAST)"
+      gravity: 3
+    frameworks:
+      - "ISO 27001:2022 — A.8.24 Utilisation de la cryptographie"
+      - "RGPD — Art. 32 Sécurité du traitement (confidentialité)"
+    recommendation: "N'autoriser que 'ssl_protocols TLSv1.2 TLSv1.3;'. Retirer TLSv1 et TLSv1.1, dépréciés par l'IETF (RFC 8996)."
+    rationale: "TLSv1 et TLSv1.1 souffrent de vulnérabilités structurelles et ne sont plus conformes aux référentiels (ANSSI, PCI-DSS)."
+
+  - id: "NGX-TOKENS-01"
+    title: "Divulgation de la version du serveur (server_tokens)"
+    target_file: "nginx.conf"
+    key: "server_tokens"
+    operator: "must_equal"
+    expected: "off"
+    severity: "Faible"
+    ebios:
+      event: "Facilitation de la reconnaissance (fingerprinting) par l'attaquant"
+      gravity: 2
+    frameworks:
+      - "ISO 27001:2022 — A.8.9 Gestion des configurations"
+      - "ISO 27001:2022 — A.8.8 Gestion des vulnérabilités techniques"
+    recommendation: "Positionner 'server_tokens off;' pour masquer la version exacte du serveur dans les en-têtes et pages d'erreur."
+    rationale: "Exposer la version précise oriente l'attaquant vers les exploits publics correspondants."
