@@ -1,0 +1,229 @@
+# ==================================================================
+# mesures_catalogue.yaml — Catalogue de mesures de sécurité réutilisable
+# ------------------------------------------------------------------
+# Décision G3 (docs/spec-refonte-grc-consulting.md §14.1) : les mesures ne
+# doivent PAS être réécrites en dur dans chaque mission. Une mesure décrite ici
+# une seule fois est référencée par son "id" depuis :
+#   - le plan de traitement d'une mission Consulting (steps.traitement.remediations)
+#   - les quick wins ("cyberdépart")
+#   - les compléments NIS2/DORA/RGPD (Jalon 3), via le champ mappings
+#
+# Les mappings vers ISO 27001/NIS2/CIS/NIST reprennent :
+#   - les contrôles déjà utilisés dans grc_rules.yaml (AuditCraft-GRC)
+#   - les mappings sourcés dans docs/contenu-grilles-entretien.md §7
+#
+# axe : Gouvernance | Protection | Défense | Résilience (les 4 axes déjà
+# utilisés par le plan de traitement existant — aucune 5e catégorie ajoutée).
+# ==================================================================
+
+metadata:
+  version: "1.0.0"
+  source: "docs/contenu-grilles-entretien.md, grc_rules.yaml, workflow-nis2-mise-en-conformite.md"
+
+mesures:
+  - id: MFA-ACCES-DISTANTS
+    titre: "Authentification multifacteur sur les accès distants et privilégiés"
+    axe: Protection
+    description: "Déployer le MFA sur les VPN, messageries et comptes d'administration pour empêcher la prise de contrôle par vol ou réutilisation de mot de passe."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.5.17", "A.8.5"]
+      nis2: ["Mesure 11 (Art. 21.2.j)"]
+      cis: ["CIS 6"]
+      nist_csf: ["PR.AA-03", "PR.AA-04"]
+
+  - id: CHIFFREMENT-DONNEES
+    titre: "Chiffrement des données au repos et en transit"
+    axe: Protection
+    description: "Chiffrer les bases de données sensibles et les protocoles d'administration (TLS 1.2+, SSHv2) ; retirer les protocoles obsolètes."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.8.24"]
+      nis2: ["Mesure 8 (Art. 21.2.h)"]
+      rgpd: ["Art. 32"]
+      cis: ["CIS 3"]
+      nist_csf: ["PR.DS-01", "PR.DS-02"]
+
+  - id: SAUVEGARDES-IMMUABLES
+    titre: "Sauvegardes immuables et testées"
+    axe: Résilience
+    description: "Sauvegardes hors-ligne / immuables (résistantes au ransomware), avec test de restauration périodique documenté."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.8.13"]
+      nis2: ["Mesure 3 (Art. 21.2.c)"]
+      dora: ["Art. 11"]
+      cis: ["CIS 11"]
+      nist_csf: ["PR.DS-11", "RC.RP-01"]
+
+  - id: EDR-DETECTION
+    titre: "Détection et réponse sur les postes et serveurs (EDR)"
+    axe: Défense
+    description: "Déployer un outil de détection moderne (EDR) sur l'ensemble du parc pour identifier une compromission en cours."
+    cout_indicatif: lourd
+    mappings:
+      iso27001: ["A.8.16"]
+      nis2: ["Mesure implicite (Art. 21.1)"]
+      dora: ["Art. 10"]
+      cis: ["CIS 13"]
+      nist_csf: ["DE.CM-01", "DE.AE-02"]
+
+  - id: GESTION-VULNERABILITES
+    titre: "Gestion continue des vulnérabilités"
+    axe: Protection
+    description: "Scanner régulièrement les actifs, suivre un SLA de remédiation par criticité, tracer les correctifs appliqués."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.8.8"]
+      nis2: ["Mesure 13 (Art. 21.2.e)"]
+      dora: ["Art. 8"]
+      cis: ["CIS 7"]
+      nist_csf: ["ID.RA-01"]
+    source: "docs/contenu-grilles-entretien.md §7"
+
+  - id: JOURNALISATION-LOGS
+    titre: "Collecte et conservation des journaux d'audit"
+    axe: Défense
+    description: "Centraliser les logs des sources critiques, définir une durée de conservation suffisante pour l'investigation post-incident."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.8.15"]
+      nis2: ["Mesure implicite (Art. 21.1)"]
+      dora: ["Art. 9"]
+      cis: ["CIS 8"]
+      nist_csf: ["DE.CM-01"]
+    source: "docs/contenu-grilles-entretien.md §7"
+
+  - id: MOINDRE-PRIVILEGE
+    titre: "Restriction des droits d'accès administratifs (moindre privilège)"
+    axe: Protection
+    description: "Limiter les comptes disposant de droits d'administration, imposer un compte nominatif + sudo plutôt qu'un accès root direct."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.8.2", "A.5.15"]
+      nis2: ["Mesure 15 (Art. 21.2.i)"]
+      cis: ["CIS 5"]
+      nist_csf: ["PR.AA-05"]
+
+  - id: PSSI-GOUVERNANCE
+    titre: "Politique de Sécurité des Systèmes d'Information validée par la Direction"
+    axe: Gouvernance
+    description: "Faire approuver et diffuser une PSSI par la direction générale, avec revue au moins annuelle."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.5.1", "clause 5.2"]
+      nis2: ["Mesure 1 (Art. 21.2.a)", "Art. 20"]
+      dora: ["Art. 9"]
+      nist_csf: ["GV.PO-01"]
+
+  - id: SENSIBILISATION-PHISHING
+    titre: "Sensibilisation des collaborateurs au hameçonnage"
+    axe: Gouvernance
+    description: "Campagnes régulières de sensibilisation, testées par simulation de phishing, ciblées par population (Direction, IT, métier, RH, achats)."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.6.3"]
+      nis2: ["Mesure 7 (Art. 21.2.g)"]
+      dora: ["Art. 13"]
+      cis: ["CIS 14"]
+      nist_csf: ["PR.AT-01"]
+
+  - id: SEGMENTATION-RESEAU
+    titre: "Segmentation réseau et défense en profondeur"
+    axe: Protection
+    description: "Cloisonner les zones critiques (production, R&D, postes utilisateurs) pour limiter la latéralisation en cas de compromission d'un segment. Élément central de la checklist de revue d'architecture (G2)."
+    cout_indicatif: lourd
+    mappings:
+      iso27001: ["A.8.20", "A.8.22"]
+      nis2: ["Mesure implicite (Art. 21.1)"]
+      cis: ["CIS 12"]
+      nist_csf: ["PR.IR-01"]
+
+  - id: ZERO-TRUST-MATURITE
+    titre: "Maturité vers un modèle Zero Trust"
+    axe: Protection
+    description: "Vérification continue plutôt que confiance périmétrique par défaut : authentification systématique, segmentation dynamique, contrôles d'accès stricts. Élément de la checklist de revue d'architecture (G2)."
+    cout_indicatif: lourd
+    mappings:
+      nist_csf: ["PR.AA-01"]
+
+  - id: PSEUDONYMISATION-DONNEES
+    titre: "Pseudonymisation des données personnelles"
+    axe: Protection
+    description: "Limiter l'attribution directe d'une donnée à une personne sans information complémentaire, notamment dans les environnements de test/recherche."
+    cout_indicatif: moyen
+    mappings:
+      rgpd: ["Art. 32", "Art. 25 (Privacy by design)"]
+      iso27001: ["A.8.11"]
+
+  - id: EVALUATION-FOURNISSEURS
+    titre: "Évaluation des fournisseurs critiques avant acquisition et en continu"
+    axe: Gouvernance
+    description: "Évaluer la criticité cyber d'un tiers avant contractualisation (TPRM) et revoir les fournisseurs critiques périodiquement."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.5.19", "A.5.20", "A.5.21", "A.5.22"]
+      nis2: ["Mesure 4 (Art. 21.2.d)"]
+      dora: ["Art. 28"]
+      rgpd: ["Art. 28"]
+      nist_csf: ["ID.RA-10", "GV.SC-01"]
+    source: "docs/contenu-grilles-entretien.md §7"
+
+  - id: INVENTAIRE-ACTIFS
+    titre: "Inventaire des actifs sur tout le cycle de vie"
+    axe: Gouvernance
+    description: "Maintenir un inventaire à jour des données, systèmes, matériels et logiciels, de l'acquisition au retrait."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.5.9"]
+      nis2: ["Mesure 10 (Art. 21.2.i)"]
+      dora: ["Art. 8"]
+      nist_csf: ["ID.AM-01", "ID.AM-02"]
+    source: "docs/contenu-grilles-entretien.md §7"
+
+  - id: PROCEDURE-REPONSE-INCIDENT
+    titre: "Procédure de réponse à incident (E3R)"
+    axe: Défense
+    description: "Séquence Endiguement → Éviction → Éradication → Reconstruction documentée et testée, avec astreinte capable d'alerter sous 24h (NIS2) ou 4h (DORA)."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.5.24", "A.5.25", "A.5.26"]
+      nis2: ["Mesure 2 (Art. 21.2.b)", "Art. 23"]
+      dora: ["Art. 17", "Art. 19"]
+      nist_csf: ["RS.MA-01"]
+
+  - id: GOUVERNANCE-VALIDATION-VIREMENTS
+    titre: "Procédure de validation des virements et double signature"
+    axe: Gouvernance
+    description: "Contrôle de gouvernance contre la fraude au président : validation à deux niveaux des virements bancaires, procédure formalisée."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.5.2"]
+    source: "docs/contenu-grilles-entretien.md — cas Pathé"
+
+  - id: EXERCICE-CRISE-CYBER
+    titre: "Exercice / simulation de crise cyber"
+    axe: Résilience
+    description: "Entraîner la capacité de décision du ComDir sous stress à partir d'un scénario réaliste, généré depuis les scénarios opérationnels EBIOS (G4)."
+    cout_indicatif: moyen
+    mappings:
+      iso27001: ["A.5.24"]
+      nis2: ["Art. 20 (formation dirigeants)"]
+
+  - id: HOMOLOGATION-DECISION-FORMELLE
+    titre: "Décision formelle d'acceptation des risques résiduels (homologation)"
+    axe: Gouvernance
+    description: "Acte formel par lequel une autorité accepte les risques résiduels après vérification des mesures, généré depuis l'Atelier 5 EBIOS RM (G1)."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["clause 6.1.3"]
+
+  - id: TLS-DURCISSEMENT
+    titre: "Retrait des protocoles TLS obsolètes"
+    axe: Protection
+    description: "N'autoriser que TLSv1.2/1.3, masquer la version exacte du serveur (server_tokens off). Détecté automatiquement par AuditCraft-GRC."
+    cout_indicatif: léger
+    mappings:
+      iso27001: ["A.8.24", "A.8.9", "A.8.8"]
+      rgpd: ["Art. 32"]
+    source: "grc_rules.yaml (TLS-PROTO-01, NGX-TOKENS-01)"

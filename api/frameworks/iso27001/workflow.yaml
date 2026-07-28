@@ -1,0 +1,276 @@
+# ==================================================================
+# workflow.yaml — ISO/IEC 27001:2022 (parcours pivot GRC)
+# ------------------------------------------------------------------
+# Source unique alimentant 3 vues (spec §10.3 / §13.1) :
+#   Kanban            -> colonnes = macro_phases, cartes = etapes
+#   Agenda            -> jour_relatif / duree, converti en dates réelles
+#                        à partir de la date de démarrage du projet
+#   Grille d'entretien -> role_a_rencontrer + questions[] par étape
+#
+# Fidélité : workflow-audit-iso27001.md (skill grc-agent-hermes), 4 phases,
+# recoupé avec docs/contenu-grilles-entretien.md (questions sourcées).
+#
+# "sources" (spec §13.5) : quand une étape n'est pas encore couverte par du
+# contenu propre à GREEN SHIELD, le consultant est renvoyé vers la source qui
+# fait autorité — jamais un champ deviné à sa place.
+# ==================================================================
+
+metadata:
+  id: iso27001
+  name: "Audit ISO/IEC 27001:2022"
+  version: "1.0.0"
+  duree_typique: "4 à 6 semaines selon la taille du périmètre"
+  referentiels: ["ISO/IEC 27001:2022", "ISO 19011:2018", "ISO/IEC 27007"]
+  source: "workflow-audit-iso27001.md (grc-agent-hermes)"
+
+macro_phases:
+  # -------------------------------------------------------------- 1. PRÉPARATION
+  - id: preparation
+    titre: "1. Préparation"
+    jour_relatif_debut: 1
+    duree: "Semaine 1"
+    etapes:
+      - id: cadrage_mission
+        titre: "Cadrer la mission"
+        jour_relatif: 1
+        role_a_rencontrer: ["Sponsor exécutif", "RSSI"]
+        questions:
+          - "Quel est le périmètre exact de l'audit (entités, sites, processus, systèmes) ?"
+          - "Convient-on d'un référentiel complémentaire (ISO 27017 Cloud, 27018 PII Cloud, 27701 Privacy) en plus d'ISO 27001 seul ?"
+          - "Qui est le commanditaire et quelle est la chaîne décisionnelle ?"
+        champs:
+          - {key: perimetre, label: "Périmètre exact", type: text}
+          - {key: referentiels_complementaires, label: "Référentiels complémentaires retenus", type: text}
+          - {key: dates_cles, label: "Dates clés et rendu final", type: text}
+        livrables: ["Lettre de mission signée", "Plan d'audit"]
+        sources: []
+
+      - id: collecte_documentation
+        titre: "Collecter la documentation"
+        jour_relatif: 1
+        duree: "jusqu'à J-15 avant le terrain"
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "La Politique de Sécurité (PSSI) est-elle en place et validée par la direction ?"
+          - "La Déclaration d'Applicabilité (SoA) est-elle disponible et à jour ?"
+          - "Existe-t-il un plan de traitement des risques et un registre des risques ?"
+          - "Les comptes-rendus des 12 derniers mois du comité SMSI sont-ils disponibles ?"
+          - "L'inventaire des actifs est-il à jour ?"
+          - "Existe-t-il un rapport d'audit interne précédent avec son plan d'action, et un rapport de revue de Direction ?"
+        champs:
+          - {key: documents_recus, label: "Documents reçus (liste)", type: list}
+          - {key: manques_constates, label: "Premier diagnostic des manques", type: text}
+        livrables: ["Dossier documentaire complet"]
+        sources:
+          - {label: "ISO/IEC 27001:2022 — clause 9.2 (audit interne)", url: ""}
+
+      - id: programme_audit
+        titre: "Construire le programme d'audit"
+        jour_relatif: 5
+        duree: "envoyé à J-7 minimum"
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "Quels entretiens (qui, quand, durée, sujets) faut-il planifier ?"
+          - "Quelles observations physiques (sites, datacenter) sont prévues ?"
+          - "Quel échantillon tester (habilitations, logs, configurations) ?"
+        champs:
+          - {key: planning_entretiens, label: "Planning des entretiens", type: list}
+          - {key: planning_restitution, label: "Planning de restitution intermédiaire et finale", type: text}
+        livrables: ["Programme d'audit envoyé à l'audité"]
+        sources: []
+
+  # --------------------------------------------------------------- 2. EXÉCUTION
+  - id: execution
+    titre: "2. Exécution"
+    jour_relatif_debut: 8
+    duree: "Semaines 2-4"
+    etapes:
+      - id: reunion_ouverture
+        titre: "Réunion d'ouverture"
+        jour_relatif: 8
+        role_a_rencontrer: ["Sponsor exécutif", "RSSI"]
+        questions:
+          - "L'équipe d'auditeurs et la méthodologie ont-elles été présentées ?"
+          - "Le périmètre, le planning et la confidentialité sont-ils confirmés ?"
+          - "Un point de contact pour la production de preuves est-il désigné ?"
+        champs: []
+        livrables: ["Compte-rendu de réunion d'ouverture"]
+        sources: []
+
+      - id: audit_clauses
+        titre: "Audit des clauses 4 à 10 (système de management)"
+        jour_relatif: 9
+        duree: "1-2 jours"
+        role_a_rencontrer: ["RSSI", "Direction", "RH", "DSI"]
+        questions:
+          - "Clause 4 (Contexte) : quels sont les enjeux, les parties intéressées, le périmètre ?"
+          - "Clause 5 (Leadership) : quel est l'engagement de la Direction, les ressources allouées, la politique ?"
+          - "Clause 6 (Planification) : quelle méthode de gestion des risques, quel traitement, quels objectifs ?"
+          - "Clause 7 (Support) : quelles compétences, quelle sensibilisation, quelle documentation ?"
+          - "Clause 8 (Fonctionnement) : quelles procédures opérationnelles et de gestion du changement ?"
+          - "Clause 9 (Évaluation) : quels KPI, quel audit interne, quelle revue de Direction ?"
+          - "Clause 10 (Amélioration) : comment sont traitées les non-conformités et actions correctives ?"
+        champs:
+          - {key: constats_clauses, label: "Constats par clause (méthode : « comment faites-vous concrètement ? » puis « montrez-moi la preuve »)", type: list}
+        livrables: []
+        sources: []
+
+      - id: audit_annexe_a
+        titre: "Audit des contrôles Annexe A"
+        jour_relatif: 11
+        duree: "3-5 jours"
+        role_a_rencontrer: ["RSSI", "DSI", "Lead Sécurité / Architecte"]
+        questions:
+          - "Les contrôles déclarés « Applicables et implémentés » sur le SoA sont-ils vérifiés à 100 % ?"
+          - "Les 11 nouveaux contrôles 2022 (A.5.7, A.5.23, A.5.30, A.7.4, A.8.9 à A.8.12, A.8.16, A.8.23, A.8.28) ont-ils fait l'objet d'un focus particulier ?"
+          - "A.5.15 (contrôle d'accès) : les droits d'un échantillon d'utilisateurs correspondent-ils à leur poste ?"
+          - "A.8.8 (vulnérabilités) : quel est le dernier rapport de scan et le traçage de remédiation ?"
+          - "A.8.13 (sauvegardes) : un test de restauration a-t-il été observé ?"
+          - "A.8.15 (logs) : la couverture des sources critiques et la conservation sont-elles suffisantes (CIS 8) ?"
+          - "A.5.30 (PCA TIC) : quelle est la date et le résultat du dernier test PRA ?"
+        champs:
+          - key: controles_annexe_a
+            label: "Résultat par contrôle Annexe A"
+            type: preuve_technique
+            source_automatique: auditcraft_grc
+            note: "Alimenté automatiquement par le scan technique réel (grc_rules.yaml) pour les contrôles couverts ; complété manuellement pour les contrôles organisationnels."
+        livrables: []
+        sources:
+          - {label: "ISO/IEC 27001:2022 — Annexe A (93 contrôles)", url: ""}
+
+      - id: observations_physiques
+        titre: "Observations physiques et techniques"
+        jour_relatif: 15
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "Les badges, alarmes et vidéosurveillance des sites sensibles sont-ils vérifiés ?"
+          - "Le test « écrans verrouillés » en heure de pointe a-t-il été mené ?"
+          - "Le « bureau dégagé » en fin de journée est-il constaté ?"
+          - "La gestion des déchets sensibles (papier, supports) est-elle maîtrisée ?"
+        champs:
+          - {key: observations, label: "Observations physiques consignées", type: list}
+        livrables: []
+        sources: []
+
+      - id: documentation_constats
+        titre: "Documenter chaque constat"
+        jour_relatif: 18
+        role_a_rencontrer: []
+        questions:
+          - "Pour ce constat : quel contrôle/clause, quel constat factuel, quelle(s) preuve(s), quelle(s) personne(s) rencontrée(s) ?"
+          - "Quel niveau : Conforme / Observation / Non-conformité mineure / Non-conformité majeure ?"
+        champs:
+          - {key: constats, label: "Constats consolidés (contrôle, preuve, niveau, risque associé)", type: list}
+        livrables: []
+        sources:
+          - {label: "ISO 19011 — critères NC majeure/mineure/observation", url: ""}
+
+  # -------------------------------------------------- 3. SYNTHÈSE & RESTITUTION
+  - id: synthese
+    titre: "3. Synthèse et restitution"
+    jour_relatif_debut: 22
+    duree: "Semaines 5-6"
+    etapes:
+      - id: analyse_croisee
+        titre: "Analyse croisée"
+        jour_relatif: 22
+        role_a_rencontrer: []
+        questions:
+          - "Quelles sont les causes racines récurrentes (gouvernance, ressources, gestion du changement) ?"
+          - "Quel est le Top 5 ou Top 10 des actions prioritaires ?"
+        champs:
+          - {key: causes_racines, label: "Causes racines identifiées", type: text}
+          - {key: top_actions, label: "Top actions prioritaires", type: list}
+        livrables: []
+        sources: []
+
+      - id: redaction_rapport
+        titre: "Rédiger le rapport"
+        jour_relatif: 24
+        role_a_rencontrer: []
+        questions: []
+        champs:
+          - {key: synthese_executive, label: "Synthèse exécutive (1 page CODIR)", type: text}
+        livrables: ["Rapport d'audit — 9 sections (cf. gabarit DOCX)"]
+        sources: []
+        avertissement: "Ne pas mélanger constats et recommandations dans la même phrase. Faits et preuves uniquement, pas de jugement de valeur."
+
+      - id: restitution_intermediaire
+        titre: "Réunion de restitution intermédiaire"
+        jour_relatif: 26
+        duree: "5 jours pour preuves complémentaires"
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "L'audité a-t-il des preuves complémentaires à produire avant la version finale ?"
+        champs: []
+        livrables: []
+        sources: []
+
+      - id: reunion_cloture
+        titre: "Réunion de clôture"
+        jour_relatif: 30
+        role_a_rencontrer: ["Sponsor exécutif", "Direction"]
+        questions:
+          - "La synthèse exécutive et le verdict global de conformité sont-ils présentés ?"
+          - "Le calendrier de plan d'action et de suivi est-il validé ?"
+        champs: []
+        livrables: ["Rapport d'audit final"]
+        sources: []
+
+  # -------------------------------------------------------- 4. SUIVI POST-AUDIT
+  - id: suivi
+    titre: "4. Suivi post-audit"
+    jour_relatif_debut: 30
+    duree: "3 à 12 mois"
+    etapes:
+      - id: validation_plan_action
+        titre: "Valider le plan d'action"
+        jour_relatif: 30
+        duree: "J+30"
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "Chaque non-conformité a-t-elle une ligne, un owner, une échéance réaliste (NC majeures 90 j max, mineures 90-180 j) et un indicateur de clôture ?"
+        champs:
+          - {key: plan_action_valide, label: "Plan d'action validé", type: boolean}
+        livrables: []
+        sources: []
+
+      - id: suivi_periodique
+        titre: "Suivi périodique"
+        jour_relatif: 90
+        duree: "trimestriel"
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "Quel est l'avancement des non-conformités majeures à mi-parcours ?"
+          - "Chaque NC est-elle close sur preuve d'efficacité, pas seulement sur l'action menée ?"
+        champs: []
+        livrables: []
+        sources: []
+
+      - id: audit_suivi_12_mois
+        titre: "Audit de suivi (12 mois)"
+        jour_relatif: 365
+        role_a_rencontrer: ["RSSI"]
+        questions:
+          - "Les actions correctives ont-elles produit des effets durables, pas seulement temporaires ?"
+        champs: []
+        livrables: ["Registre des non-conformités SMSI à jour", "Données pour la prochaine revue de Direction"]
+        sources: []
+
+checklist_auditeur:
+  # Mémo-tampon pendant la mission (workflow-audit-iso27001.md).
+  - "Lettre de mission signée"
+  - "Périmètre validé par écrit"
+  - "Documentation collectée et analysée avant le terrain"
+  - "Programme d'audit envoyé à J-7"
+  - "Réunion d'ouverture tenue"
+  - "100% des clauses 4-10 traitées"
+  - "Échantillon Annexe A couvre les 4 thèmes"
+  - "Focus 11 nouveaux contrôles 2022 fait"
+  - "Observations physiques effectuées"
+  - "Au moins 1 test d'efficacité par contrôle critique"
+  - "Chaque constat appuyé par une preuve"
+  - "Top 5 ou Top 10 actions priorisées"
+  - "Rapport produit dans les 10 jours ouvrés post-terrain"
+  - "Restitution intermédiaire + finale tenues"
+  - "Plan d'action validé à J+30"

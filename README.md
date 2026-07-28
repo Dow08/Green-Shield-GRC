@@ -75,6 +75,10 @@ cd web && npm install && npm run dev      # http://localhost:5173 (proxifie /api
 2. L'enregistrer dans `api/main.py` (registre).
 3. Une page dans `web/src/pages/` + une entrée dans le shell.
 
+## Documentation
+
+- [Fiche métier — Consultant en Cybersécurité & GRC](docs/fiche-metier-consultant-grc.md) : contexte fonctionnel (missions, référentiels, fonctions transverses) qui cadre le périmètre GRC couvert par la plateforme et guide les modules à venir (Copilote GRC, Registre de missions).
+
 ---
 
 *GREEN SHIELD — DP Cyber Consulting. PoC de démonstration d'expertise cyber / GRC.*

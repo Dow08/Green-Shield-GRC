@@ -10,7 +10,7 @@ const ICONS: Record<string, ComponentType<{ size?: number; strokeWidth?: number 
   collect: Radar,
 };
 
-export function iconFor(name: string): ComponentType<{ size?: number; strokeWidth?: number }> {
+export function iconFor(name: string): ComponentType<{ size?: number; strokeWidth?: number }> {     
   return ICONS[name] ?? Shield;
 }
 
@@ -22,12 +22,12 @@ interface Props {
 
 export function Sidebar({ view, onNavigate, modules }: Props) {
   return (
-    <aside className="flex w-[76px] flex-col items-center gap-2 border-r border-[var(--stroke)] bg-white/[0.02] py-4">
+    <aside className="flex w-[76px] flex-col items-center gap-2 border-r border-[var(--stroke)] bg-white/[0.02] py-4 flex-shrink-0">
       <div className="tile tile-green mb-2 h-[42px] w-[42px] shadow-[0_8px_20px_rgba(46,230,160,0.4)]">
         <Shield size={20} strokeWidth={2.2} />
       </div>
 
-      <NavButton active={view === "home"} label="Accueil" onClick={() => onNavigate("home")}>
+      <NavButton active={view === "home"} label="Accueil" onClick={() => onNavigate("home")}>       
         <LayoutGrid size={19} strokeWidth={2} />
       </NavButton>
 
@@ -49,7 +49,8 @@ export function Sidebar({ view, onNavigate, modules }: Props) {
 
       <div className="flex-1" />
 
-      <NavButton active={false} label="Réglages" onClick={() => {}}>
+      {/* Activated Settings cog button */}
+      <NavButton active={view === "settings"} label="Réglages &amp; Paramètres" onClick={() => onNavigate("settings")}>
         <Settings size={19} strokeWidth={2} />
       </NavButton>
       <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#3a4d5a] to-[#22323c] text-sm font-bold text-[#cfe]">

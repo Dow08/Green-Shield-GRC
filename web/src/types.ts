@@ -1,4 +1,63 @@
-// Types miroir de l'API GREEN SHIELD (api/main.py).
+export type CopilotSource = "online" | "offline" | "offline_fallback";
+
+export interface CopilotAskResult {
+  status: string;
+  response: string;
+  source: CopilotSource;
+  context?: CopilotContext;
+}
+
+export interface TiersCritique {
+  project: string;
+  project_id: string;
+  tiers_name: string;
+  score: number;
+  rating: string;
+}
+
+export interface RedouteEventAgrege {
+  project: string;
+  project_id: string;
+  event: string;
+  gravity: number;
+}
+
+export interface NonConformiteAgregee {
+  project: string;
+  project_id: string;
+  control: string;
+  severity: string;
+}
+
+export interface CopilotContext {
+  total_projects: number;
+  by_type: { grc: number; consulting: number };
+  avg_progress: number;
+  tiers_critiques: TiersCritique[];
+  redoute_events: RedouteEventAgrege[];
+  non_conformites: NonConformiteAgregee[];
+  quick_wins_en_attente: number;
+}
+
+export type CollecteDetectedType =
+  | "sshd_config" | "nginx" | "apache" | "mysql" | "postgresql" | "docker_compose" | "os_release" | "inconnu";
+
+export interface SuggestedAsset {
+  name: string;
+  type: string;
+  description: string;
+  owner: string;
+}
+
+export interface FingerprintResult {
+  filename: string;
+  detected_type: CollecteDetectedType;
+  service: string;
+  version: string | null;
+  directive_count: number;
+  flags: string[];
+  suggested_asset: SuggestedAsset;
+}
 
 export interface ModuleInfo {
   id: string;
@@ -40,4 +99,192 @@ export interface AuditResult {
   counts: { total: number; evaluated: number; compliant: number; gaps: number };
   controls: Control[];
   report_markdown: string;
+}
+
+// --- Interfaces pour la gestion de projets avancée (6 Phases) ---
+
+export interface Framework {
+  id: string;
+  name: string;
+  description: string;
+  requirements_count: number;
+}
+
+export interface AssetMetier {
+  id: string;
+  name: string;
+  description: string;
+  is_personal_data: boolean;
+}
+
+export interface AssetSupport {
+  id: string;
+  name: string;
+  type: string;
+  description: string;
+  owner: string;
+}
+
+export interface RGPDRegister {
+  id: string;
+  name: string;
+  purpose: string;
+  data_categories: string;
+  retention: string;
+}
+
+export interface AIPDData {
+  treatment_description: string;
+  necessity_eval: string;
+  risks_eval: string;
+  mitigation_measures: string;
+}
+
+export interface Tiers {
+  name: string;
+  dependence: number;   // 1-5
+  penetration: number;  // 1-5
+  maturity: number;     // 1-5
+  trust: number;        // 1-5
+  score: number;        // auto-calculated
+  rating: "Critique" | "Élevé" | "Moyen" | "Faible";
+}
+
+export interface RedouteEvent {
+  id: string;
+  event: string;
+  gravity: number; // 1-4
+  impact: string;
+}
+
+export interface RiskSource {
+  id: string;
+  name: string;
+  objective: string;
+}
+
+export interface OperationalScenario {
+  id: string;
+  event: string;
+  gravity: number; // 1-4
+  likelihood: number; // 1-5
+  mitigation: string;
+}
+
+export interface CaseStudy {
+  case: string;
+  lessons: string;
+}
+
+export interface BCPStrategy {
+  rto: string;
+  rpo: string;
+  backup_policy: string;
+}
+
+export interface E3R {
+  endiguement: string;
+  eviction: string;
+  eradication: string;
+  reconstruction: string;
+}
+
+export interface Remediation {
+  id: string;
+  axe: "Gouvernance" | "Protection" | "Défense" | "Résilience";
+  measure: string;
+  priority: "Critique" | "Élevé" | "Moyen" | "Faible";
+}
+
+export interface ManualControl {
+  id: string;
+  title: string;
+  description: string;
+  status: "CONFORME" | "NON_CONFORME" | "A_VERIFIER";
+  notes: string;
+}
+
+export interface ProjectState {
+  id: string;
+  name: string;
+  client: string;
+  type: "grc" | "consulting";
+  status: "en_cours" | "termine";
+  progress: number;
+  created_at: string;
+  updated_at: string;
+  // Introduit au Jalon 1 (schema_version 2, api/modules/schema_migration.py) :
+  // avancement des parcours référentiels pilotés par workflow.yaml, indexé par
+  // référentiel puis par id d'étape. Optionnel côté type le temps que toutes
+  // les missions soient passées par la migration.
+  grc?: {
+    active: boolean;
+    referentiels_actifs: string[];
+    parcours: Record<
+      string,
+      Record<string, { statut: "a_faire" | "en_cours" | "fait"; valeurs?: Record<string, string | boolean | string[]> }>
+    >;
+  };
+  steps: {
+    // Phase 1 : Cadrage & Patrimoine
+    cadrage: {
+      scope: string;
+      client_missions: string;
+      nda_signed: boolean;
+      nda_text: string;
+      assets_metier: AssetMetier[];
+      assets_support: AssetSupport[];
+      framework_id?: string;
+      framework_name?: string;
+      validated?: boolean; // Étape validée par le consultant
+    };
+    // Phase 2 : Diagnostic & RGPD
+    diagnostic: {
+      pssi_active: boolean;
+      governance_active: boolean;
+      vulnerabilities_active: boolean;
+      rgpd_register: RGPDRegister[];
+      aipd_required: boolean;
+      aipd: AIPDData;
+      validated?: boolean; // Étape validée
+    };
+    // Phase 3 : TPRM
+    tprm: {
+      tiers: Tiers[];
+      validated?: boolean; // Étape validée
+    };
+    // Phase 4 : EBIOS RM
+    ebios: {
+      redoute_events: RedouteEvent[];
+      risk_sources: RiskSource[];
+      operational_scenarios: OperationalScenario[];
+      case_studies: CaseStudy[];
+      validated?: boolean; // Étape validée
+    };
+    // Phase 5 : Résilience (E3R, Continuité)
+    resilience: {
+      logging_active: boolean;
+      bcp_strategy: BCPStrategy;
+      e3r: E3R;
+      validated?: boolean; // Étape validée
+    };
+    // Phase 6 : Traitement & Restitution
+    traitement: {
+      remediations: Remediation[];
+      quick_wins: string[];
+      validated?: boolean; // Étape validée
+    };
+    // GRC SPECIFIC STEPS MAPPED IN EVALUATION (OPTIONAL FOR TYPE='grc')
+    collecte?: {
+      files: string[];
+    };
+    evaluation?: {
+      manual_controls: ManualControl[];
+      technical_results: AuditResult | null;
+    };
+    restitution?: {
+      exec_summary: string;
+      remediation_plan: string[];
+    };
+  };
 }

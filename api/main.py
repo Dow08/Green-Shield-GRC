@@ -1,6 +1,6 @@
 """GREEN SHIELD — API (FastAPI).
 
-Expose le registre des modules et l'exécution de leurs audits au frontend React.
+Expose le registre des modules, la gestion des projets, et l'exécution des audits au frontend React.
 Le moteur reste 100 % Python ; l'API n'est qu'une façade JSON.
 """
 from __future__ import annotations
@@ -12,19 +12,27 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from modules import auditcraft_grc
+from modules import projects
+from modules import collecte_technique
+from modules import copilot_grc
 
 # Cible auditée : /audit/target en conteneur (monté :ro), sinon ../lab_target en local.
-TARGET_DIR = os.environ.get("AUDIT_TARGET_DIR", str(Path(__file__).resolve().parent.parent / "lab_target"))
+TARGET_DIR = os.environ.get("AUDIT_TARGET_DIR", str(Path(__file__).resolve().parent.parent / "lab_target"))     
 
 app = FastAPI(title="GREEN SHIELD API", version="1.0.0")
 
-# Le frontend (SPA) est servi sur une autre origine → CORS ouvert en local.
+# Le frontend (SPA) est servi sur http://localhost:8080 en prod
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["http://localhost:8080"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Enregistrement des routes projets/frameworks/collecte technique/copilote GRC
+app.include_router(projects.router)
+app.include_router(collecte_technique.router)
+app.include_router(copilot_grc.router)
 
 # Registre des modules (un descripteur par module installé).
 MODULES = [auditcraft_grc.MODULE]

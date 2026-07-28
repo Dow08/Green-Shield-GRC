@@ -12,6 +12,13 @@ node_modules/
 dist/
 .vite/
 
+# --- Données clients (JAMAIS versionnées) ---
+# Les missions vivent désormais hors du dépôt (%APPDATA%/GreenShield ou
+# ~/.local/share/greenshield, cf. GREENSHIELD_DATA_DIR). Cette règle reste en
+# double sécurité pour l'ancien emplacement : les données d'audit client ne
+# doivent en aucun cas entrer dans l'historique git. Voir docs/audit-critique-plan.md (F13).
+projects/
+
 # --- Livrables générés ---
 rapport_auditcraft_grc.md
 *.log

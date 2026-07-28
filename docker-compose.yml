@@ -1,8 +1,8 @@
-# ==================================================================
-# GREEN SHIELD — plateforme (3 services)
-#   target_lab : la cible (configs vulnérables)
+﻿# ==================================================================
+# GREEN SHIELD â€” plateforme (3 services)
+#   target_lab : la cible (configs vulnÃ©rables)
 #   api        : FastAPI, moteurs des modules, lit la cible en READ-ONLY
-#   web        : frontend React (nginx) → proxifie /api vers api:8000
+#   web        : frontend React (nginx) â†’ proxifie /api vers api:8000
 # ==================================================================
 
 services:
@@ -21,8 +21,13 @@ services:
       - target_lab
     volumes:
       - ./lab_target:/audit/target:ro   # STRICT read-only
+      # Missions clientes : volume nommé, donc persistant entre les rebuilds et
+      # HORS du répertoire du dépôt (un bind mount vers ./projects rouvrirait
+      # le risque de versionner des données clients — cf. docs/audit-critique-plan.md, F13).
+      - greenshield_data:/data
     environment:
       AUDIT_TARGET_DIR: /audit/target
+      GREENSHIELD_DATA_DIR: /data/projects
     restart: unless-stopped
 
   web:
@@ -31,5 +36,14 @@ services:
     depends_on:
       - api
     ports:
-      - "8080:80"
+      # Loopback strict : aucune authentification n'existe sur l'API (audit du
+      # 28/07/2026, V-01) et les missions contiennent des données client
+      # sensibles. Publier sur 0.0.0.0 rendrait l'app accessible à tout
+      # appareil du réseau local. Ne retirer "127.0.0.1:" qu'après avoir mis
+      # en place une authentification.
+      - "127.0.0.1:8080:8080"
     restart: unless-stopped
+
+volumes:
+  greenshield_data:
+

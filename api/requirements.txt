@@ -1,3 +1,14 @@
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
 PyYAML==6.0.2
+
+# Génération des livrables Word. docxtpl remplit un vrai gabarit .docx porteur de
+# balises Jinja2 : le fichier produit s'ouvre nativement dans Word, et le gabarit
+# reste modifiable dans Word sans toucher au code.
+# Pur Python, aucune dépendance native -> s'installe à l'identique sous Windows
+# et Linux (cf. docs/audit-critique-plan.md, F6 : règle "aucune dépendance
+# native obligatoire pour le développement local").
+docxtpl==0.20.2
+python-docx==1.2.0
+
+pytest==8.3.3
