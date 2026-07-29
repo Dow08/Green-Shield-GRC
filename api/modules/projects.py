@@ -8,8 +8,9 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from urllib.parse import quote
-from fastapi import APIRouter, HTTPException, UploadFile, File, Response
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response
 import yaml
+from . import archive
 from . import auditcraft_grc
 from . import ai_gateway
 from . import audit_log
@@ -58,13 +59,24 @@ def _read_state(path: Path) -> dict:
 
 
 def _migrate_legacy_projects() -> None:
-    """Recopie les missions de l'ancien emplacement (dans le dépôt) vers le nouveau.
+    """Recopie une seule fois les missions de l'ancien emplacement (dans le dépôt)
+    vers le nouveau.
 
     Non destructif : l'ancien dossier est laissé en place, à supprimer manuellement
     une fois la migration vérifiée. Une mission déjà présente n'est jamais écrasée.
+
+    Le marqueur est indispensable : cette fonction s'exécute à *chaque import* du
+    module. Sans lui, pointer `GREENSHIELD_DATA_DIR` vers un répertoire de test ou
+    de démonstration y recopiait silencieusement les missions clientes réelles, à
+    chaque démarrage (constaté le 29/07/2026).
     """
     if not _LEGACY_PROJECTS_DIR.is_dir() or _LEGACY_PROJECTS_DIR == PROJECTS_DIR:
         return
+
+    marqueur = PROJECTS_DIR / ".legacy-migre"
+    if marqueur.exists():
+        return
+
     for legacy in _LEGACY_PROJECTS_DIR.iterdir():
         if not (legacy / "project.json").is_file():
             continue
@@ -73,7 +85,20 @@ def _migrate_legacy_projects() -> None:
             continue
         PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
         shutil.copytree(legacy, target)
+        audit_log.record("legacy.migrate", target=legacy.name)
         print(f"[GREEN SHIELD] Mission migrée hors du dépôt : {legacy.name} -> {target}")
+
+    try:
+        PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
+        marqueur.write_text(
+            "Migration depuis l'ancien emplacement effectuée. "
+            "Supprimer ce fichier force une nouvelle tentative.\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        # Répertoire non inscriptible : on retentera au prochain démarrage
+        # plutôt que d'empêcher l'application de se lancer.
+        pass
 
 
 PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
@@ -514,6 +539,80 @@ def run_project_audit(p_id: str) -> dict:
         return state
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+# --- Export / import d'une mission en archive chiffrée (F14, F15) -----------
+# Le mot de passe transite dans le CORPS de la requête, jamais en paramètre
+# d'URL : une URL finit dans les journaux d'accès et l'historique.
+
+@router.post("/projects/{p_id}/archive")
+def export_project_archive(p_id: str, data: dict) -> Response:
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    p_dir = PROJECTS_DIR / p_id
+    if not (p_dir / "project.json").is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    try:
+        contenu = archive.export_archive(p_dir, data.get("password", ""))
+    except archive.ArchiveInvalide as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    audit_log.record("project.archive_export", target=p_id, detail=f"octets={len(contenu)}")
+    filename = f"mission_{p_id}.zip"
+    return Response(
+        content=contenu,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/projects/import-archive")
+async def import_project_archive(
+    file: UploadFile = File(...),
+    password: str = Form(""),
+) -> dict:
+    """Restaure une mission depuis une archive chiffrée.
+
+    L'archive est une entrée non fiable : `archive.lire_archive` valide la
+    structure, plafonne la décompression et refuse toute traversée de chemin.
+    """
+    donnees = await file.read()
+    try:
+        state, fichiers = archive.lire_archive(donnees, password)
+    except archive.ArchiveInvalide as exc:
+        audit_log.record("project.archive_import", outcome="denied", detail=str(exc)[:80])
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    # L'identifiant vient de l'archive mais reste une donnée non fiable.
+    p_id = path_safety.safe_path_component(
+        str(state.get("id") or "").strip() or "mission_importee", "identifiant de mission"
+    )
+    if (PROJECTS_DIR / p_id).exists():
+        raise HTTPException(
+            status_code=409,
+            detail=f"Une mission « {p_id} » existe déjà. Renommez ou supprimez-la avant d'importer.",
+        )
+
+    p_dir = PROJECTS_DIR / p_id
+    try:
+        archive.ecrire_fichiers(fichiers, p_dir)
+        for sous in archive.SOUS_DOSSIERS:
+            (p_dir / sous).mkdir(parents=True, exist_ok=True)
+        # Une mission importée peut venir d'une version antérieure du schéma :
+        # elle traverse la même chaîne de migration que n'importe quelle lecture.
+        state = schema_migration.migrate(state)
+        state["id"] = p_id
+        state["progress"] = calculate_progress(state)
+        _write_json_atomic(p_dir / "project.json", state)
+    except archive.ArchiveInvalide as exc:
+        shutil.rmtree(p_dir, ignore_errors=True)
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        shutil.rmtree(p_dir, ignore_errors=True)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audit_log.record("project.archive_import", target=p_id, detail=f"fichiers={len(fichiers)}")
+    return state
+
 
 # --- Suivi du temps consommé (F19) ------------------------------------------
 # Phases reconnues : les 6 étapes méthodologiques + un fourre-tout explicite

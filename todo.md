@@ -14,7 +14,7 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 
 ## Frictions non résolues de l'audit critique (§6bis)
 
-- [ ] **F14 — Export/Import d'une mission.** Aucun mécanisme de sauvegarde ni de portabilité entre postes. Prévu : export d'une mission en archive unique (`project.json` + `evidence/` + `reports/`), import symétrique. Sert aussi à la remise des données au client en fin de mission.
+- [x] **F14 — Export/Import d'une mission** livré le 29/07/2026 : archive ZIP chiffrée AES-256 (`api/modules/archive.py`), routes `POST /api/projects/{id}/archive` et `POST /api/projects/import-archive`, panneau `ArchivePanel.tsx`. Couvre aussi le reste de **F15** (chiffrement du vecteur le plus exposé). Import durci contre le Zip Slip, la bombe de décompression et les archives malformées.
 - [x] **F15 — Chiffrement au repos documenté** le 29/07/2026 : section « Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md), avec les commandes de vérification (`manage-bde -status` / `lsblk -f`). Reste à faire une fois F14 livré : **chiffrer l'archive d'export**, qui est le vecteur le plus exposé.
 - [ ] **F16 — Aucun jeu de démonstration anonymisé.** Démontrer l'outil (portfolio, entretien) exige aujourd'hui d'ouvrir une mission réelle. Créer un projet fictif explicitement marqué `DEMO`, distinct des vraies missions.
 - [ ] **F17 — Obligations RGPD du consultant sur ses propres traitements.** Les grilles d'entretien collectent nom/fonction/déclarations de personnes physiques interrogées : Dorian est responsable de traitement pour ces données. Définir une durée de conservation par mission + suppression/restitution en fin de mission.
@@ -23,7 +23,7 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 
 ## Constats ouverts (découverts en session)
 
-- [ ] **La migration legacy recopie les données clients dans n'importe quel répertoire de données.** `_migrate_legacy_projects()` (`api/modules/projects.py`) s'exécute à *chaque import du module* et recopie `GREEN SHIELD/projects/*` vers `GREENSHIELD_DATA_DIR`. Constaté le 29/07/2026 : lancer l'API avec un `GREENSHIELD_DATA_DIR` de test a silencieusement dupliqué la mission cliente « cassiopé » dans un répertoire temporaire — à chaque démarrage. Deux correctifs à trancher : (a) ne migrer qu'une seule fois (marqueur `.migrated`), (b) supprimer `GREEN SHIELD/projects/` maintenant que la migration hors dépôt a eu lieu (vérifier d'abord que `%APPDATA%\GreenShield\projects` contient bien tout).
+- [x] **Migration legacy rendue unique** le 29/07/2026 : marqueur `.legacy-migre` posé dans le répertoire de destination, et suppression du dossier `GREEN SHIELD/projects/` (le projet de test « cassiopé » qu'il contenait n'était pas une vraie mission cliente). Sans ce marqueur, pointer `GREENSHIELD_DATA_DIR` vers un répertoire de test y recopiait les missions à chaque démarrage — et une mission volontairement supprimée réapparaissait au redémarrage suivant.
 - [ ] **Bundle JS monolithique** (449 kB / 129 kB gzip, aucun code-splitting). Non bloquant au volume actuel, pertinent surtout pour l'usage tablette. `React.lazy()` sur les 4 pages principales.
 - [ ] **Coquille applicative non responsive** — `App.tsx` et `Sidebar.tsx` n'ont aucune classe `sm:`/`md:`/`lg:`. L'usage tablette est pourtant déjà avéré. Sidebar en drawer sous un breakpoint.
 

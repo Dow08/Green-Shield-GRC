@@ -9,6 +9,12 @@ PyYAML==6.0.2
 # le paquet étant présent par ailleurs sur le poste de développement.
 python-multipart==0.0.32
 
+# Archives de mission chiffrées en AES-256 (WinZip AES, lisible par 7-Zip et
+# WinZip). `zipfile` de la stdlib sait lire un zip chiffré mais pas en écrire.
+# Wheels précompilés pour Windows et Linux : aucune compilation requise
+# (cf. CLAUDE.md, règle 1 — aucune dépendance native obligatoire en local).
+pyzipper==0.4.0
+
 # Génération des livrables Word. docxtpl remplit un vrai gabarit .docx porteur de
 # balises Jinja2 : le fichier produit s'ouvre nativement dans Word, et le gabarit
 # reste modifiable dans Word sans toucher au code.

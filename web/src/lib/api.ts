@@ -5,9 +5,24 @@ import type {
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
 
+/**
+ * Extrait le message d'erreur métier renvoyé par FastAPI (champ `detail`).
+ * Sans ça l'utilisateur ne voit que « HTTP 400 » là où l'API dit précisément
+ * « Mot de passe incorrect » ou « Une mission « acme » existe déjà ».
+ */
+export async function errorDetail(res: Response): Promise<string> {
+  try {
+    const data = await res.json();
+    if (data && typeof data.detail === "string") return data.detail;
+  } catch {
+    // Corps vide ou non-JSON : on retombe sur le code HTTP.
+  }
+  return `HTTP ${res.status}`;
+}
+
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(path);
-  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  if (!res.ok) throw new Error(await errorDetail(res));
   return res.json() as Promise<T>;
 }
 
@@ -17,7 +32,7 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  if (!res.ok) throw new Error(await errorDetail(res));
   return res.json() as Promise<T>;
 }
 
@@ -27,7 +42,7 @@ async function put<T>(path: string, body: unknown): Promise<T> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  if (!res.ok) throw new Error(await errorDetail(res));
   return res.json() as Promise<T>;
 }
 
@@ -35,7 +50,7 @@ async function deleteReq<T>(path: string): Promise<T> {
   const res = await fetch(path, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  if (!res.ok) throw new Error(await errorDetail(res));
   return res.json() as Promise<T>;
 }
 
@@ -46,7 +61,7 @@ async function uploadFile<T>(path: string, file: File): Promise<T> {
     method: "POST",
     body: formData,
   });
-  if (!res.ok) throw new Error(`${path} → HTTP ${res.status}`);
+  if (!res.ok) throw new Error(await errorDetail(res));
   return res.json() as Promise<T>;
 }
 
@@ -65,6 +80,25 @@ export const api = {
     runAudit: (id: string) => post<ProjectState>(`/api/projects/${id}/audit`, {}),
     addTemps: (id: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
       post<ProjectState>(`/api/projects/${id}/temps`, entry),
+    // Archive chiffrée : le mot de passe passe par le corps de la requête,
+    // jamais par l'URL (qui finirait dans les journaux d'accès).
+    exportArchive: async (id: string, password: string): Promise<Blob> => {
+      const res = await fetch(`/api/projects/${id}/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      if (!res.ok) throw new Error(await errorDetail(res));
+      return res.blob();
+    },
+    importArchive: async (file: File, password: string): Promise<ProjectState> => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("password", password);
+      const res = await fetch("/api/projects/import-archive", { method: "POST", body: formData });
+      if (!res.ok) throw new Error(await errorDetail(res));
+      return res.json() as Promise<ProjectState>;
+    },
     deleteTemps: (id: string, entryId: string) =>
       deleteReq<ProjectState>(`/api/projects/${id}/temps/${entryId}`),
     exportDoc: (id: string, docType: string) => get<{ title: string; markdown: string }>(`/api/projects/${id}/export/${docType}`),

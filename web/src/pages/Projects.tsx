@@ -12,6 +12,7 @@ import { useDismissOnOutsideOrEscape } from "../lib/useDismissOnOutsideOrEscape"
 import { IsoPivotView } from "../components/IsoPivotView";
 import { CopilotSourceBadge } from "../components/CopilotSourceBadge";
 import { TempsPanel } from "../components/TempsPanel";
+import { ArchivePanel } from "../components/ArchivePanel";
 import type {
   ProjectState, Framework, AssetMetier, AssetSupport,
   RGPDRegister, Tiers, Remediation, ManualControl, CopilotSource, PhaseTemps
@@ -225,6 +226,23 @@ export function Projects() {
     } catch (err) {
       alert("Échec de la suppression : " + (err instanceof Error ? err.message : String(err)));
     }
+  };
+
+  const handleExportArchive = async (password: string) => {
+    if (!activeProject) return;
+    const blob = await api.projects.exportArchive(activeProject.id, password);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `mission_${activeProject.id}.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportArchive = async (file: File, password: string) => {
+    const restauree = await api.projects.importArchive(file, password);
+    loadProjectsAndFrameworks();
+    setActiveProject(restauree);
   };
 
   const handleRunCopilot = () => {
@@ -620,6 +638,13 @@ export function Projects() {
             budget={activeProject.socle?.qualification?.budget}
             onAdd={handleAddTemps}
             onDelete={handleDeleteTemps}
+          />
+
+          {/* SAUVEGARDE / PORTABILITÉ (F14, F15) */}
+          <ArchivePanel
+            missionName={activeProject.name}
+            onExport={handleExportArchive}
+            onImport={handleImportArchive}
           />
 
           {/* ACTIVE STEP WORKSPACE */}
