@@ -4,6 +4,25 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [29/07/2026] — Points restants du todo : rendre visible ce qui était calculé sans être montré
+
+Quatre points, un même défaut de fond : des données produites ou stockées mais jamais présentées.
+
+**Cibles de continuité (RTO/RPO).** `steps.resilience.bcp_strategy` était rempli par défaut et repris dans le livrable PSSI/PRI, mais aucun écran ne l'affichait — le consultant **exportait des cibles temporelles qu'il n'avait jamais vues ni validées**. Trois champs éditables ajoutés en Phase 5. Constat trouvé en écrivant les tests de caractérisation, pas par relecture.
+
+**Charges consommées (reste de F19).** Le cumul n'existait que mission par mission. Il apparaît désormais sur le tableau de bord du registre et, surtout, dans le rapport exporté : l'indicateur « charges consommées vs budget vendu » exigé par Hermes ne parvenait jamais au client.
+
+**Taux de couverture technique (F10).** La promesse « preuve technique plutôt que déclaratif » est vraie mais partielle — la taire serait une survente. `api/modules/couverture.py` rapproche chaque contrôle organisationnel des règles techniques qui l'appuient et affiche le taux réel, en Phase 4 comme dans le rapport, en précisant explicitement que le reste repose sur du déclaratif. La correspondance se fait sur la référence de clause avec **frontière stricte** : sans elle, `A.8.2` serait comptée comme couverte par une règle ne visant qu'`A.8.20`, et le taux serait artificiellement gonflé. Vérifié sur la démo : 3 contrôles sur 4, `ISO-A.5` (politiques) correctement **non** couvert — aucune règle automatisée ne peut constater l'existence d'une PSSI.
+
+**Bundle.** `React.lazy()` sur les 5 modules, l'accueil restant chargé d'emblée : le fichier initial passe de 471 kB / 134 kB gzip à **329 kB / 105 kB gzip**, et le registre de missions (119 kB) n'est plus téléchargé qu'à son ouverture.
+
+### Un point volontairement laissé ouvert
+L'enrichissement des référentiels YAML (**F2**) n'a pas été fait, et c'est délibéré : l'audit prescrit d'enrichir **au fil des missions réelles**, pas en amont. Générer en masse 93 intitulés ISO reviendrait à inventer du contenu métier — ce que la philosophie « zéro invention » interdit — tout en frôlant la limite de **F3** (copyright ISO/AFNOR). Le taux de couverture désormais affiché rend d'ailleurs cette incomplétude **visible plutôt que masquée**.
+
+**344 tests backend + 108 tests frontend.**
+
+---
+
 ## [29/07/2026] — F17 et F18 : conformité RGPD du consultant et licence
 
 ### F17 — Conservation et purge des données personnelles
