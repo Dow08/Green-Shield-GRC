@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Menu } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { Home } from "./pages/Home";
 import { AuditCraft } from "./pages/AuditCraft";
@@ -40,6 +41,7 @@ const COMING: ModuleInfo[] = [
 export default function App() {
   const [modules, setModules] = useState<ModuleInfo[]>(COMING);
   const [view, setView] = useState("home");
+  const [menuOuvert, setMenuOuvert] = useState(false);
 
   useEffect(() => {
     api
@@ -58,10 +60,29 @@ export default function App() {
   }, []);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-[1180px] items-stretch p-4">
-      <div className="flex w-full overflow-hidden rounded-[30px] border border-[var(--stroke)] bg-white/[0.02] shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
-        <Sidebar view={view} onNavigate={setView} modules={modules} />
-        <main className="min-h-[560px] flex-1 p-6 overflow-hidden">
+    // Sur petit écran l'application occupe toute la surface : la marge et les
+    // coins arrondis du bureau y gaspilleraient une largeur déjà rare.
+    <div className="mx-auto flex min-h-screen max-w-[1180px] items-stretch p-0 sm:p-4">
+      <div className="flex w-full overflow-hidden border-[var(--stroke)] bg-white/[0.02] sm:rounded-[30px] sm:border sm:shadow-[0_30px_80px_rgba(0,0,0,0.5)]">
+        <Sidebar
+          view={view}
+          onNavigate={setView}
+          modules={modules}
+          isOpen={menuOuvert}
+          onClose={() => setMenuOuvert(false)}
+        />
+        <main className="min-h-[560px] min-w-0 flex-1 overflow-hidden p-4 sm:p-6">
+          {/* Déclencheur du tiroir : le rail latéral est masqué sous `md`. */}
+          <button
+            type="button"
+            onClick={() => setMenuOuvert(true)}
+            aria-label="Ouvrir le menu de navigation"
+            aria-expanded={menuOuvert}
+            className="mb-3 grid h-10 w-10 place-items-center rounded-2xl border border-[var(--stroke)] bg-white/[0.045] text-[var(--soft)] md:hidden"
+          >
+            <Menu size={18} />
+          </button>
+
           {view === "home" && <Home modules={modules} onOpen={setView} />}
           {view === "auditcraft_grc" && <AuditCraft />}
           {view === "missions" && <Projects />}

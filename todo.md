@@ -25,7 +25,7 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 
 - [x] **Migration legacy rendue unique** le 29/07/2026 : marqueur `.legacy-migre` posé dans le répertoire de destination, et suppression du dossier `GREEN SHIELD/projects/` (le projet de test « cassiopé » qu'il contenait n'était pas une vraie mission cliente). Sans ce marqueur, pointer `GREENSHIELD_DATA_DIR` vers un répertoire de test y recopiait les missions à chaque démarrage — et une mission volontairement supprimée réapparaissait au redémarrage suivant.
 - [ ] **Bundle JS monolithique** (449 kB / 129 kB gzip, aucun code-splitting). Non bloquant au volume actuel, pertinent surtout pour l'usage tablette. `React.lazy()` sur les 4 pages principales.
-- [ ] **Coquille applicative non responsive** — `App.tsx` et `Sidebar.tsx` n'ont aucune classe `sm:`/`md:`/`lg:`. L'usage tablette est pourtant déjà avéré. Sidebar en drawer sous un breakpoint.
+- [x] **Coquille applicative responsive** le 29/07/2026 : barre latérale en tiroir sous le point de rupture `md` (voile, fermeture au clic extérieur et à Échap, navigation qui referme), bouton hamburger, marges et coins arrondis retirés sur petit écran. Vérifié à 375 / 768 / 1280 px, sans débordement horizontal.
 
 ## Track contenu (mené en parallèle du code, indépendamment)
 
