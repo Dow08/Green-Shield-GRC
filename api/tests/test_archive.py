@@ -156,7 +156,6 @@ def test_project_json_qui_n_est_pas_un_objet_est_refuse():
     "../../../etc/passwd",
     "targets/../../evasion.txt",
     "/etc/passwd",
-    "..\\..\\windows\\evil.txt",
 ])
 def test_zip_slip_est_refuse_a_l_ecriture(tmp_path, nom_malveillant):
     donnees = _archive_maison({
@@ -168,6 +167,32 @@ def test_zip_slip_est_refuse_a_l_ecriture(tmp_path, nom_malveillant):
     destination = tmp_path / "cible"
     with pytest.raises(archive.ArchiveInvalide, match="refusé"):
         archive.ecrire_fichiers(fichiers, destination)
+
+
+@pytest.mark.parametrize("nom_malveillant", [
+    "..\\..\\windows\\evil.txt",
+    "sous\\dossier.txt",
+    "\\\\serveur\\partage\\fichier.txt",
+])
+def test_l_antislash_est_refuse_quel_que_soit_le_systeme(tmp_path, nom_malveillant):
+    """La validation est testée directement, pas au travers d'un aller-retour
+    ZIP : `zipfile` normalise les antislashs en `/` sous Windows mais les laisse
+    tels quels sous Linux, ce qui rendrait le test dépendant du système.
+
+    Or c'est précisément le point : une entrée contenant un antislash est un
+    simple nom de fichier sous Linux, mais traverse à l'extraction sous Windows.
+    La spécification ZIP impose `/` — l'antislash est donc refusé partout.
+    Écart relevé par la CI Linux le 29/07/2026, invisible en développement
+    sous Windows.
+    """
+    with pytest.raises(archive.ArchiveInvalide, match="antislash"):
+        archive._nom_sur(nom_malveillant, tmp_path / "cible")
+
+
+def test_un_nom_d_entree_legitime_est_accepte(tmp_path):
+    destination = tmp_path / "cible"
+    cible = archive._nom_sur("targets/sshd_config", destination)
+    assert cible == (destination / "targets" / "sshd_config").resolve()
 
 
 def test_aucun_fichier_n_est_ecrit_hors_de_la_destination(tmp_path):

@@ -4,6 +4,35 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [29/07/2026] — Sprints 2 et 3 du plan d'amélioration
+
+### Sprint 2
+
+**Export/import de mission en archive chiffrée (F14 + reste de F15).** Aucune sauvegarde ni portabilité n'existait : point unique de défaillance incohérent pour un outil qui vend du PCA/PRA. `api/modules/archive.py` produit une archive ZIP chiffrée **AES-256** — elle quitte le disque chiffré du poste (clé USB, pièce jointe, remise au client), c'est le vecteur le plus exposé. L'import traite l'archive comme une **entrée non fiable** : traversée de chemin (Zip Slip) refusée à la lecture *et* à l'écriture, taille décompressée plafonnée, structure validée, identifiant repassant par `path_safety`.
+
+**Coquille applicative responsive.** `App.tsx` et `Sidebar.tsx` n'avaient aucune classe responsive alors que l'usage tablette est avéré. Barre latérale en tiroir sous `md`, fermeture au clic extérieur et à Échap. **Piège Tailwind v4 documenté dans CLAUDE.md** : `translate-x-0` ne reprenait pas la main sur `-translate-x-full` (ces utilitaires écrivent la propriété CSS `translate` en v4, et le style calculé restait à `-100%` malgré la bonne classe dans le DOM) ; les décalages arbitraires négatifs ne sont pas générés non plus. Bascule sur `hidden`/`flex`.
+
+**Découpage de `Projects.tsx` : 2044 → 652 lignes.** Un test de caractérisation (10 parcours couvrant les 6 phases) a été écrit **avant** le refactor — le fichier n'avait aucun test. Chaque phase devient un composant possédant son propre état d'interface ; le corps JSX est repris tel quel pour minimiser le risque. La réinitialisation au changement de mission passe par la `key` des composants plutôt qu'une cascade de setters.
+
+**Revue de complétude avant export.** Les exports remplaçaient silencieusement toute donnée absente par « N/A » : un rapport pouvait partir chez un client criblé de trous. `revue_export.py` énumère les manques avec la phase où les compléter, en deux niveaux (bloquant / recommandé). Il ne remplit rien — c'est exactement la promesse « zéro invention ».
+
+### Sprint 3
+
+**Identité visuelle des livrables** (demande explicite du consultant). `api/modules/charte.py` : logo embarqué en base64 — un livrable doit rester lisible hors ligne, sans dépendre d'un fichier joint qui se perdrait —, en-tête marque/cabinet/client/référence, bandeau de confidentialité, pied portant l'empreinte SHA-256. Appliquée aux 5 livrables Markdown et au gabarit Word, depuis la même source d'image.
+
+**Extraction de `report_builder.py`** (prérequis du point précédent) : la génération des livrables quitte `projects.py` (1233 → 970 lignes). Le module ne connaît ni HTTP ni disque, ce qui a permis d'écrire 21 tests sur le contenu réel — dont deux non-régressions de l'audit sécurité (V-05 empreinte, V-06 nom de fichier).
+
+**Historique versionné (F9).** Instantané automatique à chaque validation de phase, restauration depuis l'interface, état courant sauvegardé avant tout écrasement, historique embarqué dans l'archive. Le nom d'instantané venant du client, il est validé par motif strict avec vérification d'appartenance en défense en profondeur.
+
+**Jeu de démonstration (F16).** Démontrer l'outil exigeait d'ouvrir une mission cliente réelle. Le bouton « Mission de démo » crée une mission fictive marquée `is_demo`, avec du temps consommé et une configuration SSH volontairement vulnérable — le scan y trouve 5 écarts dont 2 critiques.
+
+**Nettoyage.** Le projet de test « cassiopé » supprimé à la demande du consultant, et la migration depuis l'ancien emplacement rendue **unique** (marqueur `.legacy-migre`) : elle s'exécutait à chaque import du module et recopiait les missions dans tout `GREENSHIELD_DATA_DIR` — une mission volontairement supprimée réapparaissait au redémarrage suivant.
+
+### Bilan
+**291 tests backend + 96 tests frontend**, tous verts. Chaque fonctionnalité vérifiée en conditions réelles (HTTP ou navigateur) sur des missions **fictives**, jamais sur des données clientes.
+
+---
+
 ## [29/07/2026] — Identité visuelle + Sprint 1 du plan d'amélioration
 
 ### 0. Logo officiel intégré

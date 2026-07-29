@@ -82,8 +82,19 @@ def _nom_sur(nom_archive: str, destination: Path) -> Path:
     Protection « Zip Slip » : une archive malveillante peut contenir des noms
     comme `../../etc/passwd` ou un chemin absolu. On résout et on vérifie
     l'appartenance plutôt que de faire confiance au nom.
+
+    L'antislash est refusé **explicitement**, indépendamment du système : la
+    spécification ZIP impose `/` comme séparateur, donc un antislash dans un
+    nom d'entrée est au mieux anormal, au pire une attaque. Sans ce refus, une
+    entrée `..\\..\\windows\\evil.txt` serait un simple nom de fichier sous
+    Linux (l'antislash y est un caractère valide) et traverserait à
+    l'extraction sous Windows — la validation ne peut pas dépendre du système
+    qui extrait. Écart relevé par la CI Linux le 29/07/2026, invisible en
+    développement sous Windows.
     """
-    if nom_archive.startswith("/") or nom_archive.startswith("\\") or ":" in nom_archive:
+    if "\\" in nom_archive:
+        raise ArchiveInvalide(f"Chemin d'archive refusé (antislash) : {nom_archive}")
+    if nom_archive.startswith("/") or ":" in nom_archive:
         raise ArchiveInvalide(f"Chemin d'archive refusé : {nom_archive}")
     cible = (destination / nom_archive).resolve()
     if not cible.is_relative_to(destination.resolve()):
