@@ -37,9 +37,11 @@ def _entrees(state: dict) -> list[dict]:
 # --- Migration ------------------------------------------------------------
 
 def test_migration_v3_ajoute_le_journal_de_temps():
+    """La version cible suit `CURRENT_SCHEMA_VERSION` : ce test porte sur la
+    présence du journal de temps, pas sur un numéro de version figé."""
     state = schema_migration.migrate({"id": "x"})
     assert state["socle"]["temps"] == {"entrees": []}
-    assert state["schema_version"] == 3
+    assert state["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
 
 
 def test_migration_v3_n_ecrase_pas_un_journal_existant():

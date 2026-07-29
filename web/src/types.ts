@@ -14,6 +14,23 @@ export interface RevueExportResult {
   manques: ManqueExport[];
 }
 
+// Conservation des données personnelles du consultant (F17, schema_version 4).
+export interface EcheanceRgpd {
+  duree_conservation_mois: number;
+  date_fin_mission: string;
+  purge_effectuee_le: string;
+  date_purge_prevue: string;
+  statut: "mission_en_cours" | "en_conservation" | "echue" | "purgee" | "date_invalide";
+  jours_restants: number | null;
+}
+
+export interface EcheanceRgpdMission extends EcheanceRgpd {
+  project_id: string;
+  project_name: string;
+  client: string;
+  donnees_personnelles: number;
+}
+
 export interface SnapshotInfo {
   nom: string;
   date: string;

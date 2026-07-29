@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-CURRENT_SCHEMA_VERSION = 3
+CURRENT_SCHEMA_VERSION = 4
 
 
 def _to_v2(state: dict) -> dict:
@@ -78,10 +78,29 @@ def _to_v3(state: dict) -> dict:
     return state
 
 
+def _to_v4(state: dict) -> dict:
+    """v3 → v4 : politique de conservation des données personnelles (F17).
+
+    Les grilles d'entretien collectent des noms, fonctions et déclarations de
+    personnes physiques. Le consultant en est responsable de traitement : il
+    lui faut une durée de conservation définie et une suppression en fin de
+    mission. Le délai ne court qu'à partir de `date_fin_mission` — la
+    conservation se compte depuis la fin de la relation, pas depuis son début.
+    """
+    socle = state.setdefault("socle", {})
+    socle.setdefault("rgpd_consultant", {
+        "duree_conservation_mois": 36,
+        "date_fin_mission": "",
+        "purge_effectuee_le": "",
+    })
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
     (3, _to_v3),
+    (4, _to_v4),
 ]
 
 

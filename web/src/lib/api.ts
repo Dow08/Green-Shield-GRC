@@ -1,7 +1,7 @@
 import type {
   AuditResult, ModuleInfo, ProjectState, Framework,
   CopilotContext, CopilotAskResult, FingerprintResult, SuggestedAsset, PhaseTemps,
-  RevueExportResult, SnapshotInfo,
+  RevueExportResult, SnapshotInfo, EcheanceRgpdMission,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -81,6 +81,11 @@ export const api = {
     runAudit: (id: string) => post<ProjectState>(`/api/projects/${id}/audit`, {}),
     revue: (id: string) => get<RevueExportResult>(`/api/projects/${id}/revue`),
     createDemo: () => post<ProjectState>("/api/projects/demo", {}),
+    echeancesRgpd: () => get<EcheanceRgpdMission[]>("/api/rgpd/echeances"),
+    updateRgpd: (id: string, politique: { duree_conservation_mois: number; date_fin_mission: string }) =>
+      put<ProjectState>(`/api/projects/${id}/rgpd`, politique),
+    purgerRgpd: (id: string) =>
+      post<{ status: string; efface: number; state: ProjectState }>(`/api/projects/${id}/rgpd/purge`, {}),
     snapshots: (id: string) => get<SnapshotInfo[]>(`/api/projects/${id}/snapshots`),
     restoreSnapshot: (id: string, nom: string) =>
       post<ProjectState>(`/api/projects/${id}/snapshots/${nom}/restore`, {}),

@@ -6,13 +6,14 @@ import { IsoPivotView } from "../components/IsoPivotView";
 import { TempsPanel } from "../components/TempsPanel";
 import { ArchivePanel } from "../components/ArchivePanel";
 import { HistoriquePanel } from "../components/HistoriquePanel";
+import { RgpdPanel } from "../components/RgpdPanel";
 import { PhaseCadrage } from "../components/phases/PhaseCadrage";
 import { PhaseDiagnostic } from "../components/phases/PhaseDiagnostic";
 import { PhaseTprm } from "../components/phases/PhaseTprm";
 import { PhaseEbios } from "../components/phases/PhaseEbios";
 import { PhaseResilience } from "../components/phases/PhaseResilience";
 import { PhaseTraitement } from "../components/phases/PhaseTraitement";
-import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo } from "../types";
+import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo, EcheanceRgpdMission } from "../types";
 
 export function Projects() {
   const [projects, setProjects] = useState<ProjectState[]>([]);
@@ -33,6 +34,7 @@ export function Projects() {
   const [revue, setRevue] = useState<RevueExportResult | null>(null);
   const [revueEnCours, setRevueEnCours] = useState(false);
   const [instantanes, setInstantanes] = useState<SnapshotInfo[]>([]);
+  const [echeanceRgpd, setEcheanceRgpd] = useState<EcheanceRgpdMission | null>(null);
   const [saving, setSaving] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -122,6 +124,9 @@ export function Projects() {
       .catch(() => setRevue(null))
       .finally(() => setRevueEnCours(false));
     api.projects.snapshots(id).then(setInstantanes).catch(() => setInstantanes([]));
+    api.projects.echeancesRgpd()
+      .then((toutes) => setEcheanceRgpd(toutes.find((e) => e.project_id === id) ?? null))
+      .catch(() => setEcheanceRgpd(null));
   };
 
   const handleRestaurerInstantane = async (nom: string) => {
@@ -130,6 +135,20 @@ export function Projects() {
     setActiveProject(restaure);
     loadProjectsAndFrameworks();
     chargerRevue(restaure.id);
+  };
+
+  const handleEnregistrerRgpd = async (politique: { duree_conservation_mois: number; date_fin_mission: string }) => {
+    if (!activeProject) return;
+    const maj = await api.projects.updateRgpd(activeProject.id, politique);
+    setActiveProject(maj);
+    chargerRevue(maj.id);
+  };
+
+  const handlePurgerRgpd = async () => {
+    if (!activeProject) return;
+    const resultat = await api.projects.purgerRgpd(activeProject.id);
+    setActiveProject(resultat.state);
+    chargerRevue(resultat.state.id);
   };
 
   const handleCreerDemo = () => {
@@ -605,6 +624,15 @@ export function Projects() {
             />
             <HistoriquePanel instantanes={instantanes} onRestaurer={handleRestaurerInstantane} />
           </div>
+
+          {/* F17 — conservation des données personnelles collectées en entretien */}
+          <RgpdPanel
+            key={activeProject.id}
+            echeance={echeanceRgpd}
+            donneesPersonnelles={echeanceRgpd?.donnees_personnelles ?? 0}
+            onEnregistrer={handleEnregistrerRgpd}
+            onPurger={handlePurgerRgpd}
+          />
 
           {/* ACTIVE STEP WORKSPACE */}
           <div className="flex-1 min-h-0 bg-white/[0.01] border border-[var(--stroke)] rounded-2xl p-5 overflow-y-auto">

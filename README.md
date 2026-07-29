@@ -121,6 +121,24 @@ cd web && npm run typecheck && npm run lint && npm run test && npm run build   #
 - [TRACKING.md](TRACKING.md) — journal de bord des évolutions · [todo.md](todo.md) — tâches connues.
 - [CLAUDE.md](CLAUDE.md) — conventions de développement et pièges connus.
 
+## Licence
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md) — même licence que le dépôt jumeau RED SHIELD.
+
+| Vous pouvez | Vous ne pouvez pas |
+|---|---|
+| Lire, étudier, exécuter et modifier le code | L'exploiter à des fins **commerciales** |
+| L'utiliser en recherche, enseignement, projet personnel | Le revendre ou l'intégrer à une offre payante |
+| L'utiliser au sein d'une association, d'un établissement d'enseignement ou d'un organisme public | Retirer la mention de copyright |
+
+L'auteur conserve l'intégralité de ses droits, y compris l'usage de l'outil dans ses propres missions facturées.
+
+> **Contenu normatif** — les référentiels livrés (`api/frameworks/`) ne contiennent que des
+> **identifiants et intitulés courts reformulés**, jamais le texte des normes. Le texte
+> d'ISO/IEC 27001 est sous copyright ISO/AFNOR et ne doit **pas** être ajouté au dépôt : si vous
+> possédez la norme, collez son texte dans vos missions, pas dans le code
+> (cf. [docs/audit-critique-plan.md](docs/audit-critique-plan.md), F3).
+
 ---
 
 *GREEN SHIELD — DP Cyber Consulting. PoC de démonstration d'expertise cyber / GRC.*

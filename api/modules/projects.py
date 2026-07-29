@@ -21,6 +21,7 @@ from . import workflow_loader
 from . import mesures_catalogue
 from . import path_safety
 from . import report_builder
+from . import retention
 from . import revue_export
 from . import snapshots
 
@@ -675,6 +676,96 @@ def restore_snapshot(p_id: str, nom: str) -> dict:
 
     audit_log.record("snapshot.restore", target=p_id, detail=nom)
     return restaure
+
+
+
+# --- Conservation des données personnelles (F17) -----------------------------
+# Le consultant est responsable de traitement pour les noms, fonctions et
+# déclarations des personnes interrogées. Ces routes lui donnent de quoi tenir
+# ses propres obligations, celles-là mêmes qu'il audite chez ses clients.
+
+@router.get("/rgpd/echeances")
+def list_echeances_rgpd() -> list[dict]:
+    """Situation de conservation de toutes les missions, échues en tête."""
+    resultat = []
+    for state in list_projects():
+        ech = retention.echeance(state)
+        resultat.append({
+            "project_id": state.get("id"),
+            "project_name": state.get("name"),
+            "client": state.get("client"),
+            "donnees_personnelles": retention.compter_donnees_personnelles(state),
+            **ech,
+        })
+    ordre = {"echue": 0, "en_conservation": 1, "mission_en_cours": 2, "date_invalide": 3, "purgee": 4}
+    resultat.sort(key=lambda r: (ordre.get(r["statut"], 9), r.get("jours_restants") or 0))
+    return resultat
+
+
+@router.put("/projects/{p_id}/rgpd")
+def update_politique_rgpd(p_id: str, data: dict) -> dict:
+    """Fixe la durée de conservation et la date de fin de mission."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    try:
+        duree = int(data.get("duree_conservation_mois", retention.DUREE_CONSERVATION_DEFAUT_MOIS))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Durée de conservation invalide (mois attendus)")
+    if not 1 <= duree <= 120:
+        raise HTTPException(status_code=400, detail="La durée de conservation doit être comprise entre 1 et 120 mois")
+
+    fin = str(data.get("date_fin_mission", "") or "").strip()
+    if fin:
+        try:
+            date.fromisoformat(fin)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Date de fin de mission invalide (AAAA-MM-JJ)")
+
+    try:
+        state = _read_state(state_file)
+        rgpd = state.setdefault("socle", {}).setdefault("rgpd_consultant", {})
+        rgpd["duree_conservation_mois"] = duree
+        rgpd["date_fin_mission"] = fin
+        state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        state["progress"] = calculate_progress(state)
+        _write_json_atomic(state_file, state)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audit_log.record("rgpd.politique", target=p_id, detail=f"duree={duree}mois fin={fin or 'non definie'}")
+    return state
+
+
+@router.post("/projects/{p_id}/rgpd/purge")
+def purge_donnees_personnelles(p_id: str) -> dict:
+    """Efface les données personnelles d'une mission.
+
+    Irréversible : un instantané est donc pris juste avant, pour que le
+    consultant garde une porte de sortie s'il purge par erreur.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    p_dir = PROJECTS_DIR / p_id
+    state_file = p_dir / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    try:
+        state = _read_state(state_file)
+        snapshots.creer(p_dir, state, "avant-purge-rgpd")
+        state, efface = retention.purger(state)
+        state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        state["progress"] = calculate_progress(state)
+        _write_json_atomic(state_file, state)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audit_log.record("rgpd.purge", target=p_id, detail=f"enregistrements={efface}")
+    return {"status": "ok", "efface": efface, "state": state}
 
 
 @router.get("/projects/{p_id}/revue")
