@@ -204,6 +204,20 @@ export interface ManualControl {
   notes: string;
 }
 
+// Suivi du temps consommé (schema_version 3, cf. api/modules/schema_migration.py).
+// Phases alignées sur PHASES_TEMPS côté backend — toute valeur hors de cette
+// liste est rejetée par l'API.
+export type PhaseTemps =
+  | "cadrage" | "diagnostic" | "tprm" | "ebios" | "resilience" | "traitement" | "autre";
+
+export interface TempsEntree {
+  id: string;
+  phase: PhaseTemps;
+  minutes: number;
+  date: string;
+  note: string;
+}
+
 export interface ProjectState {
   id: string;
   name: string;
@@ -213,6 +227,13 @@ export interface ProjectState {
   progress: number;
   created_at: string;
   updated_at: string;
+  // Socle commun aux volets GRC et Consulting (schema_version 2+). Optionnel
+  // côté type le temps que toutes les missions soient passées par la migration.
+  socle?: {
+    qualification?: { budget?: string; [k: string]: unknown };
+    temps?: { entrees: TempsEntree[] };
+    [k: string]: unknown;
+  };
   // Introduit au Jalon 1 (schema_version 2, api/modules/schema_migration.py) :
   // avancement des parcours référentiels pilotés par workflow.yaml, indexé par
   // référentiel puis par id d'étape. Optionnel côté type le temps que toutes

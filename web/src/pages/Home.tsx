@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Search, Bell, ChevronRight, Boxes, Layers, Lock, MonitorSmartphone } from "lucide-react";
 import type { ModuleInfo } from "../types";
-import { iconFor } from "../components/Sidebar";
+import { iconFor } from "../lib/icons";
 
 interface Props {
   modules: ModuleInfo[];
@@ -51,7 +51,11 @@ export function Home({ modules, onOpen }: Props) {
         <div className="ml-auto flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white/[0.045] px-4 py-2.5 text-sm text-[var(--faint)]">
           <Search size={15} /> Rechercher un module, un constat…
         </div>
-        <button className="grid h-[42px] w-[42px] place-items-center rounded-2xl border border-[var(--stroke)] bg-white/[0.045] text-[var(--soft)]">
+        <button
+          type="button"
+          className="grid h-[42px] w-[42px] place-items-center rounded-2xl border border-[var(--stroke)] bg-white/[0.045] text-[var(--soft)]"
+          aria-label="Notifications"
+        >
           <Bell size={16} />
         </button>
       </header>

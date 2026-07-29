@@ -6,11 +6,15 @@ import {
   PlusCircle, Award, Target, Activity, HelpCircle, AlertCircle, Check
 } from "lucide-react";
 import { api } from "../lib/api";
+import { nextId } from "../lib/ids";
+import { safeGetItem } from "../lib/storage";
+import { useDismissOnOutsideOrEscape } from "../lib/useDismissOnOutsideOrEscape";
 import { IsoPivotView } from "../components/IsoPivotView";
 import { CopilotSourceBadge } from "../components/CopilotSourceBadge";
+import { TempsPanel } from "../components/TempsPanel";
 import type {
   ProjectState, Framework, AssetMetier, AssetSupport,
-  RGPDRegister, Tiers, Remediation, ManualControl, CopilotSource
+  RGPDRegister, Tiers, Remediation, ManualControl, CopilotSource, PhaseTemps
 } from "../types";
 
 // Extensible and enriched dictionaries of standard cybersecurity assets
@@ -70,22 +74,21 @@ export function Projects() {
   const [showMetierMenu, setShowMetierMenu] = useState(false);
   const [showCustomMetier, setShowCustomMetier] = useState(false);
   const [customMetierData, setCustomMetierData] = useState({ name: "", description: "", is_personal_data: false });
+  const metierMenuRef = useDismissOnOutsideOrEscape<HTMLDivElement>(showMetierMenu, () => setShowMetierMenu(false));
 
   const [showSupportMenu, setShowSupportMenu] = useState(false);
   const [showCustomSupport, setShowCustomSupport] = useState(false);
   const [customSupportData, setCustomSupportData] = useState({ name: "", type: "Logiciel", description: "", owner: "DSI" });
+  const supportMenuRef = useDismissOnOutsideOrEscape<HTMLDivElement>(showSupportMenu, () => setShowSupportMenu(false));
 
   const [showRgpdMenu, setShowRgpdMenu] = useState(false);
   const [showCustomRgpd, setShowCustomRgpd] = useState(false);
   const [customRgpdData, setCustomRgpdData] = useState({ name: "", purpose: "", data_categories: "", retention: "5 ans" });
+  const rgpdMenuRef = useDismissOnOutsideOrEscape<HTMLDivElement>(showRgpdMenu, () => setShowRgpdMenu(false));
 
   // Quick form states for other steps
   const [newTiers, setNewTiers] = useState({ name: "", dependence: 3, penetration: 3, maturity: 3, trust: 3 });
   const [newRemediation, setNewRemediation] = useState<Remediation>({ id: "REM-05", axe: "Protection", measure: "Durcir la politique de mot de passe administrateur.", priority: "Élevé" });
-
-  useEffect(() => {
-    loadProjectsAndFrameworks();
-  }, []);
 
   const loadProjectsAndFrameworks = () => {
     setLoading(true);
@@ -100,6 +103,10 @@ export function Projects() {
       })
       .finally(() => setLoading(false));
   };
+
+  useEffect(() => {
+    loadProjectsAndFrameworks();
+  }, []);
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -204,6 +211,22 @@ export function Projects() {
       .catch((err) => alert("Échec de la génération : " + err.message));
   };
 
+  // Le backend renvoie la mission entière après mutation : on réaligne l'état
+  // local dessus plutôt que de recalculer le journal de temps côté client.
+  const handleAddTemps = async (entry: { phase: PhaseTemps; minutes: number; note: string }) => {
+    if (!activeProject) return;
+    setActiveProject(await api.projects.addTemps(activeProject.id, entry));
+  };
+
+  const handleDeleteTemps = async (entryId: string) => {
+    if (!activeProject) return;
+    try {
+      setActiveProject(await api.projects.deleteTemps(activeProject.id, entryId));
+    } catch (err) {
+      alert("Échec de la suppression : " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   const handleRunCopilot = () => {
     if (!activeProject || !copilotPrompt.trim()) return;
     setCopilotLoading(true);
@@ -213,7 +236,7 @@ export function Projects() {
     // Call custom copilot API — utilise la clé Gemini/OpenAI configurée dans les Réglages
     // si présente (analyse générative en ligne), sinon l'API bascule sur l'intelligence
     // experte locale hors-ligne.
-    const storedKey = localStorage.getItem("copilot_api_key") || "";
+    const storedKey = safeGetItem("copilot_api_key") || "";
     fetch(`/api/projects/${activeProject.id}/copilot`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -229,11 +252,13 @@ export function Projects() {
   };
 
   // --- Step mutations helper ---
-  const updateStepData = (stepKey: string, fieldKey: string, value: any) => {
+  const updateStepData = (stepKey: string, fieldKey: string, value: unknown) => {
     if (!activeProject) return;
-    const steps = { ...activeProject.steps } as any;
+    // steps est hétérogène par construction (chaque étape a sa propre forme) :
+    // ce pont dynamique est le seul endroit qui a besoin de s'en abstraire.
+    const steps = { ...activeProject.steps } as Record<string, Record<string, unknown>>;
     steps[stepKey] = { ...steps[stepKey], [fieldKey]: value };
-    setActiveProject({ ...activeProject, steps });
+    setActiveProject({ ...activeProject, steps } as ProjectState);
   };
 
   // TPRM Calculator helper
@@ -501,6 +526,7 @@ export function Projects() {
                     onClick={(e) => handleDeleteProject(p.id, e)}
                     className="absolute top-4 right-4 text-[var(--soft)] hover:text-[var(--rose)] opacity-0 group-hover:opacity-100 transition p-1 hover:bg-white/5 rounded-lg"
                     title="Supprimer définitivement ce projet"
+                    aria-label={`Supprimer définitivement la mission ${p.name}`}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -545,7 +571,7 @@ export function Projects() {
             <div className="flex items-center gap-1">
               {[1, 2, 3, 4, 5, 6].map((num) => {
                 const stepKey = ["cadrage", "diagnostic", "tprm", "ebios", "resilience", "traitement"][num - 1];
-                const isStepValidated = (activeProject.steps as any)[stepKey]?.validated;
+                const isStepValidated = (activeProject.steps as Record<string, { validated?: boolean }>)[stepKey]?.validated;
                 return (
                   <button
                     key={num}
@@ -587,6 +613,14 @@ export function Projects() {
               </div>
             </div>
           </div>
+
+          {/* SUIVI DU TEMPS CONSOMMÉ (F19) — charges consommées vs budget vendu */}
+          <TempsPanel
+            entrees={activeProject.socle?.temps?.entrees ?? []}
+            budget={activeProject.socle?.qualification?.budget}
+            onAdd={handleAddTemps}
+            onDelete={handleDeleteTemps}
+          />
 
           {/* ACTIVE STEP WORKSPACE */}
           <div className="flex-1 min-h-0 bg-white/[0.01] border border-[var(--stroke)] rounded-2xl p-5 overflow-y-auto">
@@ -647,9 +681,9 @@ export function Projects() {
                 <div className="mt-2">
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide flex justify-between items-center flex-wrap gap-2 relative">
                     <span>A. Cartographie des Valeurs Métier (Processus, Informations)</span>
-                    
+
                     {/* TRIGERABLE PLUS BUTTON TRIGGERING THE SELECT OPTION MENU */}
-                    <div className="relative">
+                    <div className="relative" ref={metierMenuRef}>
                       <button
                         type="button"
                         onClick={() => setShowMetierMenu(!showMetierMenu)}
@@ -659,7 +693,7 @@ export function Projects() {
                       </button>
 
                       {showMetierMenu && (
-                        <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-[#091510] border border-[var(--stroke)] shadow-2xl z-50 p-2 text-xs flex flex-col gap-1">
+                        <div className="absolute right-0 mt-1.5 w-64 max-h-72 overflow-y-auto rounded-xl bg-[#091510] border border-[var(--stroke)] shadow-2xl z-50 p-2 text-xs flex flex-col gap-1">
                           <div className="text-[10px] font-bold text-[var(--faint)] uppercase px-2 py-1">Gabarits types</div>
                           {SUGGESTED_METIER.map((m) => (
                             <button
@@ -668,7 +702,7 @@ export function Projects() {
                               onClick={() => {
                                 const list = [...(activeProject.steps.cadrage?.assets_metier || [])];
                                 list.push({
-                                  id: m.id + "-" + String(Math.floor(Math.random() * 90) + 10),
+                                  id: nextId(m.id, list.map((a) => a.id)),
                                   name: m.name,
                                   description: m.description,
                                   is_personal_data: m.is_personal_data
@@ -719,6 +753,7 @@ export function Projects() {
                             updateStepData("cadrage", "assets_metier", list);
                           }}
                           className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                          aria-label={`Supprimer la valeur métier ${m.name}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -773,7 +808,7 @@ export function Projects() {
                             if (!customMetierData.name.trim()) return;
                             const list = [...(activeProject.steps.cadrage?.assets_metier || [])];
                             list.push({
-                              id: "VM-" + String(Math.floor(Math.random() * 90) + 10),
+                              id: nextId("VM", list.map((a) => a.id)),
                               name: customMetierData.name,
                               description: customMetierData.description,
                               is_personal_data: customMetierData.is_personal_data
@@ -795,9 +830,9 @@ export function Projects() {
                 <div className="mt-2">
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide flex justify-between items-center flex-wrap gap-2 relative">
                     <span>B. Inventaire des Biens Supports (Actifs de l'infrastructure - NIST)</span>
-                    
+
                     {/* TRIGGERABLE PLUS BUTTON TRIGGERING THE SELECT OPTION MENU */}
-                    <div className="relative">
+                    <div className="relative" ref={supportMenuRef}>
                       <button
                         type="button"
                         onClick={() => setShowSupportMenu(!showSupportMenu)}
@@ -807,7 +842,7 @@ export function Projects() {
                       </button>
 
                       {showSupportMenu && (
-                        <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-[#091510] border border-[var(--stroke)] shadow-2xl z-50 p-2 text-xs flex flex-col gap-1">
+                        <div className="absolute right-0 mt-1.5 w-64 max-h-72 overflow-y-auto rounded-xl bg-[#091510] border border-[var(--stroke)] shadow-2xl z-50 p-2 text-xs flex flex-col gap-1">
                           <div className="text-[10px] font-bold text-[var(--faint)] uppercase px-2 py-1">Gabarits types</div>
                           {SUGGESTED_SUPPORT.map((s) => (
                             <button
@@ -816,7 +851,7 @@ export function Projects() {
                               onClick={() => {
                                 const list = [...(activeProject.steps.cadrage?.assets_support || [])];
                                 list.push({
-                                  id: s.id + "-" + String(Math.floor(Math.random() * 90) + 10),
+                                  id: nextId(s.id, list.map((a) => a.id)),
                                   name: s.name,
                                   type: s.type,
                                   description: s.description,
@@ -864,6 +899,7 @@ export function Projects() {
                             updateStepData("cadrage", "assets_support", list);
                           }}
                           className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                          aria-label={`Supprimer le bien support ${s.name}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -927,7 +963,7 @@ export function Projects() {
                             if (!customSupportData.name.trim()) return;
                             const list = [...(activeProject.steps.cadrage?.assets_support || [])];
                             list.push({
-                              id: "BS-" + String(Math.floor(Math.random() * 90) + 10),
+                              id: nextId("BS", list.map((a) => a.id)),
                               name: customSupportData.name,
                               type: customSupportData.type,
                               description: customSupportData.description,
@@ -1095,9 +1131,9 @@ export function Projects() {
                 <div className="mt-2">
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide flex justify-between items-center flex-wrap gap-2 relative">
                     <span>A. Registre des Activités de Traitement (RGPD Article 30)</span>
-                    
+
                     {/* TRIGGERABLE PLUS BUTTON TRIGGERING THE SELECT OPTION MENU */}
-                    <div className="relative">
+                    <div className="relative" ref={rgpdMenuRef}>
                       <button
                         type="button"
                         onClick={() => setShowRgpdMenu(!showRgpdMenu)}
@@ -1107,7 +1143,7 @@ export function Projects() {
                       </button>
 
                       {showRgpdMenu && (
-                        <div className="absolute right-0 mt-1.5 w-64 rounded-xl bg-[#091510] border border-[var(--stroke)] shadow-2xl z-50 p-2 text-xs flex flex-col gap-1">
+                        <div className="absolute right-0 mt-1.5 w-64 max-h-72 overflow-y-auto rounded-xl bg-[#091510] border border-[var(--stroke)] shadow-2xl z-50 p-2 text-xs flex flex-col gap-1">
                           <div className="text-[10px] font-bold text-[var(--faint)] uppercase px-2 py-1">Traitements standards</div>
                           {SUGGESTED_RGPD.map((r) => (
                             <button
@@ -1116,7 +1152,7 @@ export function Projects() {
                               onClick={() => {
                                 const list = [...(activeProject.steps.diagnostic?.rgpd_register || [])];
                                 list.push({
-                                  id: r.id + "-" + String(Math.floor(Math.random() * 90) + 10),
+                                  id: nextId(r.id, list.map((a) => a.id)),
                                   name: r.name,
                                   purpose: r.purpose,
                                   data_categories: r.data_categories,
@@ -1163,6 +1199,7 @@ export function Projects() {
                             updateStepData("diagnostic", "rgpd_register", list);
                           }}
                           className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                          aria-label={`Supprimer le traitement RGPD ${r.name}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -1222,7 +1259,7 @@ export function Projects() {
                             if (!customRgpdData.name.trim()) return;
                             const list = [...(activeProject.steps.diagnostic?.rgpd_register || [])];
                             list.push({
-                              id: "RGPD-" + String(Math.floor(Math.random() * 90) + 10),
+                              id: nextId("RGPD", list.map((a) => a.id)),
                               name: customRgpdData.name,
                               purpose: customRgpdData.purpose,
                               data_categories: customRgpdData.data_categories,
@@ -1379,6 +1416,7 @@ export function Projects() {
                           updateStepData("tprm", "tiers", list);
                         }}
                         className="text-[var(--rose)] hover:bg-white/5 p-1.5 rounded-lg self-end md:self-center"
+                        aria-label={`Supprimer le tiers ${t.name}`}
                       >
                         <Trash2 size={13} />
                       </button>
@@ -1593,7 +1631,7 @@ export function Projects() {
 
                   {/* Scenarios lists with optional-chaining mapping to prevent crashes */}
                   <div className="lg:col-span-2 flex flex-col gap-2 max-h-[150px] overflow-y-auto">
-                    {activeProject.steps.ebios?.operational_scenarios?.map((s: any, idx: number) => (
+                    {activeProject.steps.ebios?.operational_scenarios?.map((s, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] p-2 rounded-xl border border-white/[0.05] text-[11px] flex justify-between items-center">
                         <div>
                           <span className="font-mono text-[var(--g3)] mr-2">{s.id}</span>
@@ -1609,7 +1647,7 @@ export function Projects() {
                 <div className="mt-1 border-t border-white/[0.04] pt-2">
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">C. Fiches de Décision &amp; Retours d'Expérience Réels (REX)</div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    {activeProject.steps.ebios?.case_studies?.map((c: any, idx: number) => (
+                    {activeProject.steps.ebios?.case_studies?.map((c, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-xs animate-fade-in">
                         <div className="font-bold text-[var(--sky)] mb-1 flex items-center gap-1">
                           <BookOpen size={12} /> {c.case}
@@ -1788,6 +1826,7 @@ export function Projects() {
                             updateStepData("traitement", "remediations", list);
                           }}
                           className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                          aria-label={`Supprimer la mesure ${r.measure}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -1804,7 +1843,7 @@ export function Projects() {
                     />
                     <select
                       value={newRemediation.axe}
-                      onChange={(e) => setNewRemediation({ ...newRemediation, axe: e.target.value as any })}
+                      onChange={(e) => setNewRemediation({ ...newRemediation, axe: e.target.value as Remediation["axe"] })}
                       className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                     >
                       <option value="Gouvernance">Gouvernance</option>
@@ -1814,7 +1853,7 @@ export function Projects() {
                     </select>
                     <select
                       value={newRemediation.priority}
-                      onChange={(e) => setNewRemediation({ ...newRemediation, priority: e.target.value as any })}
+                      onChange={(e) => setNewRemediation({ ...newRemediation, priority: e.target.value as Remediation["priority"] })}
                       className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                     >
                       <option value="Critique">Critique</option>
@@ -1835,7 +1874,7 @@ export function Projects() {
                           const list = [...(activeProject.steps.traitement?.remediations || [])];
                           list.push(newRemediation);
                           updateStepData("traitement", "remediations", list);
-                          setNewRemediation({ id: "REM-" + String(Math.floor(Math.random() * 90) + 10), axe: "Protection", measure: "", priority: "Élevé" });
+                          setNewRemediation({ id: nextId("REM", list.map((r) => r.id)), axe: "Protection", measure: "", priority: "Élevé" });
                         }}
                         className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
                       >

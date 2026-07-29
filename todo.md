@@ -4,17 +4,28 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 
 ## Hygiène immédiate
 
-- [ ] **Committer le travail en cours** — 14 fichiers modifiés + ~20 fichiers nouveaux non trackés depuis la session du 28/07/2026 (refonte plateforme, modules Copilote GRC/Collecte technique). Rien n'est commité à ce jour ; réviser `git status` avant de committer (règle CLAUDE.md).
-- [ ] **README.md** — la ligne de roadmap (« Registre de missions · Copilote GRC · Collecte technique | 🔜 ») est stale : les 3 modules sont désormais actifs. Mettre à jour la table des modules et la section Documentation.
+- [x] **Committer le travail en cours** — fait le 28/07/2026, poussé sur [github.com/Dow08/Green-Shield-GRC](https://github.com/Dow08/Green-Shield-GRC) (branche `main`, commit `d4b4e0d`).
+- [x] **README.md** — mis à jour le 29/07/2026 : table des modules corrigée (les 4 modules sont actifs), section Documentation complétée, section Tests ajoutée.
+
+## Identité visuelle
+
+- [x] **Logo** — le logo bouclier + arbre de vie (`ChatGPT Image 28 juil. 2026, 10_50_25.png`, à la racine du dépôt) est intégré le 29/07/2026 : `web/public/logo.png` (version 256px optimisée), utilisé dans la pastille de la sidebar (`Sidebar.tsx`) et en favicon (`index.html`).
+- [ ] **Maquettes de rapports** — réaliser des maquettes stylisées et adaptées à l'identité visuelle (logo bouclier/arbre de vie) pour les documents exportés (NDA, Analyse EBIOS RM, PSSI/PRI, AIPD, Rapport GRC complet, rapport Word `.docx`). Aujourd'hui ces documents utilisent une feuille de style CSS d'impression générique (`pdf_style` dans `api/modules/projects.py`) et un gabarit Word neutre (`api/templates/rapport_iso27001.docx`) — aucun n'intègre le logo ni une charte graphique dédiée. Rappel posé le 29/07/2026, à la demande explicite du consultant — pas encore réalisé.
 
 ## Frictions non résolues de l'audit critique (§6bis)
 
 - [ ] **F14 — Export/Import d'une mission.** Aucun mécanisme de sauvegarde ni de portabilité entre postes. Prévu : export d'une mission en archive unique (`project.json` + `evidence/` + `reports/`), import symétrique. Sert aussi à la remise des données au client en fin de mission.
-- [ ] **F15 — Chiffrement au repos non documenté.** Les `project.json` stockent en clair les vulnérabilités/faiblesses clients. Documenter BitLocker (Windows) / LUKS (Linux) comme **prérequis d'exploitation non négociable** (README ou docs/), et chiffrer l'archive d'export une fois F14 fait.
+- [x] **F15 — Chiffrement au repos documenté** le 29/07/2026 : section « Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md), avec les commandes de vérification (`manage-bde -status` / `lsblk -f`). Reste à faire une fois F14 livré : **chiffrer l'archive d'export**, qui est le vecteur le plus exposé.
 - [ ] **F16 — Aucun jeu de démonstration anonymisé.** Démontrer l'outil (portfolio, entretien) exige aujourd'hui d'ouvrir une mission réelle. Créer un projet fictif explicitement marqué `DEMO`, distinct des vraies missions.
 - [ ] **F17 — Obligations RGPD du consultant sur ses propres traitements.** Les grilles d'entretien collectent nom/fonction/déclarations de personnes physiques interrogées : Dorian est responsable de traitement pour ces données. Définir une durée de conservation par mission + suppression/restitution en fin de mission.
 - [ ] **F18 — Aucun fichier LICENSE.** À trancher avant toute diffusion, en lien avec F3 (copyright ISO 27001 : ne jamais embarquer le texte normatif, seulement identifiants + intitulés courts).
-- [ ] **F19 — Temps/budget non suivis.** Le champ `budget` existe déjà dans `schema_migration.py` mais n'est exploité par aucune UI. Ajouter un compteur de temps simple par mission/phase, alimentant le dashboard et le calcul de ROSI.
+- [x] **F19 — Temps consommé suivi** le 29/07/2026 : `schema_version` 3 (`socle.temps.entrees`), routes `POST/DELETE /api/projects/{id}/temps`, composant `TempsPanel.tsx` affichant total, ventilation par phase et comparaison au budget vendu. Reste ouvert : exposer le cumul dans le **tableau de bord d'accueil** et dans les **exports** (aujourd'hui visible uniquement dans la vue mission).
+
+## Constats ouverts (découverts en session)
+
+- [ ] **La migration legacy recopie les données clients dans n'importe quel répertoire de données.** `_migrate_legacy_projects()` (`api/modules/projects.py`) s'exécute à *chaque import du module* et recopie `GREEN SHIELD/projects/*` vers `GREENSHIELD_DATA_DIR`. Constaté le 29/07/2026 : lancer l'API avec un `GREENSHIELD_DATA_DIR` de test a silencieusement dupliqué la mission cliente « cassiopé » dans un répertoire temporaire — à chaque démarrage. Deux correctifs à trancher : (a) ne migrer qu'une seule fois (marqueur `.migrated`), (b) supprimer `GREEN SHIELD/projects/` maintenant que la migration hors dépôt a eu lieu (vérifier d'abord que `%APPDATA%\GreenShield\projects` contient bien tout).
+- [ ] **Bundle JS monolithique** (449 kB / 129 kB gzip, aucun code-splitting). Non bloquant au volume actuel, pertinent surtout pour l'usage tablette. `React.lazy()` sur les 4 pages principales.
+- [ ] **Coquille applicative non responsive** — `App.tsx` et `Sidebar.tsx` n'ont aucune classe `sm:`/`md:`/`lg:`. L'usage tablette est pourtant déjà avéré. Sidebar en drawer sous un breakpoint.
 
 ## Track contenu (mené en parallèle du code, indépendamment)
 

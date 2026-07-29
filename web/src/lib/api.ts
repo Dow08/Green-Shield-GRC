@@ -1,7 +1,8 @@
 import type {
   AuditResult, ModuleInfo, ProjectState, Framework,
-  CopilotContext, CopilotAskResult, FingerprintResult, SuggestedAsset,
+  CopilotContext, CopilotAskResult, FingerprintResult, SuggestedAsset, PhaseTemps,
 } from "../types";
+import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
 
 async function get<T>(path: string): Promise<T> {
@@ -10,7 +11,7 @@ async function get<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function post<T>(path: string, body: any): Promise<T> {
+async function post<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -20,7 +21,7 @@ async function post<T>(path: string, body: any): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-async function put<T>(path: string, body: any): Promise<T> {
+async function put<T>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
@@ -62,13 +63,17 @@ export const api = {
     delete: (id: string) => deleteReq<{ status: string; message: string }>(`/api/projects/${id}`),
     upload: (id: string, file: File) => uploadFile<ProjectState>(`/api/projects/${id}/upload`, file),
     runAudit: (id: string) => post<ProjectState>(`/api/projects/${id}/audit`, {}),
+    addTemps: (id: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
+      post<ProjectState>(`/api/projects/${id}/temps`, entry),
+    deleteTemps: (id: string, entryId: string) =>
+      deleteReq<ProjectState>(`/api/projects/${id}/temps/${entryId}`),
     exportDoc: (id: string, docType: string) => get<{ title: string; markdown: string }>(`/api/projects/${id}/export/${docType}`),
     // Rapport Word natif : l'identité de l'auditeur vient des Réglages (localStorage),
     // elle n'est pas stockée côté serveur.
     reportDocxUrl: (id: string) => {
       const params = new URLSearchParams({
-        auditeur: localStorage.getItem("consultant_name") ?? "",
-        cabinet: localStorage.getItem("consultant_company") ?? "",
+        auditeur: safeGetItem("consultant_name") ?? "",
+        cabinet: safeGetItem("consultant_company") ?? "",
       });
       return `/api/projects/${id}/report.docx?${params}`;
     },
@@ -76,7 +81,8 @@ export const api = {
   
   frameworks: {
     list: () => get<Framework[]>("/api/frameworks"),
-    import: (data: any) => post<{ status: string; id: string }>("/api/frameworks/import", data),
+    import: (data: { id: string; name: string; description?: string; requirements?: unknown[] }) =>
+      post<{ status: string; id: string }>("/api/frameworks/import", data),
     workflow: (fwId: string) => get<Workflow>(`/api/frameworks/${fwId}/workflow`),
   },
 

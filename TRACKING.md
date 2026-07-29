@@ -4,6 +4,47 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [29/07/2026] — Identité visuelle + Sprint 1 du plan d'amélioration
+
+### 0. Logo officiel intégré
+- Le logo (bouclier + arbre de vie) attendait à la racine du dépôt sans être branché. Version 256 px optimisée (2,1 Mo → 104 ko) déposée en `web/public/logo.png`, utilisée dans la pastille de la barre latérale (`Sidebar.tsx`, remplace l'icône lucide générique) et en favicon (`index.html`). Vérifié en navigateur (chargement 200 OK).
+- **Rappel posé** dans [todo.md](todo.md) : maquettes stylisées des rapports (NDA, EBIOS RM, PSSI/PRI, AIPD, rapport GRC, DOCX) restant à réaliser — aujourd'hui feuille de style d'impression générique, sans charte ni logo.
+
+### 1. Journal d'audit des actions sensibles (P0)
+- **Constat de l'audit :** aucune trace n'existait de qui avait créé, modifié, exporté ou **supprimé** une mission (`grep logging` → 0 résultat dans `api/`). Angle mort pour un outil qui vend de la traçabilité GRC.
+- `api/modules/audit_log.py` — logging stdlib, `RotatingFileHandler` (5 × 1 Mo), `propagate=False` pour ne pas polluer la sortie uvicorn. **Ne lève jamais** : disque plein ou droits insuffisants n'empêchent pas l'opération métier d'aboutir.
+- `api/modules/data_paths.py` — résolution des emplacements de données extraite de `projects.py` et partagée (missions + journal), sans duplication de la logique `GREENSHIELD_DATA_DIR`.
+- **Actions tracées :** création / modification / suppression de mission, upload, scan technique, import de référentiel, export (Markdown et DOCX), appels Copilote (mission et portefeuille, avec la **source réelle** — c'est la seule circonstance où des données quittent le poste), import Collecte technique, et **tentatives de traversée de chemin rejetées** (signal de sécurité).
+- **Confidentialité :** le journal enregistre l'action et l'identifiant de mission, **jamais** le contenu — constats, vulnérabilités, données personnelles des personnes interrogées, ni le texte des prompts. Un test dédié le vérifie explicitement.
+- **Tests :** `test_audit_log.py` (8) + `test_audit_log_integration.py` (9). Vérifié de bout en bout contre un vrai serveur sur un répertoire de données jetable.
+
+### 2. Chiffrement au repos documenté (F15, P0)
+- Section « ⚠️ Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md) : chiffrement de disque (avec les commandes de vérification `manage-bde -status` / `lsblk -f`), restriction réseau au loopback, aucune donnée client dans git. Tableau « où vivent les données » ajouté.
+- README également remis à jour : les 4 modules sont désormais listés comme actifs (la table annonçait encore 3 modules « 🔜 »), section Tests et index de documentation ajoutés.
+
+### 3. Intégration continue (P1)
+- `.github/workflows/ci.yml` — sur push et pull request vers `main` : job backend (pytest) et job frontend (typecheck, lint, tests, build), avec cache pip/npm. `GREENSHIELD_DATA_DIR` pointé vers un répertoire jetable du runner pour qu'aucun test n'écrive dans l'emplacement par défaut.
+- Séquence validée localement à l'identique avant commit ; casse des imports relatifs vérifiée une à une (piège classique Windows → Linux, invisible en local).
+
+### 4. Durcissement de la CSP (P2)
+- `'unsafe-inline'` **retiré de `script-src`** : le build Vite de production n'émet aucun script inline (vérifié sur `dist/index.html`, puis dans un vrai navigateur servant le build sous la CSP candidate — zéro violation console sur les 4 vues).
+- `'unsafe-inline'` **conservé sur `style-src`** : framer-motion écrit des attributs `style="opacity: …; transform: …"` au runtime ; le retirer casse toutes les animations. Vérifié empiriquement, pas supposé.
+- `https://img.shields.io` retiré (badges présents uniquement dans le README, rendu par GitHub). Ajout de `object-src 'none'`, `base-uri 'self'`, `frame-ancestors 'none'`, `form-action 'self'`.
+
+### 5. Suivi du temps consommé (F19)
+- **Cycle de vie complet respecté** (règle CLAUDE.md) : `schema_version` 3 avec migration `_to_v3` → routes backend → types TypeScript → client API → UI → tests des deux côtés.
+- Modèle : journal d'entrées horodatées (`socle.temps.entrees`), pas un chronomètre live qui perdrait son état à la fermeture. Validation stricte côté serveur : durée > 0, plafond à 24 h par entrée (garde-fou anti-faute de frappe), phase dans une liste fermée, note tronquée à 200 caractères.
+- `TempsPanel.tsx` : total cumulé, ventilation par phase, comparaison au **budget vendu** (`socle.qualification.budget`, champ qui existait depuis le jalon 1 sans être exploité). `formatDuree` isolée dans `lib/duree.ts` (fonction pure, et son export depuis un fichier de composant cassait le Fast Refresh).
+- **Régression détectée puis corrigée grâce à la vérification navigateur :** les deux routes de temps renvoyaient la progression *stockée* au lieu de la recalculer, ce qui faisait chuter la jauge de mission de 85 % à 0 % à chaque saisie. Les tests unitaires ne l'avaient pas vu (ils ne vérifiaient que les entrées de temps). Corrigé + test de non-régression dédié.
+- **Tests :** `test_temps.py` (21, dont tous les cas limites de validation), `TempsPanel.test.tsx` (17), `duree.test.ts` (5).
+
+### Bilan de vérification
+- **152 tests backend + 61 tests frontend**, tous verts. `typecheck`, `lint` (0 avertissement) et `build` propres.
+- Vérifié en conditions réelles dans le navigateur sur une **mission fictive** dans un répertoire de données jetable — jamais sur les missions clientes réelles.
+- Constats ouverts consignés dans [todo.md](todo.md), dont un découvert en session : `_migrate_legacy_projects()` recopie les données clients dans tout `GREENSHIELD_DATA_DIR`, à chaque démarrage.
+
+---
+
 ## [28/07/2026] - Évolutions Majeures : Hardening, Tests et Plateforme de Conseil Stateful (6 Phases)
 
 ### 1. Sécurité et Durcissement (Hardening)
@@ -84,3 +125,17 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 - **Tests de non-régression :** `test_path_safety.py` (14, le validateur isolément), `test_projects_security.py` (nouveau, 15 tests reproduisant exactement chaque vecteur du PoC de l'audit), + 1 test dans `test_workflow_loader.py` (V-07), + 1 dans `test_collecte_technique.py` (traversal sur l'import registre). Suite complète : **113 tests backend + 26 tests frontend**, tous verts.
 - **Vérification réseau réelle (pas seulement unitaire) :** re-testé via `curl --path-as-is` (contourne la normalisation client-side de `..` que curl applique par défaut) contre un serveur relancé avec le correctif — `DELETE /api/projects/..` renvoie bien `400` au lieu de s'exécuter.
 - **⚠️ Incident survenu pendant cette vérification :** la même commande `curl --path-as-is -X DELETE .../api/projects/..`, envoyée par erreur contre un processus serveur resté actif sur le port 8000 depuis *avant* le correctif (code non corrigé), a réellement supprimé `%APPDATA%\GreenShield\` — **perte définitive de la mission « test »** (aucune copie ailleurs). La mission « Cassiopé » a survécu car une copie existait encore dans `GREEN SHIELD/projects/cassiopé/` (ancien emplacement pré-F13, toujours dans le dépôt) et a été ré-importée automatiquement par `_migrate_legacy_projects()` au redémarrage. Leçon retenue : tout test d'exploitation, même après correctif supposé, doit s'exécuter dans un environnement isolé (répertoire jetable) — jamais contre un serveur dont l'état du code n'est pas confirmé à l'instant T.
+
+### 9. Application des conventions frontend documentées dans CLAUDE.md
+Suite à la revue d'un gabarit générique React/Next.js (28/07/2026), les points réellement transposables identifiés dans CLAUDE.md ont été implémentés (pas seulement documentés) :
+
+- **Génération d'ID unifiée** (`web/src/lib/ids.ts`, `nextId()`) : remplace les 7 générateurs `"PREFIX-" + Math.random()` de `Projects.tsx` (valeurs métier, biens supports, registre RGPD, remédiations — gabarit et saisie personnalisée) par un algorithme séquentiel sans collision, miroir de `_next_bs_id` côté backend. Élimine le risque de collision d'id déjà identifié entre le formulaire manuel et l'import Collecte technique. Vérifié en direct : ajout d'un bien support sur la mission Cassiopé → `BS-04` généré correctement (BS-01 à BS-03 existants), puis retiré après vérification.
+- **localStorage protégé** (`web/src/lib/storage.ts`, `safeGetItem`/`safeSetItem`) : tous les accès directs (`Settings.tsx`, `Projects.tsx`, `CopilotGRC.tsx`, `lib/api.ts`) passent désormais par ces wrappers `try/catch`. `Settings.tsx` affiche un état d'erreur explicite si l'enregistrement échoue (mode privé, quota dépassé) au lieu d'afficher un faux succès. Vérifié en direct par un test aveugle (`Storage.prototype.setItem` patché pour lever une exception) : l'état d'erreur s'affiche, l'écran ne casse pas.
+- **Overlays fermables** (`web/src/lib/useDismissOnOutsideOrEscape.ts`) : les 3 menus déroulants de `Projects.tsx` (valeurs métier, biens supports, registre RGPD) se ferment désormais à `Échap` et au clic extérieur, avec `max-h-72 overflow-y-auto` sur les listes. Vérifié en direct dans le navigateur (clic extérieur et Échap testés séparément, les deux ferment bien le menu).
+- **Accessibilité** : `aria-label` ajouté sur les 7 boutons icône-seule qui n'en avaient pas (suppression de valeur métier/bien support/traitement RGPD/tiers/remédiation, notification, suppression de mission).
+- **`no-explicit-any` réduit à zéro** en dehors des fichiers de test (exception documentée) : `lib/api.ts` (`post`/`put` typés `unknown`, `frameworks.import` typé explicitement), `Projects.tsx` (`updateStepData` typé via un pont `Record<string, Record<string, unknown>>` plutôt que `any`, casts `as Remediation["axe"|"priority"]` au lieu de `as any`, annotations `: any` superflues supprimées sur des `.map()` déjà inférables).
+- **`iconFor` extrait** de `Sidebar.tsx` vers `web/src/lib/icons.ts` (le composant `Sidebar.tsx` n'exporte plus que le composant lui-même — élimine le warning `react-refresh/only-export-components`).
+- **Bug réel corrigé au passage** : `loadProjectsAndFrameworks` était référencée dans un `useEffect` avant sa déclaration `const` dans `Projects.tsx` (sans conséquence à l'exécution, mais fragile) — réordonné.
+- **ESLint configuré** (`web/eslint.config.js`, flat config ESLint 10 + typescript-eslint) : `npm run lint` fonctionne réellement désormais (n'existait pas avant). Règles `react-hooks` limitées volontairement aux deux règles classiques (`rules-of-hooks`, `exhaustive-deps`) — le préréglage `recommended` de `eslint-plugin-react-hooks` v7 embarque par défaut les règles orientées React Compiler (`set-state-in-effect`, `immutability`...) qui signalent en erreur le pattern standard « fetch au montage + setState », légitime et déjà testé partout dans ce projet qui n'utilise pas le React Compiler.
+- **Scripts npm ajoutés** : `typecheck`, `lint`.
+- **Vérification complète, 4 commandes :** `npm run typecheck` (propre), `npm run lint` (0 erreur/warning), `npm run test` (42 tests, dont 16 nouveaux : `ids.test.ts` ×7, `storage.test.ts` ×5, `useDismissOnOutsideOrEscape.test.tsx` ×4), `npm run build` (réussit). Backend inchangé, re-vérifié : 113 tests toujours verts. Comportement vérifié en conditions réelles dans le navigateur pour chaque changement UI (pas seulement `tsc`).

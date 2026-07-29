@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from . import ai_gateway, projects
+from . import ai_gateway, audit_log, projects
 
 router = APIRouter(prefix="/api")
 
@@ -158,11 +158,16 @@ def ask_copilot(data: dict) -> dict:
     if api_key:
         online_text = ai_gateway.call_gemini(api_key, _build_system_context(context), prompt)
         if online_text is not None:
+            # Sortie réseau effective, portant une synthèse de TOUT le
+            # portefeuille : la trace est d'autant plus importante ici.
+            audit_log.record("copilot.portfolio", target="-", detail="source=online")
             return {"status": "success", "response": online_text, "source": "online", "context": context}
 
+    source = "offline_fallback" if api_key else "offline"
+    audit_log.record("copilot.portfolio", target="-", detail=f"source={source}")
     return {
         "status": "success",
         "response": _offline_reply(context, prompt),
-        "source": "offline_fallback" if api_key else "offline",
+        "source": source,
         "context": context,
     }

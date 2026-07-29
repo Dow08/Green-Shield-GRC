@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import json
+import re
 import shutil
 import unicodedata
 from datetime import date, datetime
@@ -11,6 +12,8 @@ from fastapi import APIRouter, HTTPException, UploadFile, File, Response
 import yaml
 from . import auditcraft_grc
 from . import ai_gateway
+from . import audit_log
+from . import data_paths
 from . import docx_export
 from . import schema_migration
 from . import workflow_loader
@@ -20,25 +23,8 @@ from . import path_safety
 router = APIRouter(prefix="/api")
 
 # --- Emplacement des données ------------------------------------------------
-# Les missions contiennent des informations client confidentielles : elles vivent
-# HORS du dépôt git (cf. docs/audit-critique-plan.md, F13) et hors du répertoire
-# d'installation, pour survivre à une mise à jour de l'application.
-#   GREENSHIELD_DATA_DIR : override explicite (utilisé par Docker)
-#   Windows      : %APPDATA%\GreenShield\projects
-#   Linux/macOS  : $XDG_DATA_HOME/greenshield/projects (défaut ~/.local/share)
-
-def _resolve_projects_dir() -> Path:
-    override = os.environ.get("GREENSHIELD_DATA_DIR")
-    if override:
-        return Path(override).expanduser()
-    if os.name == "nt":
-        base = os.environ.get("APPDATA") or Path.home() / "AppData" / "Roaming"
-        return Path(base) / "GreenShield" / "projects"
-    base = os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share"
-    return Path(base) / "greenshield" / "projects"
-
-
-PROJECTS_DIR = _resolve_projects_dir()
+# Résolution centralisée dans data_paths.py (partagée avec le journal d'audit).
+PROJECTS_DIR = data_paths.resolve_projects_dir()
 # Les référentiels sont du code applicatif livré avec l'app : chemin relatif au module.
 FRAMEWORKS_DIR = Path(__file__).resolve().parent.parent / "frameworks"
 # Ancien emplacement (dans le dépôt) : source d'une migration unique.
@@ -434,6 +420,7 @@ def create_project(data: dict) -> dict:
     # une seule logique construit le socle/grc/consulting, jamais deux.
     state = schema_migration.migrate(state)
     _write_json_atomic(p_dir / "project.json", state)
+    audit_log.record("project.create", target=project_id, detail=f"type={project_type}")
     return state
 
 @router.get("/projects/{p_id}")
@@ -459,8 +446,10 @@ def update_project(p_id: str, state: dict) -> dict:
     state["progress"] = calculate_progress(state)
     try:
         _write_json_atomic(p_dir / "project.json", state)
+        audit_log.record("project.update", target=p_id, detail=f"progress={state['progress']}%")
         return state
     except Exception as exc:
+        audit_log.record("project.update", target=p_id, outcome="error")
         raise HTTPException(status_code=500, detail=f"Erreur ecriture projet: {str(exc)}")
 
 @router.delete("/projects/{p_id}")
@@ -471,8 +460,12 @@ def delete_project(p_id: str) -> dict:
         raise HTTPException(status_code=404, detail="Projet introuvable")
     try:
         shutil.rmtree(p_dir)
+        # Suppression irréversible d'une mission cliente : la trace la plus
+        # importante de tout le journal.
+        audit_log.record("project.delete", target=p_id)
         return {"status": "ok", "message": "Projet supprimé avec succès"}
     except Exception as exc:
+         audit_log.record("project.delete", target=p_id, outcome="error")
          raise HTTPException(status_code=500, detail=f"Erreur suppression: {str(exc)}")
 
 @router.post("/projects/{p_id}/upload")
@@ -496,6 +489,7 @@ async def upload_file(p_id: str, file: UploadFile = File(...)) -> dict:
             files_list.append(safe_filename)
         state["progress"] = calculate_progress(state)
         _write_json_atomic(state_file, state)
+        audit_log.record("project.upload", target=p_id, detail=f"file={safe_filename}")
         return state
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
@@ -516,9 +510,102 @@ def run_project_audit(p_id: str) -> dict:
         state.setdefault("steps", {}).setdefault("evaluation", {})["technical_results"] = result
         state["progress"] = calculate_progress(state)
         _write_json_atomic(state_file, state)
+        audit_log.record("project.scan", target=p_id, detail=f"score={result.get('score')}")
         return state
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+# --- Suivi du temps consommé (F19) ------------------------------------------
+# Phases reconnues : les 6 étapes méthodologiques + un fourre-tout explicite
+# pour ce qui ne relève d'aucune (déplacements, coordination, rédaction).
+PHASES_TEMPS = ("cadrage", "diagnostic", "tprm", "ebios", "resilience", "traitement", "autre")
+
+
+def _next_temps_id(entrees: list[dict]) -> str:
+    """Identifiant séquentiel sans collision, même logique que _next_bs_id."""
+    existants = {e.get("id", "") for e in entrees}
+    numeros = [int(m.group(1)) for e in existants if (m := re.fullmatch(r"T-(\d+)", e))]
+    suivant = (max(numeros) + 1) if numeros else 1
+    candidat = f"T-{suivant:03d}"
+    while candidat in existants:
+        suivant += 1
+        candidat = f"T-{suivant:03d}"
+    return candidat
+
+
+@router.post("/projects/{p_id}/temps")
+def add_temps_entry(p_id: str, data: dict) -> dict:
+    """Ajoute une entrée de temps consommé sur une mission."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    try:
+        minutes = int(data.get("minutes", 0))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Durée invalide : minutes attendues (entier)")
+    if minutes <= 0:
+        raise HTTPException(status_code=400, detail="La durée doit être supérieure à 0 minute")
+    if minutes > 24 * 60:
+        raise HTTPException(status_code=400, detail="Une entrée ne peut pas dépasser 24 h ; découpez-la par journée")
+
+    phase = data.get("phase") or "autre"
+    if phase not in PHASES_TEMPS:
+        raise HTTPException(status_code=400, detail=f"Phase inconnue : {phase}")
+
+    try:
+        state = _read_state(state_file)
+        temps = state.setdefault("socle", {}).setdefault("temps", {"entrees": []})
+        entrees = temps.setdefault("entrees", [])
+        entree = {
+            "id": _next_temps_id(entrees),
+            "phase": phase,
+            "minutes": minutes,
+            "date": data.get("date") or date.today().isoformat(),
+            "note": str(data.get("note", ""))[:200],
+        }
+        entrees.append(entree)
+        state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        # Comme toute mutation renvoyant la mission au client : la progression
+        # est recalculée, sinon l'UI réafficherait la valeur stockée (périmée).
+        state["progress"] = calculate_progress(state)
+        _write_json_atomic(state_file, state)
+        audit_log.record("temps.add", target=p_id, detail=f"{entree['id']} phase={phase} minutes={minutes}")
+        return state
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@router.delete("/projects/{p_id}/temps/{entry_id}")
+def delete_temps_entry(p_id: str, entry_id: str) -> dict:
+    """Supprime une entrée de temps (saisie erronée)."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    entry_id = path_safety.safe_path_component(entry_id, "identifiant d'entrée de temps")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    try:
+        state = _read_state(state_file)
+        temps = state.setdefault("socle", {}).setdefault("temps", {"entrees": []})
+        entrees = temps.setdefault("entrees", [])
+        restantes = [e for e in entrees if e.get("id") != entry_id]
+        if len(restantes) == len(entrees):
+            raise HTTPException(status_code=404, detail="Entrée de temps introuvable")
+        temps["entrees"] = restantes
+        state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        state["progress"] = calculate_progress(state)
+        _write_json_atomic(state_file, state)
+        audit_log.record("temps.delete", target=p_id, detail=entry_id)
+        return state
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
 
 @router.get("/mesures")
 def list_mesures(axe: str | None = None, referentiel: str | None = None) -> list[dict]:
@@ -609,8 +696,10 @@ def import_framework(data: dict) -> dict:
     dest = FRAMEWORKS_DIR / "custom" / f"{fw_id}.yaml"
     try:
         dest.write_text(yaml.safe_dump(fw_data, allow_unicode=True), encoding="utf-8")
+        audit_log.record("framework.import", target=fw_id, detail=f"requirements={len(requirements)}")
         return {"status": "ok", "id": fw_id}
     except Exception as exc:
+        audit_log.record("framework.import", target=fw_id, outcome="error")
         raise HTTPException(status_code=500, detail=str(exc))
 
 @router.get("/projects/{p_id}/report.docx")
@@ -644,6 +733,7 @@ def export_project_docx(p_id: str, auditeur: str = "", cabinet: str = "") -> Res
         f"filename*=UTF-8''{quote(filename, safe='')}"
     )
 
+    audit_log.record("project.export", target=p_id, detail="format=docx")
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -932,7 +1022,8 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
         
     report_file = p_dir / "reports" / title
     report_file.write_text(markdown_content, encoding="utf-8")
-    
+
+    audit_log.record("project.export", target=p_id, detail=f"format=md type={doc_type}")
     return {
         "title": title,
         "markdown": markdown_content
@@ -958,6 +1049,9 @@ def run_project_copilot(p_id: str, data: dict) -> dict:
     if api_key:
         online_text = _call_gemini_copilot(api_key, client, prompt)
         if online_text is not None:
+            # Sortie réseau effective : c'est la seule circonstance où des données
+            # quittent le poste. Le contenu du prompt n'est jamais journalisé.
+            audit_log.record("copilot.mission", target=p_id, detail="source=online")
             return {"status": "success", "response": online_text, "source": "online"}
 
     offline_replies = {
@@ -1001,10 +1095,12 @@ Sur la base des informations recueillies :
     else:
         response_text = offline_replies["default"]
         
+    source = "offline_fallback" if api_key else "offline"
+    audit_log.record("copilot.mission", target=p_id, detail=f"source={source}")
     return {
         "status": "success",
         "response": response_text,
-        "source": "offline_fallback" if api_key else "offline"
+        "source": source
     }
 
 

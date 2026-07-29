@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Bot, ShieldAlert, AlertTriangle, XCircle, ArrowUpRight, Gauge, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
+import { safeGetItem } from "../lib/storage";
 import { CopilotSourceBadge } from "../components/CopilotSourceBadge";
 import type { CopilotContext, CopilotSource } from "../types";
 
@@ -38,7 +39,7 @@ export function CopilotGRC({ onNavigate }: Props) {
     setAsking(true);
     setResponse("");
     setSource(null);
-    const storedKey = localStorage.getItem("copilot_api_key") || "";
+    const storedKey = safeGetItem("copilot_api_key") || "";
     api.copilot
       .ask({ prompt, key: storedKey })
       .then((data) => {

@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from typing import Callable
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 
 def _to_v2(state: dict) -> dict:
@@ -61,9 +61,27 @@ def _to_v2(state: dict) -> dict:
     return state
 
 
+def _to_v3(state: dict) -> dict:
+    """v2 → v3 : suivi du temps consommé par mission (F19).
+
+    Hermes liste « charges consommées vs budget » parmi les indicateurs à
+    reporter dès le démarrage d'une mission. Le budget *vendu* existait déjà
+    (`socle.qualification.budget`, saisie libre) mais rien ne mesurait le temps
+    *réellement* passé — donnée qui alimente à la fois le pilotage client, la
+    facturation du consultant et le calcul de ROSI.
+
+    Modèle : un journal d'entrées horodatées (pas un chronomètre live, qui
+    perdrait son état à la fermeture de l'application).
+    """
+    socle = state.setdefault("socle", {})
+    socle.setdefault("temps", {"entrees": []})
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
+    (3, _to_v3),
 ]
 
 

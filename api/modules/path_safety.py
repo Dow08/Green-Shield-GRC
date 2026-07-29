@@ -17,6 +17,8 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
+from . import audit_log
+
 
 def safe_path_component(value: str, field_name: str = "identifiant") -> str:
     """Valide qu'une valeur peut servir sans risque de segment de chemin
@@ -31,6 +33,9 @@ def safe_path_component(value: str, field_name: str = "identifiant") -> str:
     """
     if value and all(c.isalnum() or c in "_-" for c in value):
         return value
+    # Une valeur rejetée ici est soit une faute de frappe, soit une tentative de
+    # traversée de chemin : dans les deux cas, ça mérite une trace.
+    audit_log.record("path.rejected", target=repr(value)[:80], outcome="denied", detail=field_name)
     raise HTTPException(status_code=400, detail=f"{field_name} invalide : caractères non autorisés")
 
 
@@ -41,5 +46,9 @@ def safe_filename(filename: str | None) -> str:
     original du fichier est entièrement contrôlé par le client."""
     name = Path(filename or "").name
     if not name or name in (".", ".."):
+        audit_log.record("upload.rejected", target=repr(filename)[:80], outcome="denied")
         raise HTTPException(status_code=400, detail="Nom de fichier invalide")
+    if name != filename:
+        # Le client a envoyé un chemin, pas un simple nom : on l'a neutralisé.
+        audit_log.record("upload.sanitized", target=name, outcome="ok", detail=repr(filename)[:80])
     return name

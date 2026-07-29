@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning } from "lucide-react";
+import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning, AlertTriangle } from "lucide-react";
+import { safeGetItem, safeSetItem } from "../lib/storage";
 
 export function Settings() {
   const [name, setName] = useState("Dorian");
@@ -8,12 +9,13 @@ export function Settings() {
   const [email, setEmail] = useState("dorian@dp-cyber.fr");
   const [apiKey, setApiKey] = useState("");
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
-    const savedName = localStorage.getItem("consultant_name");
-    const savedCompany = localStorage.getItem("consultant_company");
-    const savedEmail = localStorage.getItem("consultant_email");
-    const savedKey = localStorage.getItem("copilot_api_key");
+    const savedName = safeGetItem("consultant_name");
+    const savedCompany = safeGetItem("consultant_company");
+    const savedEmail = safeGetItem("consultant_email");
+    const savedKey = safeGetItem("copilot_api_key");
 
     if (savedName) setName(savedName);
     if (savedCompany) setCompany(savedCompany);
@@ -23,12 +25,15 @@ export function Settings() {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("consultant_name", name);
-    localStorage.setItem("consultant_company", company);
-    localStorage.setItem("consultant_email", email);
-    localStorage.setItem("copilot_api_key", apiKey);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    const ok = [
+      safeSetItem("consultant_name", name),
+      safeSetItem("consultant_company", company),
+      safeSetItem("consultant_email", email),
+      safeSetItem("copilot_api_key", apiKey),
+    ].every(Boolean);
+    setSaved(ok);
+    setSaveError(!ok);
+    setTimeout(() => { setSaved(false); setSaveError(false); }, 2500);
   };
 
   return (
@@ -127,6 +132,16 @@ export function Settings() {
               className="text-xs font-bold text-[var(--g1)] flex items-center gap-1"
             >
               <CloudLightning size={13} /> Configurations enregistrées localement !
+            </motion.div>
+          )}
+
+          {saveError && (
+            <motion.div
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="text-xs font-bold text-[var(--rose)] flex items-center gap-1"
+            >
+              <AlertTriangle size={13} /> Échec de l'enregistrement local (mode privé ou stockage plein ?)
             </motion.div>
           )}
         </div>

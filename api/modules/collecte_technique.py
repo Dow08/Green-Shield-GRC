@@ -20,6 +20,7 @@ import yaml
 from fastapi import APIRouter, HTTPException
 
 from . import projects
+from . import audit_log
 from . import path_safety
 from .auditcraft_grc import parser as sshd_nginx_parser
 
@@ -377,8 +378,9 @@ def import_asset_into_registry(p_id: str, data: dict) -> dict:
         state = projects._read_state(state_file)
         cadrage = state.setdefault("steps", {}).setdefault("cadrage", {})
         assets_support = cadrage.setdefault("assets_support", [])
+        bs_id = _next_bs_id(assets_support)
         assets_support.append({
-            "id": _next_bs_id(assets_support),
+            "id": bs_id,
             "name": name,
             "type": data.get("type") or "Logiciel",
             "description": data.get("description", ""),
@@ -386,6 +388,7 @@ def import_asset_into_registry(p_id: str, data: dict) -> dict:
         })
         state["progress"] = projects.calculate_progress(state)
         projects._write_json_atomic(state_file, state)
+        audit_log.record("collecte.import", target=p_id, detail=f"asset={bs_id}")
         return state
     except HTTPException:
         raise

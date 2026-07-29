@@ -41,6 +41,28 @@ GREEN SHIELD est une plateforme locale, modulaire et souveraine (100 % hors-lign
 - **Commentaires** : uniquement quand le POURQUOI n'est pas évident (contrainte cachée, contournement, décision d'architecture) — jamais pour décrire ce que fait le code.
 - **Git** : ne jamais committer sans demande explicite de l'utilisateur. Toujours `git status` avant un commit pour repérer un fichier suspect avant de l'ajouter.
 
+## Conventions frontend (adaptées d'un gabarit générique React/Next.js)
+
+Un gabarit générique "Universal Instructions for React/Next.js" a été passé en revue le 28/07/2026. La majorité ne s'applique pas ici — **à écarter explicitement**, pour qu'une session future n'essaie pas de "corriger" le stack vers ça :
+
+- **Pas de Next.js.** Le choix Vite est assumé (outil 100 % client, pas de SEO, pas de SSR/auth/DB côté framework — cf. §2 du gabarit, critères qui pointent tous vers React+Vite ici). Aucune section Next.js (App Router, Server Components, `"use client"`, Server Actions) ne s'applique.
+- **Pas de `shadcn/ui`.** Le projet a son propre design system CSS (variables `--g1`/`--g3`/`--stroke`/`--bg2`/`--soft`/`--faint`..., classes utilitaires `glass`, `glass-2`, `tile`/`tile-*`) déjà cohérent sur toutes les pages. Ne pas introduire shadcn ni un autre kit UI par-dessus — adapter les primitives existantes (`Sidebar.tsx`, boutons/inputs inline stylés) plutôt que copier une nouvelle bibliothèque.
+- **Pas d'architecture FSD** (`app/views/widgets/features/entities/shared`). La structure actuelle (`web/src/{pages,components,lib,types}`) suffit à la taille du projet ; ne pas la réorganiser sans besoin réel.
+
+Ce qui est **réellement transposable** et à appliquer :
+
+- **TypeScript strict** déjà actif (`tsconfig.json`, `strict: true`) — le garder. Pas de `as any` sauf cas isolé documenté ; les tests mockant `fetch` (`global.fetch = ... as any`) sont l'exception tolérée (interop avec l'API DOM native), pas un précédent pour le reste du code.
+- **Validation runtime des données externes** : aujourd'hui absente côté frontend (les réponses API sont consommées telles quelles, cf. `lib/api.ts`). Le backend valide déjà ses propres entrées (`path_safety.py`, migrations `schema_migration.py`) ; si un champ de réponse API devient incertain, valider côté client plutôt que supposer la forme.
+- **Cycle de vie complet d'un nouveau champ** (§9 du gabarit, très aligné avec l'existant) : type TypeScript (`types.ts`) → défauts (`create_default_state` côté backend) → migration (`schema_migration.py`) → UI (lecture + édition) → export/import → cas limites. Ne jamais ajouter un champ seulement côté UI.
+- **Overlays/dropdowns** (sélecteurs de modèles dans `Projects.tsx`, menus déroulants) : fermeture au `Escape` et au clic extérieur, `z-index` explicite, `max-height` + `overflow-y-auto` sur les listes longues — à vérifier si un nouveau menu est ajouté.
+- **Tailwind v4 spécifiquement** (`web/package.json`, `^4.0.0`) : la syntaxe diffère de v3 sur plusieurs points (config CSS-first, certaines classes de wrap/overflow renommées). Avant d'utiliser une classe potentiellement version-dépendante, vérifier qu'elle existe en v4 plutôt que de la recopier d'un exemple v3.
+- **localStorage** : utilisé sans `try/catch` aujourd'hui (`Settings.tsx`, `Projects.tsx` pour la clé Copilote). Pas bloquant pour un outil mono-poste, mais toute nouvelle lecture/écriture devrait être protégée (mode privé, quota dépassé) plutôt que de casser l'écran.
+- **Une seule source de vérité par opération de domaine** : point de vigilance concret déjà identifié — l'ajout d'un Bien Support existe par **deux chemins différents** (formulaire manuel de la Phase 1 dans `Projects.tsx`, génération d'id `"BS-" + random`) et l'import depuis Collecte technique (`collecte_technique.py::_next_bs_id`, génération séquentielle). Les deux écrivent dans le même `steps.cadrage.assets_support`, avec deux logiques d'id différentes qui peuvent un jour se percuter. À unifier si un troisième point d'entrée apparaît.
+- **Accessibilité de base** : `aria-label` sur les boutons icône-seule (déjà fait dans `Sidebar.tsx` — garder ce réflexe sur toute nouvelle icône cliquable), navigation clavier, focus visible.
+- **États de chargement/vide/erreur** : déjà globalement suivis (`CopilotGRC.tsx` a un état de chargement explicite, `Projects.tsx` gère "aucun fichier déposé") — maintenir ce standard sur toute nouvelle vue pilotée par l'API.
+- **Pas d'ESLint configuré actuellement** (aucun `eslint.config.*`, aucune dépendance) — ne pas prétendre qu'un `npm run lint` existe. Les checks réels du projet restent `npx tsc --noEmit` et `npx vitest run` (déjà documentés ci-dessus).
+- **Tester le contenu réaliste avant de livrer une UI** (§27 du gabarit) : nom de mission très long sans espace, client vide, liste de tiers TPRM longue, etc. — cohérent avec la philosophie "n'invente rien / ne casse rien" déjà en place sur les tests (`PhaseKanban.test.tsx`).
+
 ## Piège Windows connu
 
 `uvicorn --reload` sur Windows spawne un process `multiprocessing` enfant (visible via `Get-CimInstance Win32_Process -Filter "Name='python.exe'"`, colonne `CommandLine` contenant `spawn_main(parent_pid=...)`). Tuer uniquement le PID du reloader **n'arrête pas cet enfant** : il reste orphelin, garde le port lié et sert l'ancien code en mémoire — symptôme typique : les nouvelles routes renvoient `404 Not Found` alors que `/health` répond normalement. Toujours identifier et tuer l'arbre complet des process `python.exe` liés avant de relancer.

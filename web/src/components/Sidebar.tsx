@@ -1,18 +1,6 @@
-import type { ComponentType } from "react";
-import { Shield, LayoutGrid, FolderKanban, Bot, Radar, Settings } from "lucide-react";
+import { LayoutGrid, Settings } from "lucide-react";
 import type { ModuleInfo } from "../types";
-
-// Correspondance nom d'icône (API) → composant lucide (icônes rondes/modernes).
-const ICONS: Record<string, ComponentType<{ size?: number; strokeWidth?: number }>> = {
-  shield: Shield,
-  missions: FolderKanban,
-  copilot: Bot,
-  collect: Radar,
-};
-
-export function iconFor(name: string): ComponentType<{ size?: number; strokeWidth?: number }> {     
-  return ICONS[name] ?? Shield;
-}
+import { iconFor } from "../lib/icons";
 
 interface Props {
   view: string;
@@ -23,8 +11,8 @@ interface Props {
 export function Sidebar({ view, onNavigate, modules }: Props) {
   return (
     <aside className="flex w-[76px] flex-col items-center gap-2 border-r border-[var(--stroke)] bg-white/[0.02] py-4 flex-shrink-0">
-      <div className="tile tile-green mb-2 h-[42px] w-[42px] shadow-[0_8px_20px_rgba(46,230,160,0.4)]">
-        <Shield size={20} strokeWidth={2.2} />
+      <div className="tile mb-2 h-[42px] w-[42px] overflow-hidden shadow-[0_8px_20px_rgba(46,230,160,0.4)]">
+        <img src="/logo.png" alt="GREEN SHIELD" className="h-full w-full object-cover" />
       </div>
 
       <NavButton active={view === "home"} label="Accueil" onClick={() => onNavigate("home")}>       
