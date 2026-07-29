@@ -2,6 +2,7 @@ import type {
   AuditResult, ModuleInfo, ProjectState, Framework,
   CopilotContext, CopilotAskResult, FingerprintResult, SuggestedAsset, PhaseTemps,
   RevueExportResult, SnapshotInfo, EcheanceRgpdMission, CouvertureTechnique,
+  FrameworkDetail, Exigence,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -127,7 +128,8 @@ export const api = {
   
   frameworks: {
     list: () => get<Framework[]>("/api/frameworks"),
-    import: (data: { id: string; name: string; description?: string; requirements?: unknown[] }) =>
+    detail: (fwId: string) => get<FrameworkDetail>(`/api/frameworks/${fwId}/detail`),
+    import: (data: { id: string; name: string; description?: string; requirements?: Exigence[] }) =>
       post<{ status: string; id: string }>("/api/frameworks/import", data),
     workflow: (fwId: string) => get<Workflow>(`/api/frameworks/${fwId}/workflow`),
   },

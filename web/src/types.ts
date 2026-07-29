@@ -153,6 +153,22 @@ export interface AuditResult {
 
 // --- Interfaces pour la gestion de projets avancée (6 Phases) ---
 
+export interface Exigence {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+// Contenu complet d'un référentiel, pour le relire et l'enrichir (F2).
+// `personnel` : false pour les référentiels livrés, écrasés à chaque mise à jour.
+export interface FrameworkDetail {
+  id: string;
+  name: string;
+  description?: string;
+  requirements: Exigence[];
+  personnel: boolean;
+}
+
 export interface Framework {
   id: string;
   name: string;

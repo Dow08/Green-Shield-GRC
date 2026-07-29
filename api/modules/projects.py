@@ -1004,18 +1004,29 @@ def get_framework_agenda(fw_id: str, date_demarrage: str) -> list[dict]:
     return workflow_loader.resolve_agenda(workflow, debut)
 
 
+def _est_un_referentiel(data) -> bool:
+    """Le répertoire `frameworks/` ne contient pas que des référentiels.
+
+    `mesures_catalogue.yaml` y vit aussi (clés `metadata`/`mesures`) : sans ce
+    filtre il apparaissait dans la liste comme une entrée fantôme `id: null`,
+    donc comme une option vide dans le sélecteur de référentiel à la création
+    d'une mission GRC — et la choisir produisait une mission sans référentiel.
+    """
+    return isinstance(data, dict) and bool(data.get("id")) and bool(data.get("name"))
+
+
 @router.get("/frameworks")
 def list_frameworks() -> list[dict]:
     fws = []
     for path in FRAMEWORKS_DIR.glob("*.yaml"):
         try:
             data = yaml.safe_load(path.read_text(encoding="utf-8"))
-            if data:
+            if _est_un_referentiel(data):
                 fws.append({
-                    "id": data.get("id"),
-                    "name": data.get("name"),
+                    "id": data["id"],
+                    "name": data["name"],
                     "description": data.get("description"),
-                    "requirements_count": len(data.get("requirements", []))
+                    "requirements_count": len(data.get("requirements") or []),
                 })
         except Exception:
             pass
@@ -1024,16 +1035,28 @@ def list_frameworks() -> list[dict]:
         for path in custom_dir.glob("*.yaml"):
             try:
                 data = yaml.safe_load(path.read_text(encoding="utf-8"))
-                if data:
+                if _est_un_referentiel(data):
                     fws.append({
-                        "id": data.get("id"),
-                        "name": f"[Perso] {data.get('name')}",
+                        "id": data["id"],
+                        "name": f"[Perso] {data['name']}",
                         "description": data.get("description"),
-                        "requirements_count": len(data.get("requirements", []))
+                        "requirements_count": len(data.get("requirements") or []),
                     })
             except Exception:
                 pass
     return fws
+
+@router.get("/frameworks/{fw_id}/detail")
+def get_framework_detail(fw_id: str) -> dict:
+    """Contenu complet d'un référentiel, pour le relire et l'enrichir."""
+    fw_id = path_safety.safe_path_component(fw_id, "identifiant de référentiel")
+    data = get_framework_by_id(fw_id)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Référentiel introuvable")
+    # `personnel` : seuls les référentiels de custom/ sont modifiables — ceux
+    # livrés avec l'application sont écrasés à chaque mise à jour.
+    return {**data, "personnel": not (FRAMEWORKS_DIR / f"{fw_id}.yaml").is_file()}
+
 
 @router.post("/frameworks/import")
 def import_framework(data: dict) -> dict:
@@ -1045,6 +1068,17 @@ def import_framework(data: dict) -> dict:
     if not fw_id or not name:
         raise HTTPException(status_code=400, detail="ID et Nom sont requis")
     fw_id = path_safety.safe_path_component(fw_id, "identifiant de référentiel")
+
+    # Un référentiel personnel portant l'identifiant d'un référentiel livré
+    # serait masqué par ce dernier (get_framework_by_id lit la racine d'abord)
+    # et apparaîtrait deux fois dans la liste. On refuse la collision plutôt
+    # que de laisser un doublon silencieux.
+    if (FRAMEWORKS_DIR / f"{fw_id}.yaml").is_file():
+        raise HTTPException(
+            status_code=409,
+            detail=f"« {fw_id} » est un référentiel livré avec l'application. "
+                   "Choisissez un autre identifiant pour votre référentiel personnel.",
+        )
 
     fw_data = {
         "id": fw_id,

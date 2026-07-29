@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning, AlertTriangle } from "lucide-react";
 import { safeGetItem, safeSetItem } from "../lib/storage";
+import { api } from "../lib/api";
+import { ReferentielsPanel } from "../components/ReferentielsPanel";
+import type { Framework } from "../types";
 
 export function Settings() {
   const [name, setName] = useState("Dorian");
@@ -10,6 +13,7 @@ export function Settings() {
   const [apiKey, setApiKey] = useState("");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
+  const [frameworks, setFrameworks] = useState<Framework[]>([]);
 
   useEffect(() => {
     const savedName = safeGetItem("consultant_name");
@@ -21,7 +25,13 @@ export function Settings() {
     if (savedCompany) setCompany(savedCompany);
     if (savedEmail) setEmail(savedEmail);
     if (savedKey) setApiKey(savedKey);
+    api.frameworks.list().then(setFrameworks).catch(() => setFrameworks([]));
   }, []);
+
+  const enregistrerReferentiel = async (data: Parameters<typeof api.frameworks.import>[0]) => {
+    await api.frameworks.import(data);
+    setFrameworks(await api.frameworks.list());
+  };
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -108,6 +118,13 @@ export function Settings() {
             />
           </div>
         </div>
+
+        {/* RÉFÉRENTIELS PERSONNELS (F2) — enrichissement au fil des missions */}
+        <ReferentielsPanel
+          frameworks={frameworks}
+          onCharger={api.frameworks.detail}
+          onEnregistrer={enregistrerReferentiel}
+        />
 
         {/* COMPLIANCE AND SOVEREIGNTY NOTIFICATION */}
         <div className="glass-2 p-4 border-[rgba(46,230,160,0.2)] border flex items-start gap-3">
