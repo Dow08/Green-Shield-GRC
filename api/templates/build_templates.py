@@ -18,10 +18,13 @@ from pathlib import Path
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.shared import Pt
+from docx.shared import Pt, Inches
 
 TEMPLATES_DIR = Path(__file__).resolve().parent
 ISO27001_TEMPLATE = TEMPLATES_DIR / "rapport_iso27001.docx"
+# Logo servi à l'application web : source unique de l'identité visuelle, pour
+# que le rapport Word et les livrables Markdown portent exactement la même.
+LOGO_PATH = TEMPLATES_DIR.parent.parent / "web" / "public" / "logo.png"
 
 
 def _kv_table(doc: Document, rows: list[tuple[str, str]]) -> None:
@@ -69,6 +72,21 @@ def build_iso27001_template(path: Path) -> None:
     normal.font.size = Pt(10.5)
 
     # --- Page de garde ---
+    if LOGO_PATH.is_file():
+        logo_par = doc.add_paragraph()
+        logo_par.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        logo_par.add_run().add_picture(str(LOGO_PATH), width=Inches(1.1))
+        marque = doc.add_paragraph()
+        marque.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run_marque = marque.add_run("GREEN SHIELD")
+        run_marque.bold = True
+        run_marque.font.size = Pt(16)
+        cabinet = doc.add_paragraph()
+        cabinet.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run_cab = cabinet.add_run("DP Cyber Consulting — Audit & Conseil Cybersécurité")
+        run_cab.italic = True
+        run_cab.font.size = Pt(9)
+
     title = doc.add_heading("{{ titre_rapport }}", level=0)
     title.alignment = WD_ALIGN_PARAGRAPH.CENTER
     sub = doc.add_paragraph("{{ client }} — {{ referentiel }}")

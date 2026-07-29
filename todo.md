@@ -10,7 +10,7 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 ## Identité visuelle
 
 - [x] **Logo** — le logo bouclier + arbre de vie (`ChatGPT Image 28 juil. 2026, 10_50_25.png`, à la racine du dépôt) est intégré le 29/07/2026 : `web/public/logo.png` (version 256px optimisée), utilisé dans la pastille de la sidebar (`Sidebar.tsx`) et en favicon (`index.html`).
-- [ ] **Maquettes de rapports** — réaliser des maquettes stylisées et adaptées à l'identité visuelle (logo bouclier/arbre de vie) pour les documents exportés (NDA, Analyse EBIOS RM, PSSI/PRI, AIPD, Rapport GRC complet, rapport Word `.docx`). Aujourd'hui ces documents utilisent une feuille de style CSS d'impression générique (`pdf_style` dans `api/modules/projects.py`) et un gabarit Word neutre (`api/templates/rapport_iso27001.docx`) — aucun n'intègre le logo ni une charte graphique dédiée. Rappel posé le 29/07/2026, à la demande explicite du consultant — pas encore réalisé.
+- [x] **Maquettes de rapports** livrées le 29/07/2026 : `api/modules/charte.py` porte l'identité visuelle (logo embarqué en base64 pour rester lisible hors ligne, en-tête marque/client/référence, bandeau de confidentialité, pied avec empreinte SHA-256, feuille de style d'impression). Appliquée aux 5 livrables Markdown et au gabarit Word, qui affiche désormais le logo et la marque en page de garde.
 
 ## Frictions non résolues de l'audit critique (§6bis)
 
