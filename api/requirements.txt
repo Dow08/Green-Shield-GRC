@@ -2,6 +2,13 @@ fastapi==0.115.5
 uvicorn[standard]==0.32.1
 PyYAML==6.0.2
 
+# Requis par la route d'import de configuration client (UploadFile/File dans
+# api/modules/projects.py). FastAPI lève une RuntimeError **au moment de
+# l'import du module** si le paquet est absent : sans lui l'API ne démarre pas
+# du tout. L'oubli est resté invisible jusqu'au premier run de CI (29/07/2026),
+# le paquet étant présent par ailleurs sur le poste de développement.
+python-multipart==0.0.32
+
 # Génération des livrables Word. docxtpl remplit un vrai gabarit .docx porteur de
 # balises Jinja2 : le fichier produit s'ouvre nativement dans Word, et le gabarit
 # reste modifiable dans Word sans toucher au code.

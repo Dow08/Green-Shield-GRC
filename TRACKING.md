@@ -38,8 +38,16 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 - **Régression détectée puis corrigée grâce à la vérification navigateur :** les deux routes de temps renvoyaient la progression *stockée* au lieu de la recalculer, ce qui faisait chuter la jauge de mission de 85 % à 0 % à chaque saisie. Les tests unitaires ne l'avaient pas vu (ils ne vérifiaient que les entrées de temps). Corrigé + test de non-régression dédié.
 - **Tests :** `test_temps.py` (21, dont tous les cas limites de validation), `TempsPanel.test.tsx` (17), `duree.test.ts` (5).
 
+### 6. Bug bloquant révélé par le premier run de CI — `python-multipart` manquant
+- **Le premier run de CI a échoué**, et a immédiatement payé son investissement : `python-multipart` était **absent de `api/requirements.txt`** alors que la route d'import de configuration client (`UploadFile`/`File`) en dépend.
+- **Gravité réelle :** FastAPI lève une `RuntimeError` **au moment de l'import** du module déclarant la route — pas à l'appel. Conséquence : avec une installation propre depuis `requirements.txt`, `api/modules/projects.py` ne s'importe pas et **l'API ne démarre pas du tout**, image Docker comprise. Le bug préexistait à cette session ; il était masqué parce que le paquet est installé par ailleurs sur le poste de développement.
+- **Correctif :** `python-multipart==0.0.32` ajouté à `requirements.txt`, avec le commentaire expliquant pourquoi son absence est fatale à l'import.
+- **Test de non-régression :** `api/tests/test_app_demarre.py` — vérifie que `main` s'importe et que les routes des 4 modules (dont `/api/projects/{p_id}/upload` et les routes de suivi du temps) sont réellement montées. Aucun test ne couvrait « l'application démarre-t-elle » : ils importaient tous des modules isolément.
+- **Diagnostic de la CI amélioré au passage :** les logs bruts et le résumé de job d'Actions exigent une session authentifiée même sur un dépôt public (« Sign in to view logs »). La sortie pytest est donc republiée en **annotation**, canal exposé par l'API publique — sans quoi un échec de CI n'est pas analysable. Actions mises à jour (`checkout@v5`, `setup-python@v6`, `setup-node@v5`, Node 22) pour lever l'avertissement de dépréciation de Node 20.
+- **Leçon :** les 152 tests passaient en local sous Windows/Python 3.14 avec des dépendances plus récentes que celles épinglées. La CI teste la combinaison qui compte réellement — Linux, Python 3.12, versions épinglées.
+
 ### Bilan de vérification
-- **152 tests backend + 61 tests frontend**, tous verts. `typecheck`, `lint` (0 avertissement) et `build` propres.
+- **157 tests backend + 61 tests frontend**, tous verts. `typecheck`, `lint` (0 avertissement) et `build` propres.
 - Vérifié en conditions réelles dans le navigateur sur une **mission fictive** dans un répertoire de données jetable — jamais sur les missions clientes réelles.
 - Constats ouverts consignés dans [todo.md](todo.md), dont un découvert en session : `_migrate_legacy_projects()` recopie les données clients dans tout `GREENSHIELD_DATA_DIR`, à chaque démarrage.
 
