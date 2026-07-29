@@ -1,7 +1,7 @@
 import type {
   AuditResult, ModuleInfo, ProjectState, Framework,
   CopilotContext, CopilotAskResult, FingerprintResult, SuggestedAsset, PhaseTemps,
-  RevueExportResult, SnapshotInfo, EcheanceRgpdMission,
+  RevueExportResult, SnapshotInfo, EcheanceRgpdMission, CouvertureTechnique,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -80,6 +80,7 @@ export const api = {
     upload: (id: string, file: File) => uploadFile<ProjectState>(`/api/projects/${id}/upload`, file),
     runAudit: (id: string) => post<ProjectState>(`/api/projects/${id}/audit`, {}),
     revue: (id: string) => get<RevueExportResult>(`/api/projects/${id}/revue`),
+    couverture: (id: string) => get<CouvertureTechnique>(`/api/projects/${id}/couverture`),
     createDemo: () => post<ProjectState>("/api/projects/demo", {}),
     echeancesRgpd: () => get<EcheanceRgpdMission[]>("/api/rgpd/echeances"),
     updateRgpd: (id: string, politique: { duree_conservation_mois: number; date_fin_mission: string }) =>

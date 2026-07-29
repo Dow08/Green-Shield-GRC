@@ -1,14 +1,27 @@
-import { useEffect, useState } from "react";
-import { Menu } from "lucide-react";
+import { useEffect, useState, lazy, Suspense } from "react";
+import { Menu, Loader2 } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { Home } from "./pages/Home";
-import { AuditCraft } from "./pages/AuditCraft";
-import { Projects } from "./pages/Projects";
-import { Settings } from "./pages/Settings";
-import { CopilotGRC } from "./pages/CopilotGRC";
-import { CollecteTechnique } from "./pages/CollecteTechnique";
 import { api } from "./lib/api";
 import type { ModuleInfo } from "./types";
+
+// L'accueil est chargé d'emblée (c'est la première vue) ; les modules ne le
+// sont qu'à leur ouverture. Sans découpage, ouvrir l'accueil téléchargeait
+// aussi le registre de mission et ses six phases — l'essentiel du poids.
+const AuditCraft = lazy(() => import("./pages/AuditCraft").then((m) => ({ default: m.AuditCraft })));
+const Projects = lazy(() => import("./pages/Projects").then((m) => ({ default: m.Projects })));
+const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m.Settings })));
+const CopilotGRC = lazy(() => import("./pages/CopilotGRC").then((m) => ({ default: m.CopilotGRC })));
+const CollecteTechnique = lazy(() =>
+  import("./pages/CollecteTechnique").then((m) => ({ default: m.CollecteTechnique })));
+
+function ChargementVue() {
+  return (
+    <div className="flex items-center gap-2 p-6 text-xs text-[var(--soft)]">
+      <Loader2 size={14} className="animate-spin" /> Chargement du module…
+    </div>
+  );
+}
 
 // Modules "à venir" (feuille de route). Les trois sont désormais actifs !
 const COMING: ModuleInfo[] = [
@@ -84,11 +97,13 @@ export default function App() {
           </button>
 
           {view === "home" && <Home modules={modules} onOpen={setView} />}
-          {view === "auditcraft_grc" && <AuditCraft />}
-          {view === "missions" && <Projects />}
-          {view === "copilot" && <CopilotGRC onNavigate={setView} />}
-          {view === "collect" && <CollecteTechnique />}
-          {view === "settings" && <Settings />}
+          <Suspense fallback={<ChargementVue />}>
+            {view === "auditcraft_grc" && <AuditCraft />}
+            {view === "missions" && <Projects />}
+            {view === "copilot" && <CopilotGRC onNavigate={setView} />}
+            {view === "collect" && <CollecteTechnique />}
+            {view === "settings" && <Settings />}
+          </Suspense>
         </main>
       </div>
     </div>

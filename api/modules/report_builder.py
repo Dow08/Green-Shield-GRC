@@ -11,6 +11,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from . import charte
+from . import couverture
 from . import docx_export
 
 
@@ -24,6 +25,58 @@ class TypeDocumentInconnu(ValueError):
 
 # Types de livrables proposés par l'interface.
 TYPES_DOCUMENTS = ("nda", "ebios", "pssi_pri", "aipd", "audit_report")
+
+
+
+PHASES_LIBELLES = {
+    "cadrage": "Cadrage & Patrimoine",
+    "diagnostic": "Diagnostic & RGPD",
+    "tprm": "Risques Tiers (TPRM)",
+    "ebios": "Analyse des Menaces (EBIOS RM)",
+    "resilience": "Résilience & E3R",
+    "traitement": "Traitement & Livrables",
+    "autre": "Coordination, déplacements, rédaction",
+}
+
+
+def _duree_lisible(minutes: int) -> str:
+    """Miroir de `formatDuree` côté frontend (web/src/lib/duree.ts)."""
+    heures, reste = divmod(minutes, 60)
+    if heures == 0:
+        return f"{reste} min"
+    if reste == 0:
+        return f"{heures} h"
+    return f"{heures} h {reste:02d}"
+
+
+def _charges_consommees(state: dict) -> str:
+    """Tableau « charges consommées vs budget vendu » pour le rapport d'audit.
+
+    Indicateur exigé par la méthodologie Hermes dès le démarrage d'une mission.
+    Il n'était visible que dans l'interface : le client ne le voyait jamais.
+    """
+    socle = state.get("socle") or {}
+    entrees = ((socle.get("temps") or {}).get("entrees")) or []
+    budget = ((socle.get("qualification") or {}).get("budget")) or ""
+
+    if not entrees:
+        return "_Aucun temps consommé n'a été saisi pour cette mission._"
+
+    par_phase: dict[str, int] = {}
+    for e in entrees:
+        par_phase[e.get("phase", "autre")] = par_phase.get(e.get("phase", "autre"), 0) + int(e.get("minutes") or 0)
+
+    total = sum(par_phase.values())
+    lignes = ["| Phase | Temps consommé |", "| :--- | ---: |"]
+    for phase, libelle in PHASES_LIBELLES.items():
+        if par_phase.get(phase):
+            lignes.append(f"| {libelle} | {_duree_lisible(par_phase[phase])} |")
+    lignes.append(f"| **Total** | **{_duree_lisible(total)}** |")
+
+    tableau = "\n".join(lignes)
+    if budget:
+        tableau += f"\n\n*   **Budget vendu :** {budget}"
+    return tableau
 
 
 def build_document(state: dict, p_id: str, doc_type: str) -> tuple[str, str]:
@@ -248,7 +301,10 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
             tech_md = f"### Résultats Scan Technique (AuditCraft-GRC)\n\n*   **Score technique :** {tech_results.get('score')}% ({tech_results.get('band')})\n*   **Failles critiques :** {tech_results.get('critical_count')}\n\n{tech_results.get('report_markdown', '_Pas de rapport généré_')}"
         else:
             tech_md = "_Aucun scan technique d'audit de configuration n'a été exécuté pour ce projet._"
-            
+
+        charges_md = _charges_consommees(state)
+        couverture_md = couverture.phrase(couverture.couverture_technique(state))
+
         markdown_content = f"""{charte.entete("RAPPORT D'AUDIT GRC", client, now, p_id)}
 # RAPPORT D'AUDIT DE CONFORMITÉ & GRC
 
@@ -267,11 +323,19 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 ---
 
 ## 2. Évaluation Technique des Configurations (Automatique)
+
+> **Couverture technique de cet audit.** {couverture_md}
+
 {tech_md}
 
 ---
 
-## 3. Certifications et signatures d'audit
+## 3. Charges consommées
+{charges_md}
+
+---
+
+## 4. Certifications et signatures d'audit
 L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 
 | Signature de l'Auditeur Cyber | Signature du Client Audité |

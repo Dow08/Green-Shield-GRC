@@ -14,6 +14,7 @@ from . import archive
 from . import auditcraft_grc
 from . import ai_gateway
 from . import audit_log
+from . import couverture
 from . import data_paths
 from . import docx_export
 from . import schema_migration
@@ -766,6 +767,21 @@ def purge_donnees_personnelles(p_id: str) -> dict:
 
     audit_log.record("rgpd.purge", target=p_id, detail=f"enregistrements={efface}")
     return {"status": "ok", "efface": efface, "state": state}
+
+
+@router.get("/projects/{p_id}/couverture")
+def get_couverture_technique(p_id: str) -> dict:
+    """Part des contrôles appuyés par une preuve technique (F10)."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    try:
+        state = _read_state(state_file)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    resultat = couverture.couverture_technique(state)
+    return {**resultat, "phrase": couverture.phrase(resultat)}
 
 
 @router.get("/projects/{p_id}/revue")

@@ -31,6 +31,16 @@ export interface EcheanceRgpdMission extends EcheanceRgpd {
   donnees_personnelles: number;
 }
 
+// Taux de contrôles appuyés par une preuve technique (F10).
+export interface CouvertureTechnique {
+  controles_total: number;
+  controles_couverts: number;
+  taux: number;
+  scan_execute: boolean;
+  details: { controle: string; titre: string; couvert: boolean; preuves: string[] }[];
+  phrase: string;
+}
+
 export interface SnapshotInfo {
   nom: string;
   date: string;

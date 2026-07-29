@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical } from "lucide-react";
+import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock } from "lucide-react";
 import { api } from "../lib/api";
+import { formatDuree } from "../lib/duree";
 import { IsoPivotView } from "../components/IsoPivotView";
 import { TempsPanel } from "../components/TempsPanel";
 import { ArchivePanel } from "../components/ArchivePanel";
@@ -13,7 +14,7 @@ import { PhaseTprm } from "../components/phases/PhaseTprm";
 import { PhaseEbios } from "../components/phases/PhaseEbios";
 import { PhaseResilience } from "../components/phases/PhaseResilience";
 import { PhaseTraitement } from "../components/phases/PhaseTraitement";
-import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo, EcheanceRgpdMission } from "../types";
+import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo, EcheanceRgpdMission, CouvertureTechnique } from "../types";
 
 export function Projects() {
   const [projects, setProjects] = useState<ProjectState[]>([]);
@@ -35,6 +36,7 @@ export function Projects() {
   const [revueEnCours, setRevueEnCours] = useState(false);
   const [instantanes, setInstantanes] = useState<SnapshotInfo[]>([]);
   const [echeanceRgpd, setEcheanceRgpd] = useState<EcheanceRgpdMission | null>(null);
+  const [couverture, setCouverture] = useState<CouvertureTechnique | null>(null);
   const [saving, setSaving] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -124,6 +126,7 @@ export function Projects() {
       .catch(() => setRevue(null))
       .finally(() => setRevueEnCours(false));
     api.projects.snapshots(id).then(setInstantanes).catch(() => setInstantanes([]));
+    api.projects.couverture(id).then(setCouverture).catch(() => setCouverture(null));
     api.projects.echeancesRgpd()
       .then((toutes) => setEcheanceRgpd(toutes.find((e) => e.project_id === id) ?? null))
       .catch(() => setEcheanceRgpd(null));
@@ -266,6 +269,15 @@ export function Projects() {
     : 0;
   const grcCount = projects.filter(p => p.type === "grc").length;
   const consultingCount = projects.filter(p => p.type === "consulting").length;
+  // Charges consommées sur l'ensemble du portefeuille (reste de F19) : le
+  // cumul n'était visible qu'une mission à la fois.
+  const minutesPortefeuille = projects.reduce(
+    (acc, p) => acc + (p.socle?.temps?.entrees ?? []).reduce((s, e) => s + (e.minutes || 0), 0),
+    0,
+  );
+  const missionsAvecTemps = projects.filter(
+    (p) => (p.socle?.temps?.entrees ?? []).length > 0,
+  ).length;
 
   return (
     <div className="flex flex-col h-full overflow-y-auto pr-2 relative">
@@ -363,14 +375,23 @@ export function Projects() {
               </div>
             </div>
 
-            {/* General helper explanation info card */}
-            <div className="glass-2 p-4 flex items-start gap-3 min-h-[120px] border-[rgba(46,230,160,0.15)] border">
-              <Shield size={20} className="text-[var(--g1)] flex-shrink-0 mt-0.5" />
+            {/* Charges consommées sur le portefeuille (reste de F19) */}
+            <div className="glass-2 p-4 flex flex-col justify-between min-h-[120px]">
               <div className="text-xs">
-                <h4 className="font-bold text-[var(--ink)]">Garantie 100 % Réel &amp; Hygiène</h4>
-                <p className="text-[var(--soft)] mt-0.5 leading-normal">
-                  Chaque rapport d'audit correspond à des configurations réelles éditables. Le « Bouclier » (AuditCraft) réalise des analyses de sécurité authentiques sur vos configurations d'administration.
+                <h4 className="font-bold text-[var(--ink)] flex items-center gap-1.5">
+                  <Clock size={13} className="text-[var(--g1)]" /> Charges consommées
+                </h4>
+                <p className="text-[var(--soft)] mt-0.5">
+                  {missionsAvecTemps} mission(s) sur {totalProjects} avec du temps saisi.
                 </p>
+              </div>
+              <div className="mt-2">
+                <span className="text-xl font-extrabold text-[var(--g1)]">{formatDuree(minutesPortefeuille)}</span>
+                {minutesPortefeuille === 0 && (
+                  <p className="text-[10px] text-[var(--faint)] mt-1">
+                    Saisissez le temps passé dans chaque mission pour suivre vos charges face au budget vendu.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -679,6 +700,7 @@ export function Projects() {
             {currentStep === 4 && (
               <PhaseEbios
               key={activeProject.id}
+              couverture={couverture}
                 activeProject={activeProject}
                 updateStepData={updateStepData}
                 handleSaveProject={handleSaveProject}

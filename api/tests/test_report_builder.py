@@ -130,3 +130,51 @@ def test_une_mission_vide_ne_fait_pas_planter_la_generation():
     for doc_type in report_builder.TYPES_DOCUMENTS:
         titre, contenu = report_builder.build_document({"id": "x"}, "x", doc_type)
         assert titre and contenu
+
+
+# --- Charges consommées dans le rapport d'audit (reste de F19) -------------
+
+def test_le_rapport_expose_les_charges_consommees():
+    """L'indicateur « charges consommées vs budget » exigé par Hermes n'était
+    visible que dans l'interface : le client ne le voyait jamais."""
+    etat = mission()
+    etat["socle"] = {
+        "qualification": {"budget": "10 jours"},
+        "temps": {"entrees": [
+            {"phase": "cadrage", "minutes": 180},
+            {"phase": "ebios", "minutes": 240},
+        ]},
+    }
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert "Charges consommées" in contenu
+    assert "3 h" in contenu           # cadrage
+    assert "4 h" in contenu           # ebios
+    assert "**7 h**" in contenu       # total
+    assert "10 jours" in contenu      # budget vendu
+
+
+def test_le_rapport_signale_l_absence_de_temps_saisi_sans_l_inventer():
+    _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
+    assert "Aucun temps consommé" in contenu
+
+
+def test_les_charges_ne_listent_que_les_phases_reellement_saisies():
+    etat = mission()
+    etat["socle"] = {"temps": {"entrees": [{"phase": "tprm", "minutes": 60}]}}
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    i = contenu.index("Charges consommées")
+    section = contenu[i:i + 400]
+    assert "Risques Tiers" in section
+    assert "Résilience & E3R" not in section
+
+
+def test_le_budget_est_omis_quand_il_n_est_pas_renseigne():
+    etat = mission()
+    etat["socle"] = {"temps": {"entrees": [{"phase": "autre", "minutes": 30}]}}
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert "Budget vendu" not in contenu
+
+
+@pytest.mark.parametrize("minutes,attendu", [(45, "45 min"), (120, "2 h"), (125, "2 h 05")])
+def test_les_durees_du_rapport_suivent_le_meme_format_que_l_interface(minutes, attendu):
+    assert report_builder._duree_lisible(minutes) == attendu

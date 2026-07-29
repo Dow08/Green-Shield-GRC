@@ -1,5 +1,5 @@
-import { AlertCircle, Award, BookOpen, CheckCircle2, RefreshCw, Shield } from "lucide-react";
-import type { ProjectState } from "../../types";
+import { AlertCircle, Award, BookOpen, CheckCircle2, Gauge, RefreshCw, Shield } from "lucide-react";
+import type { CouvertureTechnique, ProjectState } from "../../types";
 
 interface Props {
   activeProject: ProjectState;
@@ -9,12 +9,13 @@ interface Props {
   handleTriggerAudit: () => void;
   uploading: boolean;
   auditing: boolean;
+  couverture: CouvertureTechnique | null;
 }
 
 /** Phase 4 du parcours de mission — extrait de Projects.tsx (découpage du
  *  29/07/2026). Le corps JSX est repris tel quel : seul l'état strictement
  *  local à cette phase a été déplacé ici. */
-export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, handleFileUpload, handleTriggerAudit, uploading, auditing }: Props) {
+export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, handleFileUpload, handleTriggerAudit, uploading, auditing, couverture }: Props) {
 
 
   return (
@@ -67,6 +68,23 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                           · {activeProject.steps.evaluation.technical_results.critical_count} failles critiques identifiées
                         </span>
                       </div>
+
+                      {/* Taux de couverture (F10) : dire quelle part de l'audit
+                          repose sur une mesure automatisée plutôt que sur du
+                          déclaratif. Aucun concurrent n'affiche cette métrique —
+                          la taire serait une survente. */}
+                      {couverture && (
+                        <div className="text-[10px] text-[var(--soft)] bg-white/[0.02] border border-white/[0.04] rounded-lg px-2.5 py-1.5 flex items-start gap-1.5">
+                          <Gauge size={11} className="text-[var(--sky)] shrink-0 mt-0.5" />
+                          <span>
+                            <strong className="text-[var(--ink)]">
+                              {couverture.controles_couverts}/{couverture.controles_total} contrôle(s) ({couverture.taux} %)
+                            </strong>{" "}
+                            appuyés par une preuve technique automatisée. Les autres reposent
+                            sur des éléments déclaratifs — cette proportion figure aussi dans le rapport exporté.
+                          </span>
+                        </div>
+                      )}
                       
                       {/* Technical checklist details */}
                       <div className="flex flex-col gap-1.5 max-h-[160px] overflow-y-auto pr-1 border-t border-white/[0.04] pt-2">

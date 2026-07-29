@@ -75,6 +75,67 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                   </div>
                 )}
 
+                {/* Cibles de continuité — RTO/RPO.
+                    Ces champs étaient remplis par défaut et repris dans les
+                    livrables PSSI/PRI, mais aucun écran ne les affichait : le
+                    consultant exportait des cibles temporelles qu'il n'avait
+                    jamais vues ni validées. */}
+                <div className="mt-2 border-t border-white/[0.04] pt-3">
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">
+                    Cibles de continuité (reprises dans le livrable PSSI / PRI)
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-[var(--sky)] mb-1" htmlFor="bcp-rto">
+                        RTO — durée maximale d'interruption admissible
+                      </label>
+                      <input
+                        id="bcp-rto"
+                        type="text"
+                        placeholder="ex : 4 heures"
+                        value={activeProject.steps.resilience?.bcp_strategy?.rto || ""}
+                        onChange={(e) => {
+                          const bcp = { ...activeProject.steps.resilience?.bcp_strategy, rto: e.target.value };
+                          updateStepData("resilience", "bcp_strategy", bcp);
+                        }}
+                        className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[var(--sky)] mb-1" htmlFor="bcp-rpo">
+                        RPO — perte de données maximale admissible
+                      </label>
+                      <input
+                        id="bcp-rpo"
+                        type="text"
+                        placeholder="ex : 1 heure"
+                        value={activeProject.steps.resilience?.bcp_strategy?.rpo || ""}
+                        onChange={(e) => {
+                          const bcp = { ...activeProject.steps.resilience?.bcp_strategy, rpo: e.target.value };
+                          updateStepData("resilience", "bcp_strategy", bcp);
+                        }}
+                        className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-[var(--sky)] mb-1" htmlFor="bcp-sauvegarde">
+                        Politique de sauvegarde
+                      </label>
+                      <input
+                        id="bcp-sauvegarde"
+                        type="text"
+                        placeholder="ex : snapshots immuables, 3-2-1"
+                        value={activeProject.steps.resilience?.bcp_strategy?.backup_policy || ""}
+                        onChange={(e) => {
+                          const bcp = { ...activeProject.steps.resilience?.bcp_strategy, backup_policy: e.target.value };
+                          updateStepData("resilience", "bcp_strategy", bcp);
+                        }}
+                        className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Séquence E3R de l'ANSSI */}
                 <div className="mt-2 border-t border-white/[0.04] pt-3">
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">Séquence de remédiation cyber E3R de l'ANSSI</div>

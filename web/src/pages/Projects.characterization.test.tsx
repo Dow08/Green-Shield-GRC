@@ -166,11 +166,14 @@ describe("Projects — caractérisation avant découpage", () => {
     render(<Projects />);
     await ouvrirPhase(5);
     expect(screen.getByText("Politiques de sécurité")).toBeInTheDocument();
-    // Séquence E3R (endiguement / reconstruction) : seuls champs de résilience
-    // réellement exposés par l'UI. Voir todo.md — bcp_strategy (RTO/RPO)
-    // existe dans le modèle mais n'est affiché nulle part.
+    // Séquence E3R et cibles de continuité (RTO/RPO), ces dernières exposées
+    // depuis le 29/07/2026 — elles étaient jusque-là exportées sans être
+    // affichées nulle part.
     expect(screen.getByDisplayValue("Isoler")).toBeInTheDocument();
     expect(screen.getByDisplayValue("IaC")).toBeInTheDocument();
+    expect(screen.getByLabelText(/RTO/)).toHaveValue("4 h");
+    expect(screen.getByLabelText(/RPO/)).toHaveValue("1 h");
+    expect(screen.getByLabelText(/Politique de sauvegarde/)).toHaveValue("Immuable");
   });
 
   it("phase 6 — affiche le plan de remédiation et le copilote", async () => {
