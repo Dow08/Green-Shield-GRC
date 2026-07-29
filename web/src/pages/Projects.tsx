@@ -11,7 +11,7 @@ import { PhaseTprm } from "../components/phases/PhaseTprm";
 import { PhaseEbios } from "../components/phases/PhaseEbios";
 import { PhaseResilience } from "../components/phases/PhaseResilience";
 import { PhaseTraitement } from "../components/phases/PhaseTraitement";
-import type { ProjectState, Framework, PhaseTemps } from "../types";
+import type { ProjectState, Framework, PhaseTemps, RevueExportResult } from "../types";
 
 export function Projects() {
   const [projects, setProjects] = useState<ProjectState[]>([]);
@@ -29,6 +29,8 @@ export function Projects() {
   
   // Stepper state
   const [currentStep, setCurrentStep] = useState(1);
+  const [revue, setRevue] = useState<RevueExportResult | null>(null);
+  const [revueEnCours, setRevueEnCours] = useState(false);
   const [saving, setSaving] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -101,11 +103,22 @@ export function Projects() {
       .then((proj) => {
         setActiveProject(proj);
         setCurrentStep(1);
+        chargerRevue(proj.id);
         // L'état d'interface propre à chaque phase (menus ouverts, brouillons
         // de formulaire) est réinitialisé par le remontage des composants de
         // phase, dont la `key` est l'identifiant de mission.
       })
       .catch((err) => alert(err instanceof Error ? err.message : "Échec d'ouverture"));
+  };
+
+  // La revue reflète l'état enregistré : on la recharge à l'ouverture d'une
+  // mission et après chaque sauvegarde, pas à chaque frappe.
+  const chargerRevue = (id: string) => {
+    setRevueEnCours(true);
+    api.projects.revue(id)
+      .then(setRevue)
+      .catch(() => setRevue(null))
+      .finally(() => setRevueEnCours(false));
   };
 
   const handleSaveProject = () => {
@@ -115,6 +128,7 @@ export function Projects() {
       .then((updated) => {
         setActiveProject(updated);
         loadProjectsAndFrameworks();
+        chargerRevue(updated.id);
       })
       .catch((err) => alert("Erreur sauvegarde: " + err.message))
       .finally(() => setSaving(false));
@@ -630,6 +644,9 @@ export function Projects() {
             {currentStep === 6 && (
               <PhaseTraitement
               key={activeProject.id}
+              revue={revue}
+              revueEnCours={revueEnCours}
+              onAllerALaPhase={setCurrentStep}
                 activeProject={activeProject}
                 updateStepData={updateStepData}
                 handleSaveProject={handleSaveProject}

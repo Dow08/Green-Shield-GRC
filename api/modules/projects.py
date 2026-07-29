@@ -20,6 +20,7 @@ from . import schema_migration
 from . import workflow_loader
 from . import mesures_catalogue
 from . import path_safety
+from . import revue_export
 
 router = APIRouter(prefix="/api")
 
@@ -539,6 +540,23 @@ def run_project_audit(p_id: str) -> dict:
         return state
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+@router.get("/projects/{p_id}/revue")
+def get_revue_export(p_id: str) -> dict:
+    """Complétude de la mission avant génération d'un livrable.
+
+    En lecture seule : signale ce qui manque, ne remplit rien.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    try:
+        state = _read_state(state_file)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+    return revue_export.revue(state)
+
 
 # --- Export / import d'une mission en archive chiffrée (F14, F15) -----------
 # Le mot de passe transite dans le CORPS de la requête, jamais en paramètre

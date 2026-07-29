@@ -1,6 +1,7 @@
 import type {
   AuditResult, ModuleInfo, ProjectState, Framework,
   CopilotContext, CopilotAskResult, FingerprintResult, SuggestedAsset, PhaseTemps,
+  RevueExportResult,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -78,6 +79,7 @@ export const api = {
     delete: (id: string) => deleteReq<{ status: string; message: string }>(`/api/projects/${id}`),
     upload: (id: string, file: File) => uploadFile<ProjectState>(`/api/projects/${id}/upload`, file),
     runAudit: (id: string) => post<ProjectState>(`/api/projects/${id}/audit`, {}),
+    revue: (id: string) => get<RevueExportResult>(`/api/projects/${id}/revue`),
     addTemps: (id: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
       post<ProjectState>(`/api/projects/${id}/temps`, entry),
     // Archive chiffrée : le mot de passe passe par le corps de la requête,

@@ -1,3 +1,19 @@
+// Revue de complétude avant génération d'un livrable (api/modules/revue_export.py).
+export interface ManqueExport {
+  phase: number;
+  phase_libelle: string;
+  champ: string;
+  gravite: "bloquant" | "recommande";
+}
+
+export interface RevueExportResult {
+  complet: boolean;
+  pret_pour_export: boolean;
+  total: number;
+  bloquants: number;
+  manques: ManqueExport[];
+}
+
 export type CopilotSource = "online" | "offline" | "offline_fallback";
 
 export interface CopilotAskResult {

@@ -3,22 +3,27 @@ import { motion } from "framer-motion";
 import { Bot, CheckCircle2, FileDown, Plus, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import { CopilotSourceBadge } from "../CopilotSourceBadge";
+import { RevueExport } from "../RevueExport";
 import type { ProjectState, Remediation } from "../../types";
 import { api } from "../../lib/api";
 import { safeGetItem } from "../../lib/storage";
-import type { CopilotSource } from "../../types";
+import type { CopilotSource, RevueExportResult } from "../../types";
 
 interface Props {
   activeProject: ProjectState;
   updateStepData: (stepKey: string, fieldKey: string, value: unknown) => void;
   handleSaveProject: () => void;
   handleExportDoc: (docType: string) => void;
+  revue: RevueExportResult | null;
+  revueEnCours: boolean;
+  onAllerALaPhase: (phase: number) => void;
 }
 
 /** Phase 6 du parcours de mission — extrait de Projects.tsx (découpage du
  *  29/07/2026). Le corps JSX est repris tel quel : seul l'état strictement
  *  local à cette phase a été déplacé ici. */
-export function PhaseTraitement({ activeProject, updateStepData, handleSaveProject, handleExportDoc }: Props) {
+export function PhaseTraitement({ activeProject, updateStepData, handleSaveProject, handleExportDoc,
+                                  revue, revueEnCours, onAllerALaPhase }: Props) {
   const [copilotPrompt, setCopilotPrompt] = useState("");
   const [copilotResponse, setCopilotResponse] = useState("");
   const [copilotLoading, setCopilotLoading] = useState(false);
@@ -186,7 +191,10 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                 {/* DELIVERABLES EXPORTER */}
                 <div className="mt-3 border-t border-white/[0.04] pt-4 flex flex-col gap-2">
                   <div className="text-[11px] font-bold text-[var(--soft)] uppercase tracking-wide">C. Téléchargement des rapports multi-formats (Impression PDF / Word)</div>
-                  
+
+                  {/* Ce qui manquerait dans les livrables, AVANT de les générer. */}
+                  <RevueExport revue={revue} chargement={revueEnCours} onAllerALaPhase={onAllerALaPhase} />
+
                   <div className="flex flex-wrap gap-2">
                     <button
                       onClick={() => handleExportDoc("nda")}
