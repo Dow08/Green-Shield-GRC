@@ -28,8 +28,13 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 **Nettoyage.** Le projet de test « cassiopé » supprimé à la demande du consultant, et la migration depuis l'ancien emplacement rendue **unique** (marqueur `.legacy-migre`) : elle s'exécutait à chaque import du module et recopiait les missions dans tout `GREENSHIELD_DATA_DIR` — une mission volontairement supprimée réapparaissait au redémarrage suivant.
 
+### Faille multiplateforme trouvée par la CI
+Une entrée d'archive nommée `..\..\windows\evil.txt` est un **simple nom de fichier sous Linux** (l'antislash y est un caractère valide) : elle n'y traverse pas. Mais la même archive extraite **sous Windows** traverserait réellement. La validation ne pouvait donc pas dépendre du système qui extrait. L'antislash est désormais refusé explicitement — la spécification ZIP impose `/`.
+
+Le test de cette règle attaque `_nom_sur` directement plutôt que de passer par un aller-retour ZIP : `zipfile` normalise les antislashs sous Windows mais pas sous Linux, ce qui rendait le test dépendant du système — exactement le piège qui masquait l'écart.
+
 ### Bilan
-**291 tests backend + 96 tests frontend**, tous verts. Chaque fonctionnalité vérifiée en conditions réelles (HTTP ou navigateur) sur des missions **fictives**, jamais sur des données clientes.
+**294 tests backend + 96 tests frontend**, tous verts. Chaque fonctionnalité vérifiée en conditions réelles (HTTP ou navigateur) sur des missions **fictives**, jamais sur des données clientes.
 
 ---
 
