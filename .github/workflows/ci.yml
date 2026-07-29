@@ -1,7 +1,9 @@
 name: CI
 
-# Empêche qu'une régression atteigne `main` sans que les 172 tests aient tourné :
-# jusqu'ici ils ne s'exécutaient qu'en local, à la discrétion de l'opérateur.
+# Empêche qu'une régression atteigne `main` sans que la suite complète ait
+# tourné : jusqu'ici les tests ne s'exécutaient qu'en local, à la discrétion de
+# l'opérateur — et uniquement sous Windows/Python 3.14, jamais sous la
+# combinaison Linux/Python 3.12 des dépendances épinglées.
 on:
   push:
     branches: [main]
@@ -13,9 +15,9 @@ jobs:
     name: Backend (pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: pip
@@ -24,12 +26,40 @@ jobs:
       - name: Installer les dépendances
         run: pip install -r api/requirements.txt
 
+      - name: Environnement
+        # Reporté dans le résumé de job : les logs bruts d'Actions exigent des
+        # droits admin sur le dépôt, alors que le résumé est consultable
+        # publiquement. Sans ça, un échec de CI n'est pas diagnosticable.
+        run: |
+          {
+            echo '## Environnement backend'
+            echo '```'
+            python --version
+            pip list
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Tests
         # GREENSHIELD_DATA_DIR pointe vers un répertoire jetable du runner :
         # aucun test ne doit écrire dans l'emplacement de données par défaut.
         env:
           GREENSHIELD_DATA_DIR: ${{ runner.temp }}/greenshield/projects
-        run: python -m pytest api/tests -q
+        run: |
+          # pipefail : le code de sortie de pytest prime sur celui de tee,
+          # donc l'étape échoue bien quand les tests échouent.
+          set -o pipefail
+          python -m pytest api/tests -q --tb=short 2>&1 | tee pytest-output.txt
+
+      - name: Rapport de tests
+        # Publié même en cas d'échec — c'est précisément là qu'il sert.
+        if: always()
+        run: |
+          {
+            echo '## Résultat pytest'
+            echo '```'
+            cat pytest-output.txt 2>/dev/null || echo 'aucune sortie capturée'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
     name: Frontend (typecheck, lint, tests, build)
@@ -38,11 +68,11 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "22"
           cache: npm
           cache-dependency-path: web/package-lock.json
 
