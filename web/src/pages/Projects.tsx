@@ -1,17 +1,18 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check } from "lucide-react";
+import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical } from "lucide-react";
 import { api } from "../lib/api";
 import { IsoPivotView } from "../components/IsoPivotView";
 import { TempsPanel } from "../components/TempsPanel";
 import { ArchivePanel } from "../components/ArchivePanel";
+import { HistoriquePanel } from "../components/HistoriquePanel";
 import { PhaseCadrage } from "../components/phases/PhaseCadrage";
 import { PhaseDiagnostic } from "../components/phases/PhaseDiagnostic";
 import { PhaseTprm } from "../components/phases/PhaseTprm";
 import { PhaseEbios } from "../components/phases/PhaseEbios";
 import { PhaseResilience } from "../components/phases/PhaseResilience";
 import { PhaseTraitement } from "../components/phases/PhaseTraitement";
-import type { ProjectState, Framework, PhaseTemps, RevueExportResult } from "../types";
+import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo } from "../types";
 
 export function Projects() {
   const [projects, setProjects] = useState<ProjectState[]>([]);
@@ -31,6 +32,7 @@ export function Projects() {
   const [currentStep, setCurrentStep] = useState(1);
   const [revue, setRevue] = useState<RevueExportResult | null>(null);
   const [revueEnCours, setRevueEnCours] = useState(false);
+  const [instantanes, setInstantanes] = useState<SnapshotInfo[]>([]);
   const [saving, setSaving] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -119,6 +121,26 @@ export function Projects() {
       .then(setRevue)
       .catch(() => setRevue(null))
       .finally(() => setRevueEnCours(false));
+    api.projects.snapshots(id).then(setInstantanes).catch(() => setInstantanes([]));
+  };
+
+  const handleRestaurerInstantane = async (nom: string) => {
+    if (!activeProject) return;
+    const restaure = await api.projects.restoreSnapshot(activeProject.id, nom);
+    setActiveProject(restaure);
+    loadProjectsAndFrameworks();
+    chargerRevue(restaure.id);
+  };
+
+  const handleCreerDemo = () => {
+    api.projects.createDemo()
+      .then((demo) => {
+        loadProjectsAndFrameworks();
+        setActiveProject(demo);
+        setCurrentStep(1);
+        chargerRevue(demo.id);
+      })
+      .catch((err) => alert("Échec de la création de la démo : " + err.message));
   };
 
   const handleSaveProject = () => {
@@ -337,12 +359,22 @@ export function Projects() {
 
           <div className="flex justify-between items-center mt-2">
             <div className="text-xs font-bold text-[var(--faint)]">Projets en cours ({projects.length})</div>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 rounded-full bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3.5 py-1.5 text-xs font-bold text-[#04150e] transition hover:opacity-90"
-            >
-              <Plus size={14} /> Nouveau Projet
-            </button>
+            <div className="flex items-center gap-2">
+              {/* F16 — démontrer l'outil sans jamais ouvrir une mission cliente. */}
+              <button
+                onClick={handleCreerDemo}
+                title="Crée une mission fictive pour démonstration (aucune donnée client)"
+                className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-[var(--soft)] transition hover:bg-white/[0.08] hover:text-[var(--ink)]"
+              >
+                <FlaskConical size={14} /> Mission de démo
+              </button>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="flex items-center gap-1.5 rounded-full bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3.5 py-1.5 text-xs font-bold text-[#04150e] transition hover:opacity-90"
+              >
+                <Plus size={14} /> Nouveau Projet
+              </button>
+            </div>
           </div>
 
           {/* CREATE PROJECT FORM */}
@@ -565,11 +597,14 @@ export function Projects() {
           />
 
           {/* SAUVEGARDE / PORTABILITÉ (F14, F15) */}
-          <ArchivePanel
-            missionName={activeProject.name}
-            onExport={handleExportArchive}
-            onImport={handleImportArchive}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ArchivePanel
+              missionName={activeProject.name}
+              onExport={handleExportArchive}
+              onImport={handleImportArchive}
+            />
+            <HistoriquePanel instantanes={instantanes} onRestaurer={handleRestaurerInstantane} />
+          </div>
 
           {/* ACTIVE STEP WORKSPACE */}
           <div className="flex-1 min-h-0 bg-white/[0.01] border border-[var(--stroke)] rounded-2xl p-5 overflow-y-auto">

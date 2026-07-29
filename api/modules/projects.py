@@ -22,6 +22,7 @@ from . import mesures_catalogue
 from . import path_safety
 from . import report_builder
 from . import revue_export
+from . import snapshots
 
 router = APIRouter(prefix="/api")
 
@@ -450,6 +451,59 @@ def create_project(data: dict) -> dict:
     audit_log.record("project.create", target=project_id, detail=f"type={project_type}")
     return state
 
+
+# --- Jeu de démonstration (F16) ---------------------------------------------
+# Démontrer l'outil en portfolio ou en entretien exigeait jusqu'ici d'ouvrir une
+# mission réelle — un manquement à la confidentialité. Cette mission est
+# entièrement fictive et porte un marqueur explicite.
+
+DEMO_ID = "demo_green_shield"
+
+
+@router.post("/projects/demo")
+def create_demo_project() -> dict:
+    """Crée (ou recrée) la mission de démonstration fictive."""
+    p_dir = PROJECTS_DIR / DEMO_ID
+    if p_dir.exists():
+        shutil.rmtree(p_dir)
+    (p_dir / "targets").mkdir(parents=True)
+    (p_dir / "reports").mkdir()
+
+    state = create_default_state(DEMO_ID, "DÉMO — Audit ISO 27001",
+                                 "Cabinet Fictif SAS", "grc", "iso27001")
+    state = schema_migration.migrate(state)
+    # Marqueur explicite : aucune confusion possible avec une mission réelle.
+    state["is_demo"] = True
+    state["socle"]["qualification"]["budget"] = "12 jours"
+    state["socle"]["temps"]["entrees"] = [
+        {"id": "T-001", "phase": "cadrage", "minutes": 180,
+         "date": date.today().isoformat(), "note": "Réunion de lancement (fictive)"},
+        {"id": "T-002", "phase": "ebios", "minutes": 240,
+         "date": date.today().isoformat(), "note": "Atelier 3 EBIOS RM (fictif)"},
+    ]
+
+    # Configuration volontairement vulnérable, pour que le scan technique ait
+    # quelque chose à trouver pendant une démonstration.
+    (p_dir / "targets" / "sshd_config").write_text(
+        "\n".join([
+            "# Configuration FICTIVE de démonstration — aucun système réel",
+            "Port 22",
+            "PermitRootLogin yes",
+            "PasswordAuthentication yes",
+            "PermitEmptyPasswords no",
+            "X11Forwarding yes",
+            "",
+        ]),
+        encoding="utf-8",
+    )
+    state.setdefault("steps", {}).setdefault("collecte", {})["files"] = ["sshd_config"]
+    state["progress"] = calculate_progress(state)
+    _write_json_atomic(p_dir / "project.json", state)
+
+    audit_log.record("project.demo_create", target=DEMO_ID)
+    return state
+
+
 @router.get("/projects/{p_id}")
 def get_project(p_id: str) -> dict:
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
@@ -472,6 +526,13 @@ def update_project(p_id: str, state: dict) -> dict:
     state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     state["progress"] = calculate_progress(state)
     try:
+        # Instantané AVANT écriture, et seulement quand une phase vient d'être
+        # validée : c'est le jalon métier qui mérite d'être versionné, pas
+        # chaque frappe (F9).
+        phase_validee = _phase_nouvellement_validee(p_dir / "project.json", state)
+        if phase_validee:
+            snapshots.creer(p_dir, state, f"phase-{phase_validee}-validee")
+
         _write_json_atomic(p_dir / "project.json", state)
         audit_log.record("project.update", target=p_id, detail=f"progress={state['progress']}%")
         return state
@@ -541,6 +602,80 @@ def run_project_audit(p_id: str) -> dict:
         return state
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+def _phase_nouvellement_validee(state_file: Path, nouveau: dict) -> str | None:
+    """Nom de la phase qui vient de passer à « validée », le cas échéant.
+
+    Compare l'état sur disque à celui qu'on s'apprête à écrire : sans cette
+    comparaison, chaque sauvegarde d'une mission déjà validée créerait un
+    instantané inutile.
+    """
+    try:
+        ancien = json.loads(state_file.read_text(encoding="utf-8")) if state_file.is_file() else {}
+    except (OSError, json.JSONDecodeError):
+        return None
+
+    etapes_anciennes = ancien.get("steps", {}) or {}
+    etapes_nouvelles = nouveau.get("steps", {}) or {}
+    for phase in ("cadrage", "diagnostic", "tprm", "ebios", "resilience", "traitement"):
+        avant = bool((etapes_anciennes.get(phase) or {}).get("validated"))
+        apres = bool((etapes_nouvelles.get(phase) or {}).get("validated"))
+        if apres and not avant:
+            return phase
+    return None
+
+
+@router.get("/projects/{p_id}/snapshots")
+def list_snapshots(p_id: str) -> list[dict]:
+    """Historique versionné d'une mission (F9)."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    p_dir = PROJECTS_DIR / p_id
+    if not p_dir.is_dir():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    return snapshots.lister(p_dir)
+
+
+@router.post("/projects/{p_id}/snapshots/{nom}/restore")
+def restore_snapshot(p_id: str, nom: str) -> dict:
+    """Restaure la mission à l'état d'un instantané.
+
+    L'état courant est lui-même instantané avant écrasement : une restauration
+    ne doit jamais être un aller sans retour.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    p_dir = PROJECTS_DIR / p_id
+    state_file = p_dir / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    # Le nom d'instantané vient du client : il compose un chemin disque.
+    if not re.fullmatch(r"[0-9]{8}-[0-9]{6}_[A-Za-z0-9_-]{1,40}\.json", nom):
+        audit_log.record("snapshot.restore", target=p_id, outcome="denied", detail=repr(nom)[:60])
+        raise HTTPException(status_code=400, detail="Nom d'instantané invalide")
+
+    try:
+        restaure = snapshots.lire(p_dir, nom)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Instantané illisible")
+
+    try:
+        courant = _read_state(state_file)
+        snapshots.creer(p_dir, courant, "avant-restauration")
+
+        restaure = schema_migration.migrate(restaure)
+        restaure["id"] = p_id
+        restaure["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        restaure["progress"] = calculate_progress(restaure)
+        _write_json_atomic(state_file, restaure)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audit_log.record("snapshot.restore", target=p_id, detail=nom)
+    return restaure
+
 
 @router.get("/projects/{p_id}/revue")
 def get_revue_export(p_id: str) -> dict:

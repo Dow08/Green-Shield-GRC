@@ -16,10 +16,14 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 
 - [x] **F14 — Export/Import d'une mission** livré le 29/07/2026 : archive ZIP chiffrée AES-256 (`api/modules/archive.py`), routes `POST /api/projects/{id}/archive` et `POST /api/projects/import-archive`, panneau `ArchivePanel.tsx`. Couvre aussi le reste de **F15** (chiffrement du vecteur le plus exposé). Import durci contre le Zip Slip, la bombe de décompression et les archives malformées.
 - [x] **F15 — Chiffrement au repos documenté** le 29/07/2026 : section « Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md), avec les commandes de vérification (`manage-bde -status` / `lsblk -f`). Reste à faire une fois F14 livré : **chiffrer l'archive d'export**, qui est le vecteur le plus exposé.
-- [ ] **F16 — Aucun jeu de démonstration anonymisé.** Démontrer l'outil (portfolio, entretien) exige aujourd'hui d'ouvrir une mission réelle. Créer un projet fictif explicitement marqué `DEMO`, distinct des vraies missions.
+- [x] **F16 — Jeu de démonstration** livré le 29/07/2026 : bouton « Mission de démo » dans le registre, `POST /api/projects/demo`. Mission entièrement fictive (« Cabinet Fictif SAS »), marquée `is_demo`, garnie de temps consommé et d'une configuration SSH volontairement vulnérable pour que le scan technique ait de quoi montrer.
 - [ ] **F17 — Obligations RGPD du consultant sur ses propres traitements.** Les grilles d'entretien collectent nom/fonction/déclarations de personnes physiques interrogées : Dorian est responsable de traitement pour ces données. Définir une durée de conservation par mission + suppression/restitution en fin de mission.
 - [ ] **F18 — Aucun fichier LICENSE.** À trancher avant toute diffusion, en lien avec F3 (copyright ISO 27001 : ne jamais embarquer le texte normatif, seulement identifiants + intitulés courts).
 - [x] **F19 — Temps consommé suivi** le 29/07/2026 : `schema_version` 3 (`socle.temps.entrees`), routes `POST/DELETE /api/projects/{id}/temps`, composant `TempsPanel.tsx` affichant total, ventilation par phase et comparaison au budget vendu. Reste ouvert : exposer le cumul dans le **tableau de bord d'accueil** et dans les **exports** (aujourd'hui visible uniquement dans la vue mission).
+
+## Frictions traitées hors §6bis
+
+- [x] **F9 — Historique versionné** livré le 29/07/2026 : instantané automatique de `project.json` à chaque validation de phase (`api/modules/snapshots.py`), liste et restauration depuis l'interface, état courant sauvegardé avant tout écrasement, historique embarqué dans l'archive chiffrée. Répond à l'exigence Hermes « tout livrable est daté et versionné ».
 
 ## Constats ouverts (découverts en session)
 

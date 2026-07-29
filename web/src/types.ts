@@ -14,6 +14,13 @@ export interface RevueExportResult {
   manques: ManqueExport[];
 }
 
+export interface SnapshotInfo {
+  nom: string;
+  date: string;
+  motif: string;
+  octets: number;
+}
+
 export type CopilotSource = "online" | "offline" | "offline_fallback";
 
 export interface CopilotAskResult {
@@ -245,6 +252,8 @@ export interface ProjectState {
   updated_at: string;
   // Socle commun aux volets GRC et Consulting (schema_version 2+). Optionnel
   // côté type le temps que toutes les missions soient passées par la migration.
+  // Marqueur de la mission de démonstration (F16) : jamais une vraie mission.
+  is_demo?: boolean;
   socle?: {
     qualification?: { budget?: string; [k: string]: unknown };
     temps?: { entrees: TempsEntree[] };

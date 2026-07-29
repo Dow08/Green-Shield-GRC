@@ -29,8 +29,10 @@ import pyzipper
 # confortable tout en bloquant une bombe de décompression.
 TAILLE_MAX_DECOMPRESSEE = 200 * 1024 * 1024
 
-# Répertoires de la mission embarqués dans l'archive.
-SOUS_DOSSIERS = ("targets", "reports", "evidence")
+# Répertoires de la mission embarqués dans l'archive. `snapshots` en fait
+# partie : l'historique versionné (F9) doit voyager avec la mission, sinon une
+# restauration depuis archive repartirait sans aucun point de retour.
+SOUS_DOSSIERS = ("targets", "reports", "evidence", "snapshots")
 
 
 class ArchiveInvalide(Exception):
