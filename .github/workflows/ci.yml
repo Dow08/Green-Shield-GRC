@@ -40,18 +40,18 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Tests
+        id: tests
         # GREENSHIELD_DATA_DIR pointe vers un répertoire jetable du runner :
         # aucun test ne doit écrire dans l'emplacement de données par défaut.
         env:
           GREENSHIELD_DATA_DIR: ${{ runner.temp }}/greenshield/projects
+        # L'échec est réémis à l'étape suivante, après publication du diagnostic.
+        continue-on-error: true
         run: |
-          # pipefail : le code de sortie de pytest prime sur celui de tee,
-          # donc l'étape échoue bien quand les tests échouent.
           set -o pipefail
           python -m pytest api/tests -q --tb=short 2>&1 | tee pytest-output.txt
 
       - name: Rapport de tests
-        # Publié même en cas d'échec — c'est précisément là qu'il sert.
         if: always()
         run: |
           {
@@ -60,6 +60,17 @@ jobs:
             cat pytest-output.txt 2>/dev/null || echo 'aucune sortie capturée'
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Échec des tests
+        if: steps.tests.outcome == 'failure'
+        run: |
+          # Le résumé de job et les logs bruts exigent une session authentifiée,
+          # même sur un dépôt public. Les *annotations*, elles, sont exposées par
+          # l'API publique : on y republie la sortie pytest pour qu'un échec soit
+          # diagnosticable sans droits sur le dépôt.
+          MSG=$(python -c "print(open('pytest-output.txt', encoding='utf-8').read().replace(chr(13), '').replace(chr(10), '%0A'))")
+          echo "::error title=pytest::${MSG}"
+          exit 1
 
   frontend:
     name: Frontend (typecheck, lint, tests, build)
