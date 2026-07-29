@@ -4,6 +4,28 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [29/07/2026] — F17 et F18 : conformité RGPD du consultant et licence
+
+### F17 — Conservation et purge des données personnelles
+Le paradoxe relevé par l'audit : GREEN SHIELD vend du registre Art. 30 à ses clients sans tenir le même standard sur ses **propres** traitements. Les grilles d'entretien recueillent noms, fonctions et déclarations de personnes physiques — le consultant en est responsable de traitement.
+
+`schema_version` **4** (`socle.rgpd_consultant`) et `api/modules/retention.py` : durée de conservation par mission, date de fin, échéance calculée, vue transverse des missions échues. Le délai ne court qu'à partir de la **fin** de la relation, pas de son début.
+
+**La purge applique la minimisation, pas la destruction.** Elle efface les personnes interrogées et laisse intacts les constats d'audit, l'inventaire et le plan de traitement — qui ne sont pas des données personnelles et portent la valeur du travail. Une mission purgée reste exploitable, elle ne désigne simplement plus personne. Un instantané est pris juste avant (l'opération est irréversible) et les deux actions sont tracées au journal d'audit.
+
+Vérifié de bout en bout : politique fixée → échéance calculée à `-560 jours` (échue) → purge de 4 enregistrements → entretiens et participants vidés, 2 biens supports et la gouvernance conservés, point de restauration créé.
+
+### F18 — Licence
+Le dépôt était **public sans licence**, situation juridiquement ambiguë. Choix retenu : **PolyForm Noncommercial 1.0.0**, en cohérence avec le dépôt jumeau RED SHIELD — lecture, étude et usage non commercial permis, exploitation commerciale par un tiers exclue, droits de l'auteur intacts (y compris l'usage en mission facturée).
+
+Le texte a été **récupéré depuis le dépôt officiel PolyForm** plutôt qu'écrit de mémoire, et sa présence mot pour mot vérifiée par comparaison : une licence retouchée n'est plus la licence qu'elle prétend être.
+
+**F3 vérifié à cette occasion** : les référentiels livrés ne contiennent que des identifiants et intitulés courts reformulés (132 caractères au plus), jamais de texte normatif ISO. La limite est désormais écrite dans le README pour qu'un contributeur ne l'enfreigne pas par méconnaissance.
+
+**322 tests backend + 108 tests frontend.**
+
+---
+
 ## [29/07/2026] — Sprints 2 et 3 du plan d'amélioration
 
 ### Sprint 2
