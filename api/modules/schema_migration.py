@@ -17,7 +17,7 @@ from typing import Callable
 from . import aipd as aipd_module
 from . import tprm
 
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 8
 
 
 def _to_v2(state: dict) -> dict:
@@ -157,6 +157,35 @@ def _to_v7(state: dict) -> dict:
     return state
 
 
+def _to_v8(state: dict) -> dict:
+    """v7 → v8 : chaîne risque -> traitement (audit critique, chantiers ②/③).
+
+    Un scénario opérationnel sans propriétaire ni décision de traitement est
+    une observation, pas un risque géré ; une mesure de remédiation sans
+    responsable ni échéance dit quoi faire, jamais qui ni quand. Les champs
+    démarrent tous vides — jamais de propriétaire ou d'échéance présumés à la
+    place du consultant.
+    """
+    ebios = state.setdefault("steps", {}).setdefault("ebios", {})
+    for scenario in ebios.get("operational_scenarios") or []:
+        scenario.setdefault("actif_concerne", "")
+        scenario.setdefault("gravite_residuelle", None)
+        scenario.setdefault("vraisemblance_residuelle", None)
+        scenario.setdefault("strategie_traitement", "")
+        scenario.setdefault("owner", "")
+        scenario.setdefault("date_revue", "")
+        scenario.setdefault("statut", "")
+
+    traitement = state.setdefault("steps", {}).setdefault("traitement", {})
+    for remediation in traitement.get("remediations") or []:
+        remediation.setdefault("responsable", "")
+        remediation.setdefault("echeance", "")
+        remediation.setdefault("statut", "")
+        remediation.setdefault("cout_estime", "")
+        remediation.setdefault("risque_lie", "")
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
@@ -165,6 +194,7 @@ _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (5, _to_v5),
     (6, _to_v6),
     (7, _to_v7),
+    (8, _to_v8),
 ]
 
 

@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ANALYSE DE RISQUES EBIOS RM** — Vernier Composites SAS
-> Édité le 30/07/2026 20:22 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 30/07/2026 21:45 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
 **Client :** Vernier Composites SAS  
-**Date d'édition :** 30/07/2026 20:22  
+**Date d'édition :** 30/07/2026 21:45  
 **Consultant :** Consultant, Cabinet non renseigné  
 **Classification :** CONFIDENTIEL  
 
@@ -67,6 +67,15 @@ Ce chapitre identifie le périmètre d'évaluation, les missions fondamentales d
 | SO-04 | Accès illégitime au NVR de vidéoprotection depuis le VLAN bureautique, faute de segmentation. | 3/4 | 2/5 | VLAN dédié au NVR, authentification nominative, journalisation des consultations. |
 
 
+### 2.3bis Traitement des risques (propriétaire, résiduel, décision)
+| ID | Propriétaire | Résiduel (G/V) | Stratégie | Statut |
+| :--- | :--- | :--- | :--- | :--- |
+| SO-01 | RSSI | 3/2 | Réduire | En traitement |
+| SO-02 | DSI | 3/1 | Réduire | Ouvert |
+| SO-03 | Direction R&D | 4/2 | Réduire | Ouvert |
+| SO-04 | Responsable Sûreté | 1/1 | Accepter | Traité |
+
+
 ### 2.4 Cas Réels Versés au Dossier
 | Cas réel | Enseignement retenu pour ce client |
 | :--- | :--- |
@@ -105,6 +114,19 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 | REM-08 | Moyen | Gouvernance | Mettre en place une revue trimestrielle des accès et un processus de départ salarié — traite SO-03. |
 
 
+### 4.1bis Pilotage (responsable, échéance, statut)
+| ID | Responsable | Échéance | Statut | Coût estimé |
+| :--- | :--- | :--- | :--- | :--- |
+| REM-01 | DSI | 2026-09-30 | En cours | Moyen |
+| REM-02 | DSI | 2026-09-15 | Fait | Léger |
+| REM-03 | DSI | 2026-09-01 | En cours | Léger |
+| REM-04 | DSI | 2026-11-30 | À faire | Élevé |
+| REM-05 | DSI | 2026-09-30 | À faire | Négligeable |
+| REM-06 | Direction Générale | 2026-10-15 | À faire | Négligeable |
+| REM-07 | RSSI | 2026-12-15 | À faire | Moyen |
+| REM-08 | RSSI | 2026-10-01 | À faire | Négligeable |
+
+
 ### 4.2 Actions Immédiates
 1. Activer le MFA sur la messagerie et le VPN
 2. Changer les mots de passe d'administration par défaut des automates
@@ -117,6 +139,6 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `be7b83a3386e9466227d8fc1dc3dc08973672f46b8ba0db1246997f7722e2e6b`
+Empreinte SHA-256 de l'état de la mission à l'édition : `b74a86b53875b57c1a939c4a3399b4add2a26263c49b95e3f621b4069c7ebd63`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

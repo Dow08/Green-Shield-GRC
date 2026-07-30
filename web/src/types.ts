@@ -292,12 +292,27 @@ export interface RiskSource {
   objective: string;
 }
 
+// Stratégie de traitement du risque — les 4 options de la clause ISO 27001
+// 6.1.3 : réduire, accepter, transférer ou éviter.
+export type StrategieTraitementRisque = "Réduire" | "Accepter" | "Transférer" | "Éviter" | "";
+export type StatutTraitementRisque = "Ouvert" | "En traitement" | "Traité" | "Clos" | "";
+
 export interface OperationalScenario {
   id: string;
   event: string;
-  gravity: number; // 1-4
-  likelihood: number; // 1-5
+  gravity: number; // 1-4, niveau inhérent (avant mesures)
+  likelihood: number; // 1-5, niveau inhérent (avant mesures)
   mitigation: string;
+  // Chaîne risque -> traitement (§14 audit critique, chantier ②) : sans
+  // propriétaire ni décision de traitement, un scénario est une observation,
+  // pas un risque géré (cf. Hermes, "un risque sans owner n'est pas géré").
+  actif_concerne?: string;
+  gravite_residuelle?: number; // 1-4, après mesures existantes
+  vraisemblance_residuelle?: number; // 1-5, après mesures existantes
+  strategie_traitement?: StrategieTraitementRisque;
+  owner?: string;
+  date_revue?: string; // AAAA-MM-JJ
+  statut?: StatutTraitementRisque;
 }
 
 export interface CaseStudy {
@@ -327,11 +342,20 @@ export interface StrategieRemediation {
   decision_direction: string;
 }
 
+export type StatutRemediation = "À faire" | "En cours" | "Fait" | "";
+
 export interface Remediation {
   id: string;
   axe: "Gouvernance" | "Protection" | "Défense" | "Résilience";
   measure: string;
   priority: "Critique" | "Élevé" | "Moyen" | "Faible";
+  // Sans responsable ni échéance, un plan de traitement dit quoi faire,
+  // jamais qui ni quand (chantier ③).
+  responsable?: string;
+  echeance?: string; // AAAA-MM-JJ
+  statut?: StatutRemediation;
+  cout_estime?: string;
+  risque_lie?: string; // id d'un OperationalScenario
 }
 
 export interface ManualControl {

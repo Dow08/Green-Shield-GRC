@@ -85,7 +85,19 @@ def revue(state: dict) -> dict:
 
     ebios = steps.get("ebios") or {}
     verifier(4, "Événements redoutés", ebios.get("redoute_events"))
-    verifier(4, "Scénarios opérationnels", ebios.get("operational_scenarios"))
+    scenarios = ebios.get("operational_scenarios") or []
+    verifier(4, "Scénarios opérationnels", scenarios)
+    # Un scénario sans propriétaire ni décision de traitement est une
+    # observation, pas un risque géré (Hermes : "un risque sans owner n'est
+    # pas géré") — signalé par scénario, pas seulement globalement.
+    for s in scenarios:
+        sid = s.get("id") or "?"
+        if _vide(s.get("owner")):
+            manques.append({"phase": 4, "phase_libelle": PHASES[4],
+                            "champ": f"Scénario {sid} — sans propriétaire", "gravite": "recommande"})
+        if _vide(s.get("strategie_traitement")):
+            manques.append({"phase": 4, "phase_libelle": PHASES[4],
+                            "champ": f"Scénario {sid} — stratégie de traitement non décidée", "gravite": "recommande"})
 
     resilience = steps.get("resilience") or {}
     bcp = resilience.get("bcp_strategy") or {}
@@ -100,8 +112,19 @@ def revue(state: dict) -> dict:
     verifier(5, "Volet stratégique — décision Direction", strategie.get("decision_direction"), "recommande")
 
     traitement = steps.get("traitement") or {}
-    verifier(6, "Plan d'action de remédiation", traitement.get("remediations"))
+    remediations = traitement.get("remediations") or []
+    verifier(6, "Plan d'action de remédiation", remediations)
     verifier(6, "Mesures Cyberdépart", traitement.get("quick_wins"), "recommande")
+    # Sans responsable ni échéance, une mesure dit quoi faire, jamais qui ni
+    # quand.
+    for r in remediations:
+        rid = r.get("id") or "?"
+        if _vide(r.get("responsable")):
+            manques.append({"phase": 6, "phase_libelle": PHASES[6],
+                            "champ": f"Mesure {rid} — sans responsable", "gravite": "recommande"})
+        if _vide(r.get("echeance")):
+            manques.append({"phase": 6, "phase_libelle": PHASES[6],
+                            "champ": f"Mesure {rid} — sans échéance", "gravite": "recommande"})
 
     manques += _sections_vides(state)
 

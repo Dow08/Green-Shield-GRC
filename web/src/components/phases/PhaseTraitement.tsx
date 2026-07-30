@@ -28,7 +28,10 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
   const [copilotResponse, setCopilotResponse] = useState("");
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotSource, setCopilotSource] = useState<CopilotSource | null>(null);
-  const [newRemediation, setNewRemediation] = useState<Remediation>({ id: "", axe: "Protection", measure: "", priority: "Élevé" });
+  const [newRemediation, setNewRemediation] = useState<Remediation>({
+    id: "", axe: "Protection", measure: "", priority: "Élevé",
+    responsable: "", echeance: "", statut: "À faire", cout_estime: "", risque_lie: "",
+  });
 
   // Téléchargement Word : POST + blob (pas un simple lien) depuis le
   // 30/07/2026, pour que le logo personnalisé du cabinet (Réglages) puisse
@@ -91,78 +94,154 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                 <div>
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">B. Plan d'Action de Remédiation (4 Axes Cyber)</div>
                   <div className="flex flex-col gap-2">
-                    {activeProject.steps.traitement?.remediations?.map((r: Remediation, idx: number) => (
-                      <div key={idx} className="bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] text-xs flex justify-between items-center">
-                        <div>
-                          <span className="font-bold text-[var(--g1)] bg-[rgba(46,230,160,0.12)] px-2 py-0.5 rounded-full text-[9px] uppercase mr-2">{r.axe}</span>
-                          <span className="font-bold text-[var(--ink)]">{r.measure}</span>
-                          <span className={`ml-2 text-[9px] font-extrabold rounded-full px-1.5 py-0.5 ${r.priority === "Critique" ? "bg-[rgba(255,111,145,0.15)] text-[var(--rose)]" : "bg-white/5 text-[var(--soft)]"}`}>{r.priority}</span>
+                    {activeProject.steps.traitement?.remediations?.map((r: Remediation, idx: number) => {
+                      const enRetard = !!r.echeance && r.statut !== "Fait" && r.echeance < new Date().toISOString().slice(0, 10);
+                      return (
+                      <div key={idx} className={`bg-white/[0.02] p-2.5 rounded-xl border text-xs flex flex-col gap-1 ${enRetard ? "border-[var(--rose)]/40" : "border-white/[0.05]"}`}>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <span className="font-bold text-[var(--g1)] bg-[rgba(46,230,160,0.12)] px-2 py-0.5 rounded-full text-[9px] uppercase mr-2">{r.axe}</span>
+                            <span className="font-bold text-[var(--ink)]">{r.measure}</span>
+                            <span className={`ml-2 text-[9px] font-extrabold rounded-full px-1.5 py-0.5 ${r.priority === "Critique" ? "bg-[rgba(255,111,145,0.15)] text-[var(--rose)]" : "bg-white/5 text-[var(--soft)]"}`}>{r.priority}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...(activeProject.steps.traitement?.remediations || [])];
+                              list.splice(idx, 1);
+                              updateStepData("traitement", "remediations", list);
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer la mesure ${r.measure}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...(activeProject.steps.traitement?.remediations || [])];
-                            list.splice(idx, 1);
-                            updateStepData("traitement", "remediations", list);
-                          }}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                          aria-label={`Supprimer la mesure ${r.measure}`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--soft)]">
+                          {r.responsable
+                            ? <span><strong className="text-[var(--faint)]">Responsable :</strong> {r.responsable}</span>
+                            : <span className="text-[var(--amber)]">Sans responsable</span>}
+                          {r.echeance && (
+                            <span className={enRetard ? "text-[var(--rose)] font-bold" : ""}>
+                              <strong className="text-[var(--faint)]">Échéance :</strong> {r.echeance}{enRetard ? " — en retard" : ""}
+                            </span>
+                          )}
+                          {r.statut && <span><strong className="text-[var(--faint)]">Statut :</strong> {r.statut}</span>}
+                          {r.cout_estime && <span><strong className="text-[var(--faint)]">Coût :</strong> {r.cout_estime}</span>}
+                          {r.risque_lie && <span><strong className="text-[var(--faint)]">Risque traité :</strong> {r.risque_lie}</span>}
+                        </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Add Remediation Form */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
-                    <input
-                      type="text" placeholder="ID (ex: REM-05)" value={newRemediation.id}
-                      onChange={(e) => setNewRemediation({ ...newRemediation, id: e.target.value })}
-                      className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
-                    />
-                    <select
-                      value={newRemediation.axe}
-                      onChange={(e) => setNewRemediation({ ...newRemediation, axe: e.target.value as Remediation["axe"] })}
-                      className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
-                    >
-                      <option value="Gouvernance">Gouvernance</option>
-                      <option value="Protection">Protection</option>
-                      <option value="Défense">Défense</option>
-                      <option value="Résilience">Résilience</option>
-                    </select>
-                    <select
-                      value={newRemediation.priority}
-                      onChange={(e) => setNewRemediation({ ...newRemediation, priority: e.target.value as Remediation["priority"] })}
-                      className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
-                    >
-                      <option value="Critique">Critique</option>
-                      <option value="Élevé">Élevé</option>
-                      <option value="Moyen">Moyen</option>
-                      <option value="Faible">Faible</option>
-                    </select>
-                    <div className="flex gap-2">
+                  <div className="flex flex-col gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                      <input
+                        type="text" placeholder="ID (ex: REM-05)" value={newRemediation.id}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, id: e.target.value })}
+                        className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
+                      />
+                      <select
+                        value={newRemediation.axe}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, axe: e.target.value as Remediation["axe"] })}
+                        className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
+                      >
+                        <option value="Gouvernance">Gouvernance</option>
+                        <option value="Protection">Protection</option>
+                        <option value="Défense">Défense</option>
+                        <option value="Résilience">Résilience</option>
+                      </select>
+                      <select
+                        value={newRemediation.priority}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, priority: e.target.value as Remediation["priority"] })}
+                        className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
+                      >
+                        <option value="Critique">Critique</option>
+                        <option value="Élevé">Élevé</option>
+                        <option value="Moyen">Moyen</option>
+                        <option value="Faible">Faible</option>
+                      </select>
                       <input
                         type="text" placeholder="Mesure de sécurité à appliquer" value={newRemediation.measure}
                         onChange={(e) => setNewRemediation({ ...newRemediation, measure: e.target.value })}
-                        className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
+                        className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (!newRemediation.id.trim() || !newRemediation.measure.trim()) return;
-                          const list = [...(activeProject.steps.traitement?.remediations || [])];
-                          list.push(newRemediation);
-                          updateStepData("traitement", "remediations", list);
-                          setNewRemediation({ id: nextId("REM", list.map((r) => r.id)), axe: "Protection", measure: "", priority: "Élevé" });
-                        }}
-                        className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                      <input
+                        type="text" placeholder="Responsable" value={newRemediation.responsable}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, responsable: e.target.value })}
+                        className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
+                      />
+                      <input
+                        type="date" value={newRemediation.echeance}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, echeance: e.target.value })}
+                        className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[var(--ink)]"
+                      />
+                      <select
+                        value={newRemediation.statut}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, statut: e.target.value as Remediation["statut"] })}
+                        className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
-                        <Plus size={15} />
-                      </button>
+                        <option value="À faire">À faire</option>
+                        <option value="En cours">En cours</option>
+                        <option value="Fait">Fait</option>
+                      </select>
+                      <input
+                        type="text" placeholder="Coût estimé" value={newRemediation.cout_estime}
+                        onChange={(e) => setNewRemediation({ ...newRemediation, cout_estime: e.target.value })}
+                        className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
+                      />
+                      <div className="flex gap-2">
+                        <input
+                          type="text" placeholder="Risque lié (ex: SO-01)" value={newRemediation.risque_lie}
+                          onChange={(e) => setNewRemediation({ ...newRemediation, risque_lie: e.target.value })}
+                          className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!newRemediation.id.trim() || !newRemediation.measure.trim()) return;
+                            const list = [...(activeProject.steps.traitement?.remediations || [])];
+                            list.push(newRemediation);
+                            updateStepData("traitement", "remediations", list);
+                            setNewRemediation({
+                              id: nextId("REM", list.map((r) => r.id)), axe: "Protection", measure: "", priority: "Élevé",
+                              responsable: "", echeance: "", statut: "À faire", cout_estime: "", risque_lie: "",
+                            });
+                          }}
+                          className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                        >
+                          <Plus size={15} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                {/* RISQUES ACCEPTES (tracabilite de l'acceptation formelle) */}
+                {activeProject.steps.ebios?.operational_scenarios?.some((s) => s.strategie_traitement === "Accepter") && (
+                  <div className="mt-1 border-t border-white/[0.04] pt-3">
+                    <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">Risques acceptés (traçabilité de l'acceptation formelle)</div>
+                    <div className="flex flex-col gap-2">
+                      {activeProject.steps.ebios.operational_scenarios
+                        .filter((s) => s.strategie_traitement === "Accepter")
+                        .map((s, idx) => (
+                          <div key={idx} className="bg-white/[0.02] p-2.5 rounded-xl border border-[var(--amber)]/30 text-xs flex justify-between items-center">
+                            <div>
+                              <span className="font-mono text-[var(--g3)] mr-2">{s.id}</span>
+                              <span className="font-bold text-[var(--ink)]">{s.event}</span>
+                            </div>
+                            {s.owner
+                              ? <span className="text-[var(--soft)]">Accepté par : {s.owner}</span>
+                              : <span className="text-[var(--rose)] font-bold">Acceptation sans propriétaire nommé</span>}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* THE CYBERDEPART (6 PRIORITES) */}
                 <div className="mt-2 border-t border-white/[0.04] pt-3">

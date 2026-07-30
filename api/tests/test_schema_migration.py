@@ -88,6 +88,47 @@ def test_mission_v6_gagne_le_volet_strategique_de_remediation_sans_perte():
     }
 
 
+def test_mission_v7_gagne_la_chaine_risque_traitement_sans_perte():
+    """v7 → v8 : un scénario opérationnel gagne propriétaire/résiduel/
+    stratégie/statut, une remédiation gagne responsable/échéance/statut/coût/
+    risque lié — sans qu'aucune valeur déjà saisie (event, mitigation,
+    measure, priority) ne soit modifiée."""
+    v7 = {
+        "schema_version": 7, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {
+            "ebios": {"operational_scenarios": [
+                {"id": "SO-01", "event": "Ransomware", "gravity": 4, "likelihood": 3, "mitigation": "EDR"},
+            ]},
+            "traitement": {"remediations": [
+                {"id": "REM-01", "axe": "Protection", "measure": "Déployer le MFA", "priority": "Critique"},
+            ]},
+        },
+    }
+    migree = schema_migration.migrate(dict(v7))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+
+    scenario = migree["steps"]["ebios"]["operational_scenarios"][0]
+    assert scenario["event"] == "Ransomware" and scenario["mitigation"] == "EDR"
+    assert scenario["owner"] == "" and scenario["strategie_traitement"] == ""
+    assert scenario["gravite_residuelle"] is None and scenario["vraisemblance_residuelle"] is None
+    assert scenario["date_revue"] == "" and scenario["statut"] == ""
+
+    remediation = migree["steps"]["traitement"]["remediations"][0]
+    assert remediation["measure"] == "Déployer le MFA" and remediation["priority"] == "Critique"
+    assert remediation["responsable"] == "" and remediation["echeance"] == ""
+    assert remediation["statut"] == "" and remediation["cout_estime"] == "" and remediation["risque_lie"] == ""
+
+
+def test_mission_v7_sans_scenario_ni_remediation_traverse_sans_erreur():
+    """Une mission neuve (listes vides) ne doit pas planter la migration."""
+    v7 = {
+        "schema_version": 7, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {"ebios": {"operational_scenarios": []}, "traitement": {"remediations": []}},
+    }
+    migree = schema_migration.migrate(dict(v7))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+
+
 def test_needs_migration():
     assert schema_migration.needs_migration(_mission_v1()) is True
     assert schema_migration.needs_migration(schema_migration.migrate(_mission_v1())) is False

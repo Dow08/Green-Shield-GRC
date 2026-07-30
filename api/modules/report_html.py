@@ -192,6 +192,15 @@ def _risque(steps: dict, prefixe: str = "5") -> str:
           s.get("mitigation")) for s in ebios.get("operational_scenarios") or []],
         "Aucun scénario opérationnel n'a été construit.", colonnes_num=(2, 3),
     )
+    traitement_risques = _table(
+        ("ID", "Propriétaire", "Résiduel (G/V)", "Stratégie", "Statut"),
+        [(s.get("id"), s.get("owner"),
+          f"{s.get('gravite_residuelle')}/{s.get('vraisemblance_residuelle')}"
+          if s.get("gravite_residuelle") is not None and s.get("vraisemblance_residuelle") is not None else None,
+          s.get("strategie_traitement"), s.get("statut"))
+         for s in ebios.get("operational_scenarios") or []],
+        "Aucun scénario opérationnel n'a été construit.",
+    )
     cas = _table(
         ("Cas réel", "Enseignement retenu pour ce client"),
         [(c.get("case"), c.get("lessons")) for c in ebios.get("case_studies") or []],
@@ -200,6 +209,7 @@ def _risque(steps: dict, prefixe: str = "5") -> str:
     return (f"<h3>{prefixe}.1 Événements redoutés</h3>{redoutes}"
             f"<h3>{prefixe}.2 Sources de risque</h3>{sources}"
             f"<h3>{prefixe}.3 Scénarios opérationnels</h3>{scenarios}"
+            f"<h3>{prefixe}.3bis Traitement des risques (propriétaire, résiduel, décision)</h3>{traitement_risques}"
             f"<h3>{prefixe}.4 Cas réels versés au dossier</h3>{cas}")
 
 
@@ -309,6 +319,12 @@ def _traitement(steps: dict, prefixe: str = "11") -> str:
         [(r.get("id"), r.get("priority"), r.get("axe"), r.get("measure")) for r in triees],
         "Aucune mesure de traitement n'a été définie à ce stade.", colonnes_sev=(1,),
     )
+    pilotage = _table(
+        ("ID", "Responsable", "Échéance", "Statut", "Coût estimé"),
+        [(r.get("id"), r.get("responsable"), r.get("echeance"), r.get("statut"), r.get("cout_estime"))
+         for r in triees],
+        "Aucune mesure de traitement n'a été définie à ce stade.",
+    )
     wins = (steps.get("traitement") or {}).get("quick_wins") or []
     immediat = ("<ol class=\"actions\">" + "".join(f"<li>{_t(w)}</li>" for w in wins) + "</ol>"
                 if wins else _vide("Aucune action immédiate n'a été retenue."))
@@ -317,6 +333,7 @@ def _traitement(steps: dict, prefixe: str = "11") -> str:
     # depuis l'ajout du chapitre AIPD, qui a décalé toute la numérotation sans
     # que ces deux chaînes codées en dur ne suivent.
     return (f"<h3>{prefixe}.1 Mesures priorisées</h3>{plan}"
+            f"<h3>{prefixe}.1bis Pilotage (responsable, échéance, statut)</h3>{pilotage}"
             f"<h3>{prefixe}.2 Actions immédiates</h3>{immediat}")
 
 

@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE CONFORMITÉ & GRC** — Banque Aurore SA
-> Édité le 30/07/2026 20:22 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 30/07/2026 21:45 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE CONFORMITÉ & GRC
@@ -12,7 +12,7 @@
 | **Client** | Banque Aurore SA |
 | **Référentiel principal** | ISO/IEC 27001:2022 |
 | **Périmètre de l'audit** | Système d'information de la banque de détail et des services de paiement, incluant les fonctions critiques ou importantes au sens DORA. Hors périmètre : salle de marché (entité juridique distincte) et réseau d'agences physiques. |
-| **Date d'édition** | 30/07/2026 20:22 |
+| **Date d'édition** | 30/07/2026 21:45 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -102,6 +102,13 @@ La banque présente une maturité de sécurité supérieure à la moyenne de son
 | SO-02 | Saturation volumétrique de la plateforme SCT Inst (BS-02) via l'interconnexion STET → indisponibilité de la fonction critique DORA. | 4/4 | 3/5 | Limitation de débit en amont, bascule sur le site de repli testée trimestriellement, procédure de dégradation maîtrisée. |
 
 
+### 5.2bis Traitement des risques (propriétaire, résiduel, décision)
+| ID | Propriétaire | Résiduel (G/V) | Stratégie | Statut |
+| :--- | :--- | :--- | :--- | :--- |
+| SO-01 | RSSI | 3/1 | Réduire | En traitement |
+| SO-02 | Directeur des Paiements | 3/2 | Réduire | Ouvert |
+
+
 ---
 
 ## 6. Écosystème et risques tiers
@@ -169,6 +176,16 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 | REM-05 | Moyen | Défense | Étendre la collecte SIEM aux journaux applicatifs du core banking, aujourd'hui absents des 380 sources. |
 
 
+### 10.1bis Pilotage (responsable, échéance, statut)
+| ID | Responsable | Échéance | Statut | Coût estimé |
+| :--- | :--- | :--- | :--- | :--- |
+| REM-01 | DSI | 2026-09-15 | En cours | Négligeable |
+| REM-02 | RSSI | 2026-09-30 | À faire | Négligeable |
+| REM-03 | DSI | 2026-11-15 | À faire | Moyen |
+| REM-04 | RSSI | 2026-12-01 | À faire | Négligeable |
+| REM-05 | RSSI | 2026-10-15 | À faire | Moyen |
+
+
 ### 10.2 Actions immédiates
 1. Clôturer les 3 comptes à privilèges de personnes sorties
 2. Publier la liste des prestataires critiques au registre DORA
@@ -196,7 +213,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 ---
 
 ## 12. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 30/07/2026 20:22, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 30/07/2026 21:45, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
@@ -206,12 +223,12 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
 | **Consultant** | **DSI / Responsable de la sécurité** |
-| Signature cryptographique locale : `SHA256:3ca73107646057080ff79d158338146604cc78d5156216c6344a97bdc48dabe0` | Signature : |
+| Signature cryptographique locale : `SHA256:3e8cb366ed86aa35bd97defafbf838fa2e7be95c4cc680c1fa3ed5a0b7f51633` | Signature : |
 
 ---
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `3ca73107646057080ff79d158338146604cc78d5156216c6344a97bdc48dabe0`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3e8cb366ed86aa35bd97defafbf838fa2e7be95c4cc680c1fa3ed5a0b7f51633`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

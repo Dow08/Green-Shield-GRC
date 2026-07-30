@@ -4,6 +4,25 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [30/07/2026] — Lot A : la chaîne risque → traitement, et un module EBIOS RM enfin utilisable
+
+Revue GRC senior demandée par l'utilisateur : comparaison avec les outils du marché (CISO Assistant, Vanta, Archer) et audit du modèle de données réel. Deux manques structurels identifiés, tous deux corrigés dans ce lot.
+
+**Découverte en cours de route, plus grave que prévu** : `PhaseEbios.tsx` n'avait **aucune interface de création** pour les événements redoutés, sources de risque, scénarios opérationnels et cas réels — seulement de l'affichage. Aucun de ces quatre imports `nextId` (contrairement à toutes les autres collections de l'application), donc aucun bouton « Ajouter ». Un consultant pouvait consulter l'analyse EBIOS RM de la mission de démo, jamais en construire une sur une mission réelle. Corrigé : CRUD complet (ajout + suppression) sur les 4 collections, à l'identique du patron déjà en place ailleurs (`PhaseCadrage.tsx`, `PhaseDiagnostic.tsx`).
+
+**Chaîne risque → traitement** (`schema_version` 8) :
+- `OperationalScenario` gagne `actif_concerne`, `gravite_residuelle`, `vraisemblance_residuelle`, `strategie_traitement` (les 4 options de la clause ISO 27001 6.1.3 : Réduire/Accepter/Transférer/Éviter), `owner`, `date_revue`, `statut`. Sans propriétaire ni décision, un scénario est une observation, pas un risque géré.
+- `Remediation` gagne `responsable`, `echeance`, `statut`, `cout_estime`, `risque_lie`. Sans eux, un plan de traitement dit quoi faire, jamais qui ni quand.
+- Nouveau tableau **« Risques acceptés »** en Phase 6 (traçabilité de l'acceptation formelle) et alerte visuelle sur les mesures en retard (échéance dépassée, statut ≠ Fait).
+- Les 3 formats d'export (Word, HTML, Markdown) portent la chaîne complète : nouvelle sous-section « traitement des risques » après les scénarios, nouvelle sous-section « pilotage » après le plan de traitement, dans le rapport de mission **et** l'EBIOS RM standalone.
+- `revue_export.py` signale, scénario par scénario et mesure par mesure, l'absence de propriétaire/stratégie/responsable/échéance (recommandé, pas bloquant — le livrable reste exploitable).
+
+Tous les champs démarrent vides — aucun propriétaire, aucune échéance, aucune stratégie présumés à la place du consultant, conformément à la règle « zéro invention ». Migration testée : une mission existante gagne les nouveaux champs sans qu'aucune valeur déjà saisie (event, mitigation, measure, priority) ne soit modifiée.
+
+**19 tests ajoutés** (`test_schema_migration.py`, `test_report_docx.py`, `test_revue_export.py`). Vérifié en direct dans le navigateur : ajout d'un scénario avec propriétaire/stratégie/statut, persistance et rendu corrects, suppression propre. **568 tests backend, 150 tests frontend.**
+
+---
+
 ## [30/07/2026] — NIST CSF débloqué : la source « Hermes » identifiée
 
 L'entrée précédente signalait §14.2.5 (NIST CSF comme 6ᵉ parcours) bloqué faute de matière source dans ce dépôt. L'utilisateur a corrigé : la source existe dans son skill `grc-agent-hermes` (`C:\Users\Dow\Desktop\Mes prompts\Dossier MCP\grc-agent-hermes`) — `references/nist-csf.md` (6 fonctions CSF 2.0, échelle de maturité 4 Tiers) et `scripts/scoring_maturite_nist_csf.py` (structure complète fonctions/catégories/sous-catégories). Absente de ce dépôt, donc invisible sans le pointeur.

@@ -35,13 +35,14 @@ def mission_complete() -> dict:
                                          for o in aipd.OBLIGATIONS]},
             },
             "tprm": {"tiers": [{"name": "Hébergeur"}]},
-            "ebios": {"redoute_events": [{"id": "ER-01"}], "operational_scenarios": [{"id": "SC-01"}]},
+            "ebios": {"redoute_events": [{"id": "ER-01"}],
+                     "operational_scenarios": [{"id": "SC-01", "owner": "RSSI", "strategie_traitement": "Réduire"}]},
             "resilience": {
                 "bcp_strategy": {"rto": "4 h", "rpo": "1 h", "backup_policy": "Immuable"},
                 "e3r": {"endiguement": "e", "eviction": "v", "eradication": "r", "reconstruction": "c"},
                 "strategie_remediation": {"decision_direction": "Priorité à l'éradication avant redémarrage."},
             },
-            "traitement": {"remediations": [{"id": "REM-01"}], "quick_wins": ["a"]},
+            "traitement": {"remediations": [{"id": "REM-01", "responsable": "DSI", "echeance": "2026-12-31"}], "quick_wins": ["a"]},
             # Une mission « complète » l'est désormais aussi du point de vue du
             # *rendu* : la revue vérifie qu'aucun chapitre du rapport ne sortirait
             # vide, ce qui suppose une synthèse rédigée (§14.2, recette 29/07/2026).
@@ -115,6 +116,36 @@ def test_detecte_un_plan_de_traitement_vide():
     m = mission_complete()
     m["steps"]["traitement"]["remediations"] = []
     assert "Plan d'action de remédiation" in champs(revue_export.revue(m))
+
+
+# --- Chaîne risque -> traitement (30/07/2026) -------------------------------
+
+def test_detecte_un_scenario_sans_proprietaire():
+    m = mission_complete()
+    m["steps"]["ebios"]["operational_scenarios"][0]["owner"] = ""
+    c = champs(revue_export.revue(m))
+    assert "Scénario SC-01 — sans propriétaire" in c
+    # Recommandé, pas bloquant : le livrable reste exploitable.
+    manque = next(x for x in revue_export.revue(m)["manques"] if x["champ"] == "Scénario SC-01 — sans propriétaire")
+    assert manque["gravite"] == "recommande"
+
+
+def test_detecte_un_scenario_sans_strategie_de_traitement():
+    m = mission_complete()
+    m["steps"]["ebios"]["operational_scenarios"][0]["strategie_traitement"] = ""
+    assert "Scénario SC-01 — stratégie de traitement non décidée" in champs(revue_export.revue(m))
+
+
+def test_detecte_une_mesure_sans_responsable():
+    m = mission_complete()
+    m["steps"]["traitement"]["remediations"][0]["responsable"] = ""
+    assert "Mesure REM-01 — sans responsable" in champs(revue_export.revue(m))
+
+
+def test_detecte_une_mesure_sans_echeance():
+    m = mission_complete()
+    m["steps"]["traitement"]["remediations"][0]["echeance"] = ""
+    assert "Mesure REM-01 — sans échéance" in champs(revue_export.revue(m))
 
 
 # --- AIPD : conditionnelle -------------------------------------------------

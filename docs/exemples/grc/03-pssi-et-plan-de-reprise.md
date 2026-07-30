@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **PSSI & PLAN DE REPRISE** — Banque Aurore SA
-> Édité le 30/07/2026 20:22 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 30/07/2026 21:45 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # POLITIQUE DE SÉCURITÉ DE L'INFORMATION (PSSI) & PLAN DE REPRISE (PRI)
 
 **Client :** Banque Aurore SA  
 **Projet :** Audit de conformité ISO 27001 & DORA  
-**Date :** 30/07/2026 20:22  
+**Date :** 30/07/2026 21:45  
 **Auteur :** Consultant, Cabinet non renseigné  
 
 ---
@@ -58,6 +58,6 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `3ca73107646057080ff79d158338146604cc78d5156216c6344a97bdc48dabe0`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3e8cb366ed86aa35bd97defafbf838fa2e7be95c4cc680c1fa3ed5a0b7f51633`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

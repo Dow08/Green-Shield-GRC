@@ -363,8 +363,12 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                     {"id": "SR-02", "name": "Concurrent direct déloyal", "objective": "Espionnage industriel et vol de secrets R&D."}
                 ],
                 "operational_scenarios": [
-                    {"id": "SO-01", "event": "Intrusion via phishing d'un poste support, pivot vers l'Active Directory, élévation de privilèges et sabotage des serveurs de prod.", "gravity": 4, "likelihood": 3, "mitigation": "MFA, cloisonnement réseau des postes, et bastions d'administration."},
-                    {"id": "SO-02", "event": "Attaque par rebond via la compromise de la console d'administration du prestataire d'infogérance tiers.", "gravity": 3, "likelihood": 2, "mitigation": "Limitation des accès tiers par VPN IPsec dédié, et audit de sécurité du prestataire."}
+                    {"id": "SO-01", "event": "Intrusion via phishing d'un poste support, pivot vers l'Active Directory, élévation de privilèges et sabotage des serveurs de prod.", "gravity": 4, "likelihood": 3, "mitigation": "MFA, cloisonnement réseau des postes, et bastions d'administration.",
+                     "actif_concerne": "Active Directory + serveurs de production", "gravite_residuelle": 3, "vraisemblance_residuelle": 2,
+                     "strategie_traitement": "Réduire", "owner": "RSSI", "date_revue": "2026-10-15", "statut": "En traitement"},
+                    {"id": "SO-02", "event": "Attaque par rebond via la compromise de la console d'administration du prestataire d'infogérance tiers.", "gravity": 3, "likelihood": 2, "mitigation": "Limitation des accès tiers par VPN IPsec dédié, et audit de sécurité du prestataire.",
+                     "actif_concerne": "Console d'administration tierce", "gravite_residuelle": 2, "vraisemblance_residuelle": 1,
+                     "strategie_traitement": "Réduire", "owner": "DSI", "date_revue": "2026-10-15", "statut": "Ouvert"}
                 ],
                 "case_studies": [
                     {"case": "Marriott (Fuite de données)", "lessons": "Importance cruciale du chiffrement des bases de données et du contrôle strict des privilèges de base."},
@@ -393,10 +397,14 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
             },
             "traitement": {
                 "remediations": [
-                    {"id": "REM-01", "axe": "Gouvernance", "measure": "Faire approuver et diffuser la nouvelle PSSI par la direction générale.", "priority": "Élevé"},
-                    {"id": "REM-02", "axe": "Protection", "measure": "Déployer le MFA (Multi-Factor Authentication) sur tous les comptes d'accès distants.", "priority": "Critique"},
-                    {"id": "REM-03", "axe": "Défense", "measure": "Déployer un outil de détection EDR moderne sur tous les serveurs et postes.", "priority": "Élevé"},
-                    {"id": "REM-04", "axe": "Résilience", "measure": "Mettre en œuvre des sauvegardes immuables résistantes aux ransomwares.", "priority": "Critique"}
+                    {"id": "REM-01", "axe": "Gouvernance", "measure": "Faire approuver et diffuser la nouvelle PSSI par la direction générale.", "priority": "Élevé",
+                     "responsable": "RSSI", "echeance": "2026-09-30", "statut": "En cours", "cout_estime": "Négligeable", "risque_lie": "SO-01"},
+                    {"id": "REM-02", "axe": "Protection", "measure": "Déployer le MFA (Multi-Factor Authentication) sur tous les comptes d'accès distants.", "priority": "Critique",
+                     "responsable": "DSI", "echeance": "2026-09-01", "statut": "En cours", "cout_estime": "Léger", "risque_lie": "SO-01"},
+                    {"id": "REM-03", "axe": "Défense", "measure": "Déployer un outil de détection EDR moderne sur tous les serveurs et postes.", "priority": "Élevé",
+                     "responsable": "DSI", "echeance": "2026-11-30", "statut": "À faire", "cout_estime": "Élevé", "risque_lie": "SO-01"},
+                    {"id": "REM-04", "axe": "Résilience", "measure": "Mettre en œuvre des sauvegardes immuables résistantes aux ransomwares.", "priority": "Critique",
+                     "responsable": "DSI", "echeance": "2026-09-15", "statut": "Fait", "cout_estime": "Moyen", "risque_lie": "SO-01"}
                 ],
                 "quick_wins": [
                     "Activer le MFA sur les messageries et VPN",
@@ -468,7 +476,9 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                     {"id": "SR-01", "name": "Autorité de contrôle / Régulateur", "objective": "Sanctions judiciaires ou amendes administratives."}
                 ],
                 "operational_scenarios": [
-                    {"id": "SO-01", "event": "Contrôle CNIL inopiné révélant l'absence d'Analyse d'Impact (AIPD) pour un traitement à haut risque.", "gravity": 3, "likelihood": 2, "mitigation": "Réaliser l'AIPD de manière exhaustive via le module AIPD intégré."}
+                    {"id": "SO-01", "event": "Contrôle CNIL inopiné révélant l'absence d'Analyse d'Impact (AIPD) pour un traitement à haut risque.", "gravity": 3, "likelihood": 2, "mitigation": "Réaliser l'AIPD de manière exhaustive via le module AIPD intégré.",
+                     "actif_concerne": "Registre des traitements", "gravite_residuelle": 2, "vraisemblance_residuelle": 1,
+                     "strategie_traitement": "Réduire", "owner": "DPO", "date_revue": "2026-10-01", "statut": "En traitement"}
                 ],
                 "case_studies": [
                     {"case": "Marriott (Fuite de données)", "lessons": "Amende historique de plus de 20M£ par l'ICO pour défaut de chiffrement et négligence d'audit de conformité."}
@@ -503,7 +513,8 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
             },
             "traitement": {
                 "remediations": [
-                    {"id": "REM-01", "axe": "Gouvernance", "measure": f"Valider formellement la conformité réglementaire aux exigences {fw.get('name')}.", "priority": "Élevé"}
+                    {"id": "REM-01", "axe": "Gouvernance", "measure": f"Valider formellement la conformité réglementaire aux exigences {fw.get('name')}.", "priority": "Élevé",
+                     "responsable": "RSSI", "echeance": "2026-10-31", "statut": "À faire", "cout_estime": "Négligeable", "risque_lie": "SO-01"}
                 ],
                 "quick_wins": [
                     "Valider le périmètre d'audit",

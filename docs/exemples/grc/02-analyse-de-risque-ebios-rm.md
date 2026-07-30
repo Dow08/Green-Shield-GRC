@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ANALYSE DE RISQUES EBIOS RM** — Banque Aurore SA
-> Édité le 30/07/2026 20:22 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 30/07/2026 21:45 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
 **Projet :** Audit de conformité ISO 27001 & DORA  
 **Client :** Banque Aurore SA  
-**Date d'édition :** 30/07/2026 20:22  
+**Date d'édition :** 30/07/2026 21:45  
 **Consultant :** Consultant, Cabinet non renseigné  
 **Classification :** CONFIDENTIEL  
 
@@ -62,6 +62,13 @@ Ce chapitre identifie le périmètre d'évaluation, les missions fondamentales d
 | SO-02 | Saturation volumétrique de la plateforme SCT Inst (BS-02) via l'interconnexion STET → indisponibilité de la fonction critique DORA. | 4/4 | 3/5 | Limitation de débit en amont, bascule sur le site de repli testée trimestriellement, procédure de dégradation maîtrisée. |
 
 
+### 2.3bis Traitement des risques (propriétaire, résiduel, décision)
+| ID | Propriétaire | Résiduel (G/V) | Stratégie | Statut |
+| :--- | :--- | :--- | :--- | :--- |
+| SO-01 | RSSI | 3/1 | Réduire | En traitement |
+| SO-02 | Directeur des Paiements | 3/2 | Réduire | Ouvert |
+
+
 ### 2.4 Cas Réels Versés au Dossier
 | Cas réel | Enseignement retenu pour ce client |
 | :--- | :--- |
@@ -95,6 +102,16 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 | REM-05 | Moyen | Défense | Étendre la collecte SIEM aux journaux applicatifs du core banking, aujourd'hui absents des 380 sources. |
 
 
+### 4.1bis Pilotage (responsable, échéance, statut)
+| ID | Responsable | Échéance | Statut | Coût estimé |
+| :--- | :--- | :--- | :--- | :--- |
+| REM-01 | DSI | 2026-09-15 | En cours | Négligeable |
+| REM-02 | RSSI | 2026-09-30 | À faire | Négligeable |
+| REM-03 | DSI | 2026-11-15 | À faire | Moyen |
+| REM-04 | RSSI | 2026-12-01 | À faire | Négligeable |
+| REM-05 | RSSI | 2026-10-15 | À faire | Moyen |
+
+
 ### 4.2 Actions Immédiates
 1. Clôturer les 3 comptes à privilèges de personnes sorties
 2. Publier la liste des prestataires critiques au registre DORA
@@ -107,6 +124,6 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `3ca73107646057080ff79d158338146604cc78d5156216c6344a97bdc48dabe0`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3e8cb366ed86aa35bd97defafbf838fa2e7be95c4cc680c1fa3ed5a0b7f51633`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

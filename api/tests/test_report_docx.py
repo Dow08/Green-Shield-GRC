@@ -63,7 +63,9 @@ def _mission_complete(volet: str = "consulting") -> dict:
                                     "gravity": 4, "impact": "Arrêt de production"}],
                 "risk_sources": [{"id": "SR-01", "name": "Cybercriminels", "objective": "Extorsion"}],
                 "operational_scenarios": [{"id": "SO-01", "event": "Hameçonnage puis rebond",
-                                           "gravity": 4, "likelihood": 3, "mitigation": "MFA"}],
+                                           "gravity": 4, "likelihood": 3, "mitigation": "MFA",
+                                           "owner": "RSSI", "gravite_residuelle": 2, "vraisemblance_residuelle": 1,
+                                           "strategie_traitement": "Réduire", "statut": "En traitement"}],
                 "case_studies": [{"case": "Norsk Hydro", "lessons": "Segmenter OT/IT"}],
             },
             "tprm": {"tiers": [
@@ -82,7 +84,8 @@ def _mission_complete(volet: str = "consulting") -> dict:
                                                 "status": "NON_CONFORME", "notes": "PSSI absente"}]},
             "traitement": {
                 "remediations": [{"id": "REM-01", "axe": "Protection", "measure": "Déployer le MFA",
-                                  "priority": "Critique"}],
+                                  "priority": "Critique", "responsable": "DSI", "echeance": "2026-09-01",
+                                  "statut": "En cours", "cout_estime": "Léger", "risque_lie": "SO-01"}],
                 "quick_wins": ["Activer le MFA sur la messagerie"],
             },
             "restitution": {"exec_summary": "Deux écarts majeurs, aucun structurel."},
@@ -187,6 +190,10 @@ def test_toutes_les_donnees_de_la_mission_apparaissent():
         "Déployer le MFA",                                  # plan de traitement
         "Activer le MFA sur la messagerie",                 # actions immédiates
         "Dorian",                                           # signatures
+        "RSSI",                                             # propriétaire du scénario
+        "Réduire",                                          # stratégie de traitement
+        "DSI",                                              # responsable de la mesure
+        "2026-09-01",                                       # échéance
     ]
     for attendu in attendus:
         assert attendu in texte, f"donnée absente du rapport Word : {attendu!r}"

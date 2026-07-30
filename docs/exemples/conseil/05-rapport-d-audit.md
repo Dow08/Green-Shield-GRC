@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE SÉCURITÉ & D'ANALYSE DE RISQUE** — Vernier Composites SAS
-> Édité le 30/07/2026 20:22 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 30/07/2026 21:45 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE SÉCURITÉ & D'ANALYSE DE RISQUE
@@ -11,7 +11,7 @@
 | **Projet** | Audit de sécurité & analyse de risque EBIOS RM |
 | **Client** | Vernier Composites SAS |
 | **Périmètre de l'audit** | SI de production et de R&D du site de Saint-Étienne (2 ateliers, 1 laboratoire), hors filiale allemande et hors SI commercial hébergé chez l'éditeur. |
-| **Date d'édition** | 30/07/2026 20:22 |
+| **Date d'édition** | 30/07/2026 21:45 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -99,6 +99,15 @@ _Aucune check-list de conformité n'est rattachée à cette mission : l'évaluat
 | SO-04 | Accès illégitime au NVR de vidéoprotection depuis le VLAN bureautique, faute de segmentation. | 3/4 | 2/5 | VLAN dédié au NVR, authentification nominative, journalisation des consultations. |
 
 
+### 5.2bis Traitement des risques (propriétaire, résiduel, décision)
+| ID | Propriétaire | Résiduel (G/V) | Stratégie | Statut |
+| :--- | :--- | :--- | :--- | :--- |
+| SO-01 | RSSI | 3/2 | Réduire | En traitement |
+| SO-02 | DSI | 3/1 | Réduire | Ouvert |
+| SO-03 | Direction R&D | 4/2 | Réduire | Ouvert |
+| SO-04 | Responsable Sûreté | 1/1 | Accepter | Traité |
+
+
 ---
 
 ## 6. Écosystème et risques tiers
@@ -170,6 +179,19 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 | REM-08 | Moyen | Gouvernance | Mettre en place une revue trimestrielle des accès et un processus de départ salarié — traite SO-03. |
 
 
+### 10.1bis Pilotage (responsable, échéance, statut)
+| ID | Responsable | Échéance | Statut | Coût estimé |
+| :--- | :--- | :--- | :--- | :--- |
+| REM-01 | DSI | 2026-09-30 | En cours | Moyen |
+| REM-02 | DSI | 2026-09-15 | Fait | Léger |
+| REM-03 | DSI | 2026-09-01 | En cours | Léger |
+| REM-04 | DSI | 2026-11-30 | À faire | Élevé |
+| REM-05 | DSI | 2026-09-30 | À faire | Négligeable |
+| REM-06 | Direction Générale | 2026-10-15 | À faire | Négligeable |
+| REM-07 | RSSI | 2026-12-15 | À faire | Moyen |
+| REM-08 | RSSI | 2026-10-01 | À faire | Négligeable |
+
+
 ### 10.2 Actions immédiates
 1. Activer le MFA sur la messagerie et le VPN
 2. Changer les mots de passe d'administration par défaut des automates
@@ -197,7 +219,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 ---
 
 ## 12. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Vernier Composites SAS et sur les preuves collectées à la date du 30/07/2026 20:22, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Vernier Composites SAS et sur les preuves collectées à la date du 30/07/2026 21:45, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
@@ -207,12 +229,12 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
 | **Consultant** | **DSI / Responsable de la sécurité** |
-| Signature cryptographique locale : `SHA256:be7b83a3386e9466227d8fc1dc3dc08973672f46b8ba0db1246997f7722e2e6b` | Signature : |
+| Signature cryptographique locale : `SHA256:b74a86b53875b57c1a939c4a3399b4add2a26263c49b95e3f621b4069c7ebd63` | Signature : |
 
 ---
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `be7b83a3386e9466227d8fc1dc3dc08973672f46b8ba0db1246997f7722e2e6b`
+Empreinte SHA-256 de l'état de la mission à l'édition : `b74a86b53875b57c1a939c4a3399b4add2a26263c49b95e3f621b4069c7ebd63`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

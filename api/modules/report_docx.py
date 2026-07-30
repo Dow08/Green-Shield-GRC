@@ -439,6 +439,16 @@ def _ch_risque(doc: Document, state: dict, steps: dict, prefixe: str = "5") -> N
           "Aucun scénario opérationnel n'a été construit.", colonnes_num=(2, 3),
           largeurs=(0.7, 2.6, 0.55, 0.55, 2.6))
 
+    _sous_titre(doc, f"{prefixe}.3bis Traitement des risques (propriétaire, résiduel, décision)")
+    _table(doc, ("ID", "Propriétaire", "Résiduel (G/V)", "Stratégie", "Statut"),
+          [(s.get("id"), s.get("owner"),
+            f"{s.get('gravite_residuelle')}/{s.get('vraisemblance_residuelle')}"
+            if s.get("gravite_residuelle") is not None and s.get("vraisemblance_residuelle") is not None else None,
+            s.get("strategie_traitement"), s.get("statut"))
+           for s in ebios.get("operational_scenarios") or []],
+          "Aucun scénario opérationnel n'a été construit.",
+          largeurs=(0.7, 1.5, 1, 1.1, 1))
+
     _sous_titre(doc, f"{prefixe}.4 Cas réels versés au dossier")
     _table(doc, ("Cas réel", "Enseignement retenu pour ce client"),
           [(c.get("case"), c.get("lessons")) for c in ebios.get("case_studies") or []],
@@ -562,6 +572,13 @@ def _ch_traitement(doc: Document, state: dict, steps: dict, prefixe: str = "11")
           [(r.get("id"), r.get("priority"), r.get("axe"), r.get("measure")) for r in triees],
           "Aucune mesure de traitement n'a été définie à ce stade.", colonnes_sev=(1,),
           largeurs=(0.7, 1, 1.1, 2.7))
+
+    _sous_titre(doc, f"{prefixe}.1bis Pilotage (responsable, échéance, statut)")
+    _table(doc, ("ID", "Responsable", "Échéance", "Statut", "Coût estimé"),
+          [(r.get("id"), r.get("responsable"), r.get("echeance"), r.get("statut"), r.get("cout_estime"))
+           for r in triees],
+          "Aucune mesure de traitement n'a été définie à ce stade.",
+          largeurs=(0.6, 1.4, 1, 1, 1.5))
 
     _sous_titre(doc, f"{prefixe}.2 Actions immédiates")
     wins = (steps.get("traitement") or {}).get("quick_wins") or []

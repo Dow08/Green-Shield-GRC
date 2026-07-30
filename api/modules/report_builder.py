@@ -133,6 +133,20 @@ def _remediations_md(steps: dict) -> str:
     )
 
 
+def _pilotage_remediations_md(steps: dict) -> str:
+    """Sans responsable ni échéance, un plan de traitement dit quoi faire,
+    jamais qui ni quand (chaîne risque -> traitement, chantier ③)."""
+    remediations = (steps.get("traitement") or {}).get("remediations") or []
+    ordre = {"Critique": 0, "Élevé": 1, "Moyen": 2, "Faible": 3}
+    triees = sorted(remediations, key=lambda r: ordre.get(r.get("priority"), 9))
+    return _tableau(
+        ("ID", "Responsable", "Échéance", "Statut", "Coût estimé"),
+        [(r.get("id"), r.get("responsable"), r.get("echeance"), r.get("statut"), r.get("cout_estime"))
+         for r in triees],
+        "Aucune mesure de traitement n'a été définie à ce stade.",
+    )
+
+
 def _quick_wins_md(steps: dict) -> str:
     wins = (steps.get("traitement") or {}).get("quick_wins") or []
     if not wins:
@@ -282,6 +296,21 @@ def _scenarios_md(steps: dict) -> str:
         ("ID", "Scénario opérationnel", "Gravité", "Vraisemblance", "Mesure d'atténuation"),
         [(s.get("id"), s.get("event"), f"{s.get('gravity')}/4", f"{s.get('likelihood')}/5",
           s.get("mitigation")) for s in scenarios],
+        "Aucun scénario opérationnel n'a été construit.",
+    )
+
+
+def _traitement_risques_md(steps: dict) -> str:
+    """Propriétaire, résiduel et décision — sans quoi un scénario est une
+    observation, pas un risque géré (chantier ②)."""
+    scenarios = (steps.get("ebios") or {}).get("operational_scenarios") or []
+    return _tableau(
+        ("ID", "Propriétaire", "Résiduel (G/V)", "Stratégie", "Statut"),
+        [(s.get("id"), s.get("owner"),
+          f"{s.get('gravite_residuelle')}/{s.get('vraisemblance_residuelle')}"
+          if s.get("gravite_residuelle") is not None and s.get("vraisemblance_residuelle") is not None else None,
+          s.get("strategie_traitement"), s.get("statut"))
+         for s in scenarios],
         "Aucun scénario opérationnel n'a été construit.",
     )
 
@@ -508,6 +537,9 @@ Ce chapitre identifie le périmètre d'évaluation, les missions fondamentales d
 ### 2.3 Scénarios Opérationnels d'Attaque (Analyse Factuelle)
 {scenarios_md}
 
+### 2.3bis Traitement des risques (propriétaire, résiduel, décision)
+{_traitement_risques_md(steps)}
+
 ### 2.4 Cas Réels Versés au Dossier
 {_cas_reels_md(steps)}
 
@@ -523,6 +555,9 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 
 ### 4.1 Mesures de Traitement Priorisées
 {_remediations_md(steps)}
+
+### 4.1bis Pilotage (responsable, échéance, statut)
+{_pilotage_remediations_md(steps)}
 
 ### 4.2 Actions Immédiates
 {_quick_wins_md(steps)}
@@ -720,6 +755,9 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 ### 5.2 Scénarios opérationnels
 {_scenarios_md(steps)}
 
+### 5.2bis Traitement des risques (propriétaire, résiduel, décision)
+{_traitement_risques_md(steps)}
+
 ---
 
 ## 6. Écosystème et risques tiers
@@ -754,6 +792,9 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 ## 10. Plan de traitement
 ### 10.1 Mesures priorisées
 {_remediations_md(steps)}
+
+### 10.1bis Pilotage (responsable, échéance, statut)
+{_pilotage_remediations_md(steps)}
 
 ### 10.2 Actions immédiates
 {_quick_wins_md(steps)}
