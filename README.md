@@ -16,6 +16,17 @@ Un shell moderne (React) qui héberge des **modules** branchés sur un moteur Py
 
 ---
 
+## 📄 Voir ce que l'application produit
+
+**[docs/exemples/](docs/exemples/) — douze livrables, sortie brute de l'application, sans retouche.**
+
+Deux missions fictives menées de bout en bout et exportées : une mission de **conseil** (EBIOS RM,
+PME industrielle) et une mission de **conformité** (ISO 27001 & DORA, établissement de crédit). Le
+même outil, deux raisonnements différents — le conseil produit une priorisation de risques, le GRC
+produit des écarts opposables. C'est le meilleur endroit pour juger le produit sans l'installer.
+
+---
+
 ## Philosophie
 
 GREEN SHIELD est un **socle d'audit** pensé pour le conseil (GRC / DevSecOps). Chaque
@@ -118,6 +129,8 @@ cd web && npm run typecheck && npm run lint && npm run test && npm run build   #
 - [docs/audit-critique-plan.md](docs/audit-critique-plan.md) — revue adversariale du plan, règles permanentes, frictions identifiées (F1-F19).
 - [docs/spec-refonte-grc-consulting.md](docs/spec-refonte-grc-consulting.md) — spécification fonctionnelle détaillée.
 - [docs/fiche-metier-consultant-grc.md](docs/fiche-metier-consultant-grc.md) — contexte métier (missions, référentiels, fonctions transverses) qui cadre le périmètre GRC couvert.
+- [docs/exemples/](docs/exemples/) — livrables produits par l'application sur deux missions fictives, avec la comparaison conseil / GRC.
+- [docs/protocole-recette.md](docs/protocole-recette.md) — protocole de recette rejouable et grille de notation · [docs/recette-2026-07-29.md](docs/recette-2026-07-29.md) — résultats, défauts trouvés et corrections apportées.
 - [TRACKING.md](TRACKING.md) — journal de bord des évolutions · [todo.md](todo.md) — tâches connues.
 - [CLAUDE.md](CLAUDE.md) — conventions de développement et pièges connus.
 

@@ -14,7 +14,10 @@ from __future__ import annotations
 
 from typing import Callable
 
-CURRENT_SCHEMA_VERSION = 4
+from . import aipd as aipd_module
+from . import tprm
+
+CURRENT_SCHEMA_VERSION = 7
 
 
 def _to_v2(state: dict) -> dict:
@@ -96,11 +99,72 @@ def _to_v4(state: dict) -> dict:
     return state
 
 
+def _to_v5(state: dict) -> dict:
+    """v4 → v5 : criticité des tiers scindée selon le volet (§14.1bis).
+
+    Deux ajouts, aucune donnée modifiée :
+
+      * chaque tiers déjà noté reçoit `methode: "moyenne_historique"`. Les notes
+        elles-mêmes ne sont **pas** recalculées : un consultant a pu présenter
+        une criticité à son client, et une migration silencieuse la changerait
+        sous ses pieds. Le passage au ratio ANSSI est une action explicite
+        (route `POST /api/projects/{id}/tprm/recalculer`).
+      * sur une mission GRC, chaque tiers reçoit la check-list de conformité
+        DORA/NIS2 qui remplace le scoring EBIOS, non cochée.
+    """
+    tiers = ((state.get("steps") or {}).get("tprm") or {}).get("tiers") or []
+    est_grc = state.get("type") == "grc"
+    for tier in tiers:
+        # Ne marquer que ce qui porte réellement une note : étiqueter un tiers
+        # jamais scoré (volet GRC) d'une méthode de calcul serait faux.
+        if "score" in tier:
+            tier.setdefault("methode", tprm.METHODE_HISTORIQUE)
+        if est_grc:
+            tier.setdefault("exigences", tprm.exigences_par_defaut())
+    return state
+
+
+def _to_v6(state: dict) -> dict:
+    """v5 → v6 : obligations organisationnelles de l'AIPD (§14.2.1).
+
+    Les quatre volets d'analyse existaient déjà ; s'y ajoutent les cinq
+    obligations de procédure (avis du DPO, avis des personnes concernées,
+    listes CNIL, réexamen, consultation préalable Art. 36) et la qualification
+    du risque résiduel dont dépend la dernière.
+
+    Le risque résiduel démarre à « non évalué » et non à « acceptable » :
+    supposer l'acceptabilité ferait disparaître l'obligation Art. 36 sans que
+    personne ne l'ait jugée.
+    """
+    aipd = state.setdefault("steps", {}).setdefault("diagnostic", {}).setdefault("aipd", {})
+    aipd.setdefault("risque_residuel", "non_evalue")
+    aipd.setdefault("obligations", aipd_module.obligations_par_defaut())
+    return state
+
+
+def _to_v7(state: dict) -> dict:
+    """v6 → v7 : volet stratégique de la remédiation ANSSI (§14.2.3).
+
+    La séquence E3R (endiguement/éviction/éradication/reconstruction) est
+    technique et opérationnelle ; il manquait le volet stratégique — les
+    critères d'arbitrage Direction entre urgence de redémarrage et coûts ou
+    risques induits par un redémarrage précipité.
+    """
+    resilience = state.setdefault("steps", {}).setdefault("resilience", {})
+    resilience.setdefault("strategie_remediation", {
+        "urgence_redemarrage": "", "couts_risques_redemarrage": "", "decision_direction": "",
+    })
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
     (3, _to_v3),
     (4, _to_v4),
+    (5, _to_v5),
+    (6, _to_v6),
+    (7, _to_v7),
 ]
 
 

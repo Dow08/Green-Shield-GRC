@@ -39,6 +39,21 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
   **Ce qui a été livré le 29/07/2026, en revanche : le moyen d'enrichir.** La route `POST /api/frameworks/import` existait depuis le début sans qu'aucune interface ne l'appelle — le consultant n'avait donc aucun moyen d'ajouter une exigence sans éditer un YAML à la main, ce qui rendait la consigne « enrichir au fil des missions » inapplicable. `ReferentielsPanel.tsx` (Réglages) permet désormais de créer et d'enrichir des référentiels personnels, avec l'inventaire des exigences par référentiel et un rappel de F3 en évidence. Le contenu métier, lui, reste à saisir par le consultant à partir de la norme qu'il possède.
 - [x] **F10 — Taux de couverture technique affiché** le 29/07/2026 : `api/modules/couverture.py` rapproche chaque contrôle organisationnel des règles techniques qui l'appuient (correspondance sur la référence de clause, `A.8.2` ne pouvant être confondue avec `A.8.20`). Le taux réel est affiché en Phase 4 **et** dans le rapport exporté, avec la mention explicite que le reste repose sur du déclaratif. L'audit note que l'afficher est à la fois plus honnête et différenciant.
 
+## Jalon 2 — décisions méthodologiques du spec (§14)
+
+- [x] **§14.1bis — Ratio ANSSI + scission TPRM par volet** livré le 29/07/2026 : `api/modules/tprm.py`. Volet Consulting au ratio `(dépendance × pénétration) / (maturité × confiance)` ; volet GRC sans aucun score, avec quatre exigences DORA/NIS2 vérifiables. `schema_version` 5 étiquette les tiers existants sans jamais recalculer leur note — le passage au ratio est une action explicite précédée d'un instantané. La formule dupliquée côté frontend est supprimée : le serveur seul note.
+- [x] **§14.2.1 — 5 obligations organisationnelles de l'AIPD** livré le 29/07/2026 : `api/modules/aipd.py`, `schema_version` 6. La consultation préalable de la CNIL (Art. 36) reste conditionnelle au risque résiduel, qualifié par le consultant et jamais déduit. Le livrable affiche les manques.
+- [x] **§14.2.4 — Mappings de contrôles techniques** livré le 29/07/2026 : `api/modules/controles_techniques.py`. Quatre pratiques rattachées à CIS v8 / NIST CSF 2.0, badges à l'écran, section dédiée au rapport d'audit. Au passage : `logging_active` comptait 5 % de la progression sans qu'aucun écran ne permette de le cocher — case ajoutée en Phase 5.
+
+## Reste du plan de build (docs/audit-critique-plan.md §6)
+
+Non entamé — évolutions fonctionnelles majeures, pas des correctifs :
+
+- [x] **§14.2.3 — Volet stratégique de la remédiation ANSSI** livré le 30/07/2026 : `schema_version` 7, trois champs en Phase 5 (urgence de redémarrage, coûts/risques d'un redémarrage précipité, décision retenue et autorité), repris dans le rapport de mission (chapitre Résilience) et le PSSI/PRI (Word, HTML, Markdown).
+- [ ] **§14.2.5 — NIST CSF comme 6ᵉ parcours** — **bloqué le 30/07/2026** : le spec cite `references/nist-csf.md` et un script de scoring de maturité fournis par « Hermes », mais **aucun des deux n'existe dans ce dépôt**. Construire les catégories/sous-catégories NIST CSF et une grille de maturité de mémoire reviendrait à inventer un contenu méthodologique — contraire à la philosophie « zéro invention ». Nécessite d'obtenir la matière source avant de coder.
+- [ ] **§14.3 — Glossaire des 25 concepts en aide contextuelle** — **bloqué le 30/07/2026** : l'intention est bien dans REFERENTIEL.md, mais le glossaire lui-même (25 définitions sourcées EUR-Lex/cyber.gouv.fr/CNIL/ANSSI/NIST) n'existe dans aucun fichier de ce dépôt — seule son intention est décrite. Rédiger 25 définitions réglementaires de mémoire serait une invention de contenu. Nécessite le glossaire source avant de brancher le module d'aide contextuelle.
+- [ ] **Jalons 3 à 5** : parcours NIS2 / DORA / RGPD complets, EU AI Act, Copilote LLM contraint. Restent pilotés par `docs/audit-critique-plan.md` §6.
+
 ## Notes
 
 - Ne pas ajouter de tâche à cette liste sans la relier à une friction sourcée ou à une demande explicite de l'utilisateur — évite de transformer ce fichier en backlog spéculatif (cf. règle CLAUDE.md, F12 de l'audit critique : périmètre piloté par les besoins réels, pas par la spéculation).

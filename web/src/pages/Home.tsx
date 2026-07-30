@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Search, Bell, ChevronRight, Boxes, Layers, Lock, MonitorSmartphone } from "lucide-react";
 import type { ModuleInfo } from "../types";
 import { iconFor } from "../lib/icons";
+import { safeGetItem } from "../lib/storage";
 
 interface Props {
   modules: ModuleInfo[];
@@ -10,6 +11,9 @@ interface Props {
 
 export function Home({ modules, onOpen }: Props) {
   const active = modules.filter((m) => m.status === "active");
+  // Prénom saisi dans Réglages, pas un nom écrit en dur : l'application sert
+  // n'importe quel consultant (retour utilisateur du 30/07/2026).
+  const prenom = (safeGetItem("consultant_name") ?? "").trim().split(" ")[0];
   const kpis = [
     { 
       icon: Boxes, 
@@ -45,7 +49,7 @@ export function Home({ modules, onOpen }: Props) {
     <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
       <header className="mb-5 flex items-center gap-4">
         <div>
-          <h2 className="text-xl font-extrabold tracking-tight">Bonjour, Dorian 👋</h2>
+          <h2 className="text-xl font-extrabold tracking-tight">{prenom ? `Bonjour, ${prenom}` : "Bonjour"} 👋</h2>
           <p className="mt-0.5 text-sm text-[var(--soft)]">Voici l'état de votre plateforme d'audit et de conseil cyber.</p>
         </div>
         <div className="ml-auto flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white/[0.045] px-4 py-2.5 text-sm text-[var(--faint)]">

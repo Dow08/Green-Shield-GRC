@@ -28,7 +28,14 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
   const [copilotResponse, setCopilotResponse] = useState("");
   const [copilotLoading, setCopilotLoading] = useState(false);
   const [copilotSource, setCopilotSource] = useState<CopilotSource | null>(null);
-  const [newRemediation, setNewRemediation] = useState<Remediation>({ id: "REM-05", axe: "Protection", measure: "Durcir la politique de mot de passe administrateur.", priority: "Élevé" });
+  const [newRemediation, setNewRemediation] = useState<Remediation>({ id: "", axe: "Protection", measure: "", priority: "Élevé" });
+
+  // Téléchargement Word : POST + blob (pas un simple lien) depuis le
+  // 30/07/2026, pour que le logo personnalisé du cabinet (Réglages) puisse
+  // transiter dans le corps de la requête plutôt que dans une URL.
+  const handleDownloadDocx = (telecharger: (id: string) => Promise<void>) => {
+    telecharger(activeProject.id).catch((err) => alert("Export Word indisponible : " + err.message));
+  };
 
   const handleRunCopilot = () => {
     if (!copilotPrompt.trim()) return;
@@ -60,9 +67,29 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                   <Bot size={15} /> 6. Feuille de Route de Traitement &amp; Copilote Cyber AI
                 </div>
 
+                {/* SYNTHÈSE EXÉCUTIVE — chapitre 1 du rapport, seul champ que
+                    l'outil ne permettait pas de saisir jusqu'au 30/07/2026. */}
+                <div>
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">
+                    A. Synthèse à destination de la direction
+                  </div>
+                  <label htmlFor="exec-summary" className="block text-[10px] text-[var(--faint)] mb-1">
+                    Premier chapitre du rapport d'audit. Jamais rédigée automatiquement : elle engage
+                    votre jugement, pas un calcul.
+                  </label>
+                  <textarea
+                    id="exec-summary"
+                    rows={4}
+                    placeholder="Ce que la direction doit retenir : niveau de maturité constaté, écarts majeurs, ce qui relève d'un processus à formaliser plutôt que d'un investissement."
+                    value={activeProject.steps.restitution?.exec_summary || ""}
+                    onChange={(e) => updateStepData("restitution", "exec_summary", e.target.value)}
+                    className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2.5 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
+                  />
+                </div>
+
                 {/* PLAN D'ACTIONS (REMEDIATIONS) */}
                 <div>
-                  <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">A. Plan d'Action de Remédiation (4 Axes Cyber)</div>
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">B. Plan d'Action de Remédiation (4 Axes Cyber)</div>
                   <div className="flex flex-col gap-2">
                     {activeProject.steps.traitement?.remediations?.map((r: Remediation, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] text-xs flex justify-between items-center">
@@ -139,7 +166,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
 
                 {/* THE CYBERDEPART (6 PRIORITES) */}
                 <div className="mt-2 border-t border-white/[0.04] pt-3">
-                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">B. Le Cyberdépart (6 Mesures d'hygiène vitales prioritaires - ANSSI)</div>
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">C. Le Cyberdépart (6 Mesures d'hygiène vitales prioritaires - ANSSI)</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
                     {activeProject.steps.traitement?.quick_wins?.map((qw: string, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5 text-xs flex items-center gap-2">
@@ -190,51 +217,91 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
 
                 {/* DELIVERABLES EXPORTER */}
                 <div className="mt-3 border-t border-white/[0.04] pt-4 flex flex-col gap-2">
-                  <div className="text-[11px] font-bold text-[var(--soft)] uppercase tracking-wide">C. Téléchargement des rapports multi-formats (Impression PDF / Word)</div>
+                  <div className="text-[11px] font-bold text-[var(--soft)] uppercase tracking-wide">D. Téléchargement des rapports multi-formats (Impression PDF / Word)</div>
 
                   {/* Ce qui manquerait dans les livrables, AVANT de les générer. */}
                   <RevueExport revue={revue} chargement={revueEnCours} onAllerALaPhase={onAllerALaPhase} />
 
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => handleExportDoc("nda")}
-                      className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-bold text-[var(--ink)] transition"
-                    >
-                      <FileDown size={14} /> Exporter NDA (Contrat).md
-                    </button>
-                    <button
-                      onClick={() => handleExportDoc("ebios")}
-                      className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-bold text-[var(--ink)] transition"
-                    >
-                      <FileDown size={14} /> Exporter Analyse EBIOS RM.md
-                    </button>
-                    <button
-                      onClick={() => handleExportDoc("pssi_pri")}
-                      className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-bold text-[var(--ink)] transition"
-                    >
-                      <FileDown size={14} /> Exporter PSSI &amp; Plan PRI.md
-                    </button>
-                    <button
-                      onClick={() => handleExportDoc("aipd")}
-                      className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-bold text-[var(--ink)] transition"
-                    >
-                      <FileDown size={14} /> Exporter AIPD / PIA (RGPD).md
-                    </button>
-                    {activeProject.type === "grc" && (
+                  {/* Chaque livrable en deux formats : .md pour GitHub/le versionnement,
+                      .docx à l'identité du rapport de mission — prêt à envoyer au client. */}
+                  <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">Accord (NDA)</span>
                       <button
-                        onClick={() => handleExportDoc("audit_report")}
-                        className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-4 py-2.5 text-xs font-bold text-[var(--ink)] transition"
+                        onClick={() => handleExportDoc("nda")}
+                        className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition"
                       >
-                        <FileDown size={14} /> Exporter Rapport GRC Complet.md
+                        <FileDown size={13} /> .md
                       </button>
-                    )}
-                    <a
-                      href={api.projects.reportDocxUrl(activeProject.id)}
-                      download
-                      className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-4 py-2.5 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
-                    >
-                      <FileDown size={14} /> Rapport d'audit (Word .docx)
-                    </a>
+                      <button
+                        onClick={() => handleDownloadDocx(api.projects.downloadNdaDocx)}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> Word (.docx)
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">Analyse EBIOS RM</span>
+                      <button
+                        onClick={() => handleExportDoc("ebios")}
+                        className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition"
+                      >
+                        <FileDown size={13} /> .md
+                      </button>
+                      <button
+                        onClick={() => handleDownloadDocx(api.projects.downloadEbiosDocx)}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> Word (.docx)
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">PSSI &amp; Plan PRI</span>
+                      <button
+                        onClick={() => handleExportDoc("pssi_pri")}
+                        className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition"
+                      >
+                        <FileDown size={13} /> .md
+                      </button>
+                      <button
+                        onClick={() => handleDownloadDocx(api.projects.downloadPssiDocx)}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> Word (.docx)
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">AIPD / PIA (RGPD)</span>
+                      <button
+                        onClick={() => handleExportDoc("aipd")}
+                        className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition"
+                      >
+                        <FileDown size={13} /> .md
+                      </button>
+                      <button
+                        onClick={() => handleDownloadDocx(api.projects.downloadAipdDocx)}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> Word (.docx)
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-2.5 mt-0.5">
+                      <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">Rapport d'audit</span>
+                      {activeProject.type === "grc" && (
+                        <button
+                          onClick={() => handleExportDoc("audit_report")}
+                          className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition"
+                        >
+                          <FileDown size={13} /> .md
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDownloadDocx(api.projects.downloadReportDocx)}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> Word (.docx)
+                      </button>
+                    </div>
                   </div>
                 </div>
 

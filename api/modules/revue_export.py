@@ -16,6 +16,8 @@ Deux niveaux :
 """
 from __future__ import annotations
 
+from . import aipd as aipd_module
+
 # Libellés des phases, alignés sur le stepper de l'interface.
 PHASES = {
     1: "Cadrage & Patrimoine",
@@ -67,6 +69,18 @@ def revue(state: dict) -> dict:
         verifier(2, "AIPD — évaluation des risques", aipd.get("risks_eval"))
         verifier(2, "AIPD — mesures de protection", aipd.get("mitigation_measures"))
 
+        # Les quatre volets ci-dessus sont le *contenu* de l'analyse ; ceux-ci
+        # sont sa conduite. Une AIPD complète sur le fond peut être irrégulière
+        # faute d'avis du DPO ou de saisine de la CNIL (§14.2.1).
+        etat_obligations = aipd_module.etat(aipd)
+        for libelle in etat_obligations["manquantes"]:
+            manques.append({"phase": 2, "phase_libelle": PHASES[2],
+                            "champ": f"AIPD — {libelle}", "gravite": "bloquant"})
+        if aipd.get("risque_residuel") == "non_evalue":
+            manques.append({"phase": 2, "phase_libelle": PHASES[2],
+                            "champ": "AIPD — risque résiduel après mesures non qualifié",
+                            "gravite": "bloquant"})
+
     verifier(3, "Évaluation des tiers (TPRM)", (steps.get("tprm") or {}).get("tiers"), "recommande")
 
     ebios = steps.get("ebios") or {}
@@ -82,10 +96,14 @@ def revue(state: dict) -> dict:
     for cle, libelle in (("endiguement", "Endiguement"), ("eviction", "Éviction"),
                          ("eradication", "Éradication"), ("reconstruction", "Reconstruction")):
         verifier(5, f"Séquence E3R — {libelle}", e3r.get(cle), "recommande")
+    strategie = resilience.get("strategie_remediation") or {}
+    verifier(5, "Volet stratégique — décision Direction", strategie.get("decision_direction"), "recommande")
 
     traitement = steps.get("traitement") or {}
     verifier(6, "Plan d'action de remédiation", traitement.get("remediations"))
     verifier(6, "Mesures Cyberdépart", traitement.get("quick_wins"), "recommande")
+
+    manques += _sections_vides(state)
 
     bloquants = [m for m in manques if m["gravite"] == "bloquant"]
     return {
@@ -95,3 +113,56 @@ def revue(state: dict) -> dict:
         "bloquants": len(bloquants),
         "manques": manques,
     }
+
+
+# Sections du rapport d'audit dont le contenu vient d'une phase précise. Le
+# libellé est celui du chapitre, pour que le manque désigne ce que le client
+# verra manquer plutôt qu'un nom de champ interne.
+_SECTIONS_RAPPORT = (
+    (1, 6, "Synthèse à destination de la direction"),
+    (2, 1, "Cadrage de la mission"),
+    (3, 1, "Patrimoine évalué"),
+    (5, 4, "Analyse de risque"),
+    (6, 3, "Écosystème et risques tiers"),
+    (7, 5, "Résilience et continuité"),
+    (10, 6, "Plan de traitement"),
+)
+
+
+def _sections_vides(state: dict) -> list[dict]:
+    """Chapitres du rapport d'audit qui sortiraient sans contenu.
+
+    Complète les vérifications champ par champ ci-dessus par une vérification du
+    **rendu**. Sans elle, la revue annonçait « prêt pour export, 0 manque » sur
+    une mission dont le rapport sortait quasi vide — constaté en recette le
+    29/07/2026, le filet de sécurité ne voyait pas le plus gros trou.
+
+    L'import est local : `report_builder` importe déjà `couverture` et
+    `docx_export`, et une dépendance de module à module en sens inverse créerait
+    un cycle à l'import.
+    """
+    from . import report_builder
+
+    steps = state.get("steps") or {}
+    rendus = {
+        1: report_builder._synthese_md(state),
+        2: report_builder._cadrage_mission_md(state),
+        3: report_builder._valeurs_metier_md(steps) + report_builder._biens_supports_md(steps),
+        5: report_builder._redoutes_md(steps) + report_builder._scenarios_md(steps),
+        6: report_builder._tprm_md(state),
+        7: report_builder._continuite_md(steps),
+        10: report_builder._remediations_md(steps),
+    }
+
+    manques = []
+    for chapitre, phase, libelle in _SECTIONS_RAPPORT:
+        rendu = rendus[chapitre]
+        # Un rendu sans aucune ligne de tableau est une section vide : les
+        # constructeurs renvoient alors une phrase en italique à la place.
+        if "|" not in rendu and rendu.strip().startswith("_"):
+            manques.append({
+                "phase": phase, "phase_libelle": PHASES[phase],
+                "champ": f"Rapport d'audit, chapitre {chapitre} « {libelle} » sortirait vide",
+                "gravite": "bloquant",
+            })
+    return manques

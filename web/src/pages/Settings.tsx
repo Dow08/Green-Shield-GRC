@@ -1,36 +1,84 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning, AlertTriangle } from "lucide-react";
+import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning, AlertTriangle, Image, X } from "lucide-react";
 import { safeGetItem, safeSetItem } from "../lib/storage";
 import { api } from "../lib/api";
 import { ReferentielsPanel } from "../components/ReferentielsPanel";
 import type { Framework } from "../types";
 
+// Formats acceptés par les générateurs de livrables (report_docx.py,
+// report_html.py) — même liste des deux côtés, cf. charte.py::_type_image.
+const FORMATS_LOGO_ACCEPTES = ["image/png", "image/jpeg"];
+const TAILLE_LOGO_MAX_OCTETS = 300 * 1024;
+
+// Le type MIME n'est pas reconservé au rechargement (seul le base64 brut est
+// stocké, à l'identique de ce qu'attend charte.logo_bytes()) : on le retrouve
+// par la signature binaire, comme le fait le serveur.
+function mimeDepuisBase64(base64: string): string {
+  if (base64.startsWith("/9j/")) return "image/jpeg";
+  return "image/png";
+}
+
 export function Settings() {
-  const [name, setName] = useState("Dorian");
-  const [company, setCompany] = useState("DP Cyber Consulting");
-  const [email, setEmail] = useState("dorian@dp-cyber.fr");
+  const [name, setName] = useState("");
+  const [company, setCompany] = useState("");
+  const [email, setEmail] = useState("");
   const [apiKey, setApiKey] = useState("");
+  // Base64 brut (sans le préfixe data:...;base64,) : c'est la forme attendue
+  // par charte.logo_bytes() côté serveur.
+  const [logoBase64, setLogoBase64] = useState("");
+  const [logoErreur, setLogoErreur] = useState("");
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState(false);
   const [frameworks, setFrameworks] = useState<Framework[]>([]);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedName = safeGetItem("consultant_name");
     const savedCompany = safeGetItem("consultant_company");
     const savedEmail = safeGetItem("consultant_email");
     const savedKey = safeGetItem("copilot_api_key");
+    const savedLogo = safeGetItem("consultant_logo");
 
     if (savedName) setName(savedName);
     if (savedCompany) setCompany(savedCompany);
     if (savedEmail) setEmail(savedEmail);
     if (savedKey) setApiKey(savedKey);
+    if (savedLogo) setLogoBase64(savedLogo);
     api.frameworks.list().then(setFrameworks).catch(() => setFrameworks([]));
   }, []);
 
   const enregistrerReferentiel = async (data: Parameters<typeof api.frameworks.import>[0]) => {
     await api.frameworks.import(data);
     setFrameworks(await api.frameworks.list());
+  };
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const fichier = e.target.files?.[0];
+    e.target.value = ""; // permet de resélectionner le même fichier après un reset
+    if (!fichier) return;
+    setLogoErreur("");
+    if (!FORMATS_LOGO_ACCEPTES.includes(fichier.type)) {
+      setLogoErreur("Format non pris en charge — utilisez un PNG ou un JPEG.");
+      return;
+    }
+    if (fichier.size > TAILLE_LOGO_MAX_OCTETS) {
+      setLogoErreur(`Fichier trop volumineux (${Math.round(fichier.size / 1024)} ko) — 300 ko maximum.`);
+      return;
+    }
+    const lecteur = new FileReader();
+    lecteur.onload = () => {
+      const dataUri = String(lecteur.result || "");
+      setLogoBase64(dataUri.split(",", 2)[1] || "");
+    };
+    lecteur.onerror = () => setLogoErreur("Lecture du fichier impossible.");
+    lecteur.readAsDataURL(fichier);
+  };
+
+  const handleLogoReset = () => {
+    setLogoBase64("");
+    setLogoErreur("");
+    if (logoInputRef.current) logoInputRef.current.value = "";
   };
 
   const handleSave = (e: React.FormEvent) => {
@@ -40,6 +88,7 @@ export function Settings() {
       safeSetItem("consultant_company", company),
       safeSetItem("consultant_email", email),
       safeSetItem("copilot_api_key", apiKey),
+      safeSetItem("consultant_logo", logoBase64),
     ].every(Boolean);
     setSaved(ok);
     setSaveError(!ok);
@@ -66,13 +115,17 @@ export function Settings() {
         {/* CONSULTANT IDENTITY */}
         <div className="glass p-5 flex flex-col gap-3">
           <div className="text-xs font-bold text-[var(--g1)] uppercase tracking-wide flex items-center gap-1.5 mb-1">
-            <User size={14} /> Profil &amp; Identité de l'auditeur (DP Cyber Consulting)
+            <User size={14} /> Profil &amp; Identité de l'auditeur
           </div>
+          <p className="text-[11px] text-[var(--soft)] leading-normal -mt-1.5">
+            Ces informations personnalisent les livrables générés (page de garde, signatures, pied de page) — chaque consultant utilisant GREEN SHIELD renseigne ici sa propre identité.
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div>
               <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Prénom / Nom de l'auditeur</label>
               <input
                 type="text"
+                placeholder="ex : Camille Martin"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
@@ -82,6 +135,7 @@ export function Settings() {
               <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Cabinet / Entreprise de conseil</label>
               <input
                 type="text"
+                placeholder="ex : Martin Cyber Audit"
                 value={company}
                 onChange={(e) => setCompany(e.target.value)}
                 className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
@@ -91,10 +145,52 @@ export function Settings() {
               <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Adresse Email professionnelle</label>
               <input
                 type="email"
+                placeholder="ex : contact@martin-cyber-audit.fr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
               />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Logo du cabinet (page de garde des rapports Word)</label>
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl border border-[var(--stroke)] bg-[#04150e] overflow-hidden">
+                  {logoBase64 ? (
+                    <img
+                      src={`data:${mimeDepuisBase64(logoBase64)};base64,${logoBase64}`}
+                      alt="Logo du cabinet"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <Image size={16} className="text-[var(--faint)]" />
+                  )}
+                </div>
+                <label className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition cursor-pointer">
+                  <Image size={13} /> {logoBase64 ? "Changer le logo" : "Déposer un logo"}
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg"
+                    onChange={handleLogoChange}
+                    className="hidden"
+                  />
+                </label>
+                {logoBase64 && (
+                  <button
+                    type="button"
+                    onClick={handleLogoReset}
+                    className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--soft)] transition"
+                  >
+                    <X size={13} /> Revenir au logo GREEN SHIELD
+                  </button>
+                )}
+              </div>
+              <p className="text-[10px] text-[var(--faint)] mt-1.5">
+                PNG ou JPEG, 300 ko maximum. Sans logo déposé, la page de garde porte le logo GREEN SHIELD par défaut.
+              </p>
+              {logoErreur && (
+                <p className="text-[10px] font-bold text-[var(--rose)] mt-1">{logoErreur}</p>
+              )}
             </div>
           </div>
         </div>

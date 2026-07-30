@@ -10,9 +10,11 @@ from pathlib import Path
 from urllib.parse import quote
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response
 import yaml
+from . import aipd
 from . import archive
 from . import auditcraft_grc
 from . import ai_gateway
+from . import controles_techniques
 from . import audit_log
 from . import couverture
 from . import data_paths
@@ -22,9 +24,12 @@ from . import workflow_loader
 from . import mesures_catalogue
 from . import path_safety
 from . import report_builder
+from . import report_docx
+from . import report_html
 from . import retention
 from . import revue_export
 from . import snapshots
+from . import tprm
 
 router = APIRouter(prefix="/api")
 
@@ -110,36 +115,14 @@ PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 _migrate_legacy_projects()
 
 def _tprm_rate(dependence: int, penetration: int, maturity: int, trust: int) -> dict:
-    """Criticité d'un tiers, dérivée de ses 4 critères — jamais écrite à la main.
+    """Criticité d'un tiers — délègue au module `tprm` (§14.1bis).
 
-    Miroir exact du calcul appliqué côté frontend (web/src/pages/Projects.tsx) :
-    les valeurs pré-remplies qui étaient saisies en dur divergeaient de ce que
-    l'application calculait réellement, et la note changeait donc sous les yeux
-    du client à la première réédition du tiers.
-
-    L'arrondi reproduit `Number.toFixed(1)` de JavaScript (moitié vers le haut),
-    et non l'arrondi au pair de Python, sans quoi 2.25 donnerait 2.2 ici et 2.3
-    dans le navigateur.
-
-    NOTE : cette formule (moyenne) migrera vers le ratio ANSSI
-    (dépendance × pénétration) / (maturité × confiance) au Jalon 2, avec le
-    radar des parties prenantes — cf. docs/spec-refonte-grc-consulting.md §14.1bis.
+    La moyenne arithmétique employée jusqu'au 29/07/2026 compressait les écarts
+    et empêchait donc de prioriser, ce qui est l'objet même de l'atelier EBIOS
+    RM 3. Elle est remplacée par la formule ANSSI
+    (dépendance × pénétration) / (maturité × confiance).
     """
-    raw = (dependence + penetration + (6 - maturity) + (6 - trust)) / 4
-    score = float(Decimal(str(raw)).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
-    if score >= 4.0:
-        rating = "Critique"
-    elif score >= 3.0:
-        rating = "Élevé"
-    elif score >= 2.0:
-        rating = "Moyen"
-    else:
-        rating = "Faible"
-    return {
-        "dependence": dependence, "penetration": penetration,
-        "maturity": maturity, "trust": trust,
-        "score": score, "rating": rating,
-    }
+    return tprm.ratio_anssi(dependence, penetration, maturity, trust)
 
 
 def get_framework_by_id(fw_id: str) -> dict | None:
@@ -153,40 +136,154 @@ def get_framework_by_id(fw_id: str) -> dict | None:
     except Exception:
         return None
 
+def _rempli(valeur) -> bool:
+    """Le consultant a-t-il produit quelque chose sur ce point ?"""
+    if isinstance(valeur, str):
+        return bool(valeur.strip())
+    if isinstance(valeur, (list, dict)):
+        return len(valeur) > 0
+    return valeur is not None
+
+
 def calculate_progress(state: dict) -> int:
-    steps = state.get("steps", {})
-    score = 0
-    
-    # 6 Steps overall progress contribution
-    # Step 1: Cadrage & Patrimoine (max 15%)
-    if steps.get("cadrage", {}).get("nda_signed"): score += 5
-    if len(steps.get("cadrage", {}).get("assets_metier", [])) > 0: score += 5
-    if len(steps.get("cadrage", {}).get("assets_support", [])) > 0: score += 5
-    
-    # Step 2: Diagnostic & RGPD (max 15%)
-    if steps.get("diagnostic", {}).get("pssi_active"): score += 5
-    if len(steps.get("diagnostic", {}).get("rgpd_register", [])) > 0: score += 5
-    if steps.get("diagnostic", {}).get("aipd_required") is not None: score += 5
-    
-    # Step 3: TPRM (max 15%)
-    if len(steps.get("tprm", {}).get("tiers", [])) > 0: score += 15
-    else: score += 5 # base participation
-    
-    # Step 4: EBIOS RM (max 20%)
-    if len(steps.get("ebios", {}).get("redoute_events", [])) > 0: score += 10
-    if len(steps.get("ebios", {}).get("operational_scenarios", [])) > 0: score += 10
-    
-    # Step 5: Résilience E3R (max 15%)
-    if steps.get("resilience", {}).get("logging_active"): score += 5
-    if len(steps.get("resilience", {}).get("e3r", {}).get("endiguement", "")): score += 10
-    
-    # Step 6: Plan de Traitement (max 20%)
-    if len(steps.get("traitement", {}).get("remediations", [])) > 0: score += 10
-    if len(steps.get("traitement", {}).get("quick_wins", [])) == 6: score += 10
-    
-    return min(score, 100)
+    """Avancement du **travail du consultant**, jamais la maturité du client.
+
+    La formule précédente créditait 5 points pour `pssi_active` et 5 pour
+    `logging_active` : deux *constats d'audit*. Une mission menée jusqu'au bout
+    chez un client sans PSSI ni journalisation centralisée plafonnait donc à
+    90 % (constaté en recette le 29/07/2026) — la jauge décourageait exactement
+    là où le consultant avait le plus travaillé, et un client peu mature ne
+    pouvait structurellement jamais afficher une mission terminée.
+
+    Ne comptent désormais que des livrables produits : un périmètre défini, un
+    patrimoine cartographié, un diagnostic instruit, des risques analysés, une
+    résilience documentée, un plan de traitement écrit.
+    """
+    steps = state.get("steps", {}) or {}
+
+    def phase(cle: str) -> dict:
+        return steps.get(cle) or {}
+
+    # Chaque tuple : (points, condition). Total = 100.
+    jalons = (
+        # Phase 1 — Cadrage & Patrimoine (20)
+        (5, _rempli(phase("cadrage").get("scope"))),
+        (5, phase("cadrage").get("nda_signed")),
+        (5, _rempli(phase("cadrage").get("assets_metier"))),
+        (5, _rempli(phase("cadrage").get("assets_support"))),
+        # Phase 2 — Diagnostic & RGPD (15)
+        (5, _rempli(phase("diagnostic").get("rgpd_register"))),
+        # L'AIPD n'est due que si le traitement le justifie : l'avoir tranchée
+        # est le livrable, quel que soit le sens de la réponse.
+        (5, phase("diagnostic").get("aipd_required") is not None),
+        (5, (not phase("diagnostic").get("aipd_required"))
+            or _rempli((phase("diagnostic").get("aipd") or {}).get("risks_eval"))),
+        # Phase 3 — Risques tiers (15)
+        (15, _rempli(phase("tprm").get("tiers"))),
+        # Phase 4 — EBIOS RM (20)
+        (10, _rempli(phase("ebios").get("redoute_events"))),
+        (10, _rempli(phase("ebios").get("operational_scenarios"))),
+        # Phase 5 — Résilience & E3R (15)
+        (5, _rempli((phase("resilience").get("bcp_strategy") or {}).get("rto"))),
+        (10, _rempli((phase("resilience").get("e3r") or {}).get("endiguement"))),
+        # Phase 6 — Traitement & livrables (15)
+        (10, _rempli(phase("traitement").get("remediations"))),
+        (5, _rempli((phase("restitution") or {}).get("exec_summary"))),
+    )
+
+    return min(sum(points for points, atteint in jalons if atteint), 100)
+
+def _nda_template(client: str) -> str:
+    """Gabarit de NDA à compléter — un modèle, pas un constat sur le client."""
+    return f"""ACCORD DE CONFIDENTIALITÉ & DE NON-DIVULGATION (NDA)
+
+Entre :
+La société DP Cyber Consulting, représentée par Dorian, Consultant en Cybersécurité,
+Et :
+La société {client}, représentée par son DSI/Représentant légal.
+
+Objet : Encadrement des échanges d'informations hautement confidentielles dans le cadre de la mission d'accompagnement, d'audit de sécurité et de GRC de {client}.
+
+Engagements : Les parties s'engagent à ne divulguer aucun document technique, secret de fabrique, mot de passe, schéma d'architecture ou donnée personnelle sous peine de poursuites civiles et pénales."""
+
+
+def create_empty_state(project_id: str, name: str, client: str, project_type: str,
+                       framework_id: str = "iso27001") -> dict:
+    """Mission neuve : la structure complète, **aucune donnée d'exemple**.
+
+    Les missions étaient jusqu'ici pré-remplies d'actifs, de tiers, d'événements
+    redoutés et de mesures fictifs. Constaté en recette le 29/07/2026 : une
+    mission créée pour un fabricant de composites contenait d'emblée « Hébergeur
+    Cloud (AWS) », « Prestataire Infogérance (ESN) » et « Cabinet Comptable »,
+    **déjà notés**. Un consultant qui ne les remarque pas livre un registre de
+    tiers partiellement fictif, criticités comprises — c'était le scénario
+    d'invention le plus probable de l'application.
+
+    Ces exemples vivent désormais dans la seule mission de démonstration, qui
+    porte le marqueur `is_demo` (F16).
+
+    Seules exceptions conservées, parce qu'elles ne prétendent rien sur le
+    client : le gabarit de NDA (un modèle à compléter) et, sur le volet GRC, la
+    check-list du référentiel choisi (c'est le référentiel, pas une donnée
+    client).
+    """
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    state = {
+        "id": project_id, "name": name, "client": client, "type": project_type,
+        "status": "en_cours", "progress": 0, "created_at": now, "updated_at": now,
+        "steps": {
+            "cadrage": {
+                "scope": "", "client_missions": "",
+                "nda_signed": False, "nda_text": _nda_template(client),
+                "assets_metier": [], "assets_support": [],
+            },
+            "diagnostic": {
+                "pssi_active": False, "governance_active": False,
+                "vulnerabilities_active": False, "rgpd_register": [],
+                "aipd_required": False,
+                "aipd": {"treatment_description": "", "necessity_eval": "",
+                         "risks_eval": "", "mitigation_measures": ""},
+            },
+            "tprm": {"tiers": []},
+            "ebios": {"redoute_events": [], "risk_sources": [],
+                      "operational_scenarios": [], "case_studies": []},
+            "resilience": {
+                "logging_active": False,
+                "bcp_strategy": {"rto": "", "rpo": "", "backup_policy": ""},
+                "e3r": {"endiguement": "", "eviction": "",
+                        "eradication": "", "reconstruction": ""},
+                "strategie_remediation": {"urgence_redemarrage": "",
+                                          "couts_risques_redemarrage": "",
+                                          "decision_direction": ""},
+            },
+            "traitement": {"remediations": [], "quick_wins": []},
+            "restitution": {"exec_summary": "", "remediation_plan": []},
+        },
+    }
+
+    if project_type == "grc":
+        fw = get_framework_by_id(framework_id) or {}
+        state["steps"]["cadrage"]["framework_id"] = framework_id
+        state["steps"]["cadrage"]["framework_name"] = fw.get("name", framework_id)
+        state["steps"]["evaluation"] = {
+            "manual_controls": [
+                {"id": req.get("id"), "title": req.get("title"),
+                 "description": req.get("description", ""),
+                 "status": "A_VERIFIER", "notes": ""}
+                for req in fw.get("requirements", [])
+            ],
+            "technical_results": None,
+        }
+
+    return state
+
 
 def create_default_state(project_id: str, name: str, client: str, project_type: str, framework_id: str = "iso27001") -> dict:
+    """État **garni de données d'exemple** — réservé à la mission de démonstration.
+
+    Ne pas appeler pour une mission réelle : voir `create_empty_state`.
+    """
     now = datetime.now().strftime("%Y-%m-%d %H:%M")
     
     state = {
@@ -287,6 +384,11 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                     "eviction": "Procédure d'isolement de l'Active Directory, réinitialisation complète des mots de passe des comptes d'administration et de krbtgt.",
                     "eradication": "Nettoyage intégral des serveurs via un outil antivirus hors-ligne et suppression des comptes dormants.",
                     "reconstruction": "Reconstruction systématique à partir de gabarits d'infrastructure-as-code (IaC) durcis et approuvés."
+                },
+                "strategie_remediation": {
+                    "urgence_redemarrage": "Ligne de production R&D à l'arrêt : impact direct sur les délais contractuels clients aéronautiques.",
+                    "couts_risques_redemarrage": "Un redémarrage précipité sans éradication complète expose à une ré-infection et à la perte de la piste d'investigation.",
+                    "decision_direction": "Direction Générale : priorité à l'éradication complète avant redémarrage, délai maximal accepté de 48 h."
                 }
             },
             "traitement": {
@@ -350,8 +452,12 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                 }
             },
             "tprm": {
+                # Volet GRC : pas de score de risque (§14.1bis). Les curseurs
+                # restent saisis — ils décrivent le tiers — mais la conformité
+                # se démontre par les exigences DORA, que la migration ajoute.
                 "tiers": [
-                    {"name": "Hébergeur Cloud (AWS)", **_tprm_rate(4, 4, 4, 4)},
+                    {"name": "Hébergeur Cloud (AWS)", "dependence": 4,
+                     "penetration": 4, "maturity": 4, "trust": 4},
                 ]
             },
             "ebios": {
@@ -380,6 +486,11 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                     "eviction": "Changement de tous les tokens et clés d'API locales.",
                     "eradication": "Mise à jour de sécurité des composants et purge des caches.",
                     "reconstruction": "Re-scaffolding de l'environnement d'audit local."
+                },
+                "strategie_remediation": {
+                    "urgence_redemarrage": "",
+                    "couts_risques_redemarrage": "",
+                    "decision_direction": ""
                 }
             },
             "evaluation": {
@@ -445,7 +556,7 @@ def create_project(data: dict) -> dict:
     (p_dir / "targets").mkdir(exist_ok=True)
     (p_dir / "reports").mkdir(exist_ok=True)
     
-    state = create_default_state(project_id, name, client, project_type, framework_id)
+    state = create_empty_state(project_id, name, client, project_type, framework_id)
     # Un projet neuf traverse la même chaîne de migration qu'un projet ancien :
     # une seule logique construit le socle/grc/consulting, jamais deux.
     state = schema_migration.migrate(state)
@@ -769,6 +880,139 @@ def purge_donnees_personnelles(p_id: str) -> dict:
     return {"status": "ok", "efface": efface, "state": state}
 
 
+@router.get("/projects/{p_id}/tprm")
+def get_tprm_synthese(p_id: str) -> dict:
+    """Synthèse TPRM adaptée au volet de la mission (§14.1bis).
+
+    Consulting : classement par ratio ANSSI, plus la liste des tiers encore
+    notés à l'ancienne méthode (le recalcul est proposé, jamais imposé).
+    GRC : avancement des exigences DORA/NIS2, sans aucun score de risque.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    state = _read_state(state_file)
+    tiers = ((state.get("steps") or {}).get("tprm") or {}).get("tiers") or []
+
+    if state.get("type") == "grc":
+        details = [{"name": t.get("name", ""), **tprm.conformite(t)} for t in tiers]
+        return {
+            "volet": "grc", "methode": "exigences", "tiers": details,
+            "conformes": sum(1 for d in details if d["conforme"]), "total": len(details),
+        }
+
+    classement = sorted(tiers, key=lambda t: t.get("score", 0), reverse=True)
+    return {
+        "volet": "consulting", "methode": tprm.METHODE_ANSSI,
+        "tiers": [{"name": t.get("name", ""), "score": t.get("score", 0),
+                   "rating": t.get("rating", ""), "methode": t.get("methode", "")}
+                  for t in classement],
+        "a_recalculer": tprm.tiers_a_recalculer(state),
+    }
+
+
+def _tprm_tiers(state: dict) -> list[dict]:
+    return state.setdefault("steps", {}).setdefault("tprm", {}).setdefault("tiers", [])
+
+
+@router.post("/projects/{p_id}/tprm/tiers")
+def add_tprm_tier(p_id: str, data: dict) -> dict:
+    """Ajoute un tiers — **le serveur seul le note**.
+
+    Le frontend calculait auparavant le score de son côté, avec sa propre copie
+    de la formule : deux vérités pour une même opération de domaine, qui
+    divergent dès que l'une des deux évolue (c'est exactement ce qui est arrivé
+    au passage au ratio ANSSI). Il n'envoie donc plus que les curseurs.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    nom = str(data.get("name", "")).strip()
+    if not nom:
+        raise HTTPException(status_code=400, detail="Le nom du tiers est obligatoire.")
+
+    def _curseur(cle: str) -> int:
+        try:
+            valeur = int(data.get(cle, 3))
+        except (TypeError, ValueError):
+            raise HTTPException(status_code=400, detail=f"« {cle} » doit être un entier de 1 à 5.")
+        if not 1 <= valeur <= 5:
+            raise HTTPException(status_code=400, detail=f"« {cle} » doit être compris entre 1 et 5.")
+        return valeur
+
+    criteres = {c: _curseur(c) for c in ("dependence", "penetration", "maturity", "trust")}
+
+    state = _read_state(state_file)
+    tier = {"name": nom, **criteres}
+    # Volet GRC : une check-list de conformité, jamais un score (§14.1bis).
+    if state.get("type") == "grc":
+        tier["exigences"] = tprm.exigences_par_defaut()
+    else:
+        tier.update(tprm.ratio_anssi(**criteres))
+
+    _tprm_tiers(state).append(tier)
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    state["progress"] = calculate_progress(state)
+    _write_json_atomic(state_file, state)
+    return state
+
+
+@router.put("/projects/{p_id}/tprm/tiers/{index}/exigences/{exigence_id}")
+def update_tprm_exigence(p_id: str, index: int, exigence_id: str, data: dict) -> dict:
+    """Coche (ou décoche) une exigence de conformité d'un tiers, volet GRC."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    state = _read_state(state_file)
+    tiers = _tprm_tiers(state)
+    if not 0 <= index < len(tiers):
+        raise HTTPException(status_code=404, detail="Tiers introuvable")
+
+    exigences = tiers[index].setdefault("exigences", tprm.exigences_par_defaut())
+    cible = next((e for e in exigences if e.get("id") == exigence_id), None)
+    if cible is None:
+        raise HTTPException(status_code=404, detail="Exigence introuvable")
+
+    cible["satisfait"] = bool(data.get("satisfait", False))
+    cible["preuve"] = str(data.get("preuve", cible.get("preuve", "")))
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    _write_json_atomic(state_file, state)
+    return state
+
+
+@router.post("/projects/{p_id}/tprm/recalculer")
+def recalculer_tprm(p_id: str) -> dict:
+    """Repasse les tiers au ratio ANSSI — action explicite du consultant.
+
+    Un instantané précède le recalcul : les criticités changent de valeur, et
+    elles ont pu être présentées au client sous l'ancienne méthode.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    p_dir = PROJECTS_DIR / p_id
+    state_file = p_dir / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    try:
+        state = _read_state(state_file)
+        snapshots.creer(p_dir, state, "avant-recalcul-tprm")
+        state, recalcules = tprm.recalculer_mission(state)
+        state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+        state["progress"] = calculate_progress(state)
+        _write_json_atomic(state_file, state)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    audit_log.record("tprm.recalcul", target=p_id, detail=f"tiers={recalcules}")
+    return {"status": "ok", "recalcules": recalcules, "state": state}
+
+
 @router.get("/projects/{p_id}/couverture")
 def get_couverture_technique(p_id: str) -> dict:
     """Part des contrôles appuyés par une preuve technique (F10)."""
@@ -967,6 +1211,114 @@ def delete_temps_entry(p_id: str, entry_id: str) -> dict:
         raise HTTPException(status_code=500, detail=str(exc))
 
 
+@router.get("/projects/{p_id}/report.html")
+def export_project_html(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "") -> Response:
+    """Rapport de mission au format HTML, à la mise en page validée.
+
+    Format de restitution principal : autonome (aucune ressource externe, donc
+    lisible hors-ligne) et imprimable en A4, donc convertible en PDF par le
+    navigateur — sans dépendance native, ce que la règle n°1 du projet interdit.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    p_dir = PROJECTS_DIR / p_id
+    state_file = p_dir / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    state = _read_state(state_file)
+    nom, html = report_html.build_report(state, p_id, auditeur, cabinet, logo)
+    return _servir_rapport_html(p_id, nom, html, "report.html")
+
+
+def _servir_rapport_html(p_id: str, nom: str, html: str, action_journal: str) -> Response:
+    """Écrit et sert un export HTML — factorisé pour les 5 formats de restitution."""
+    p_dir = PROJECTS_DIR / p_id
+    reports = p_dir / "reports"
+    reports.mkdir(exist_ok=True)
+    (reports / nom).write_text(html, encoding="utf-8")
+    audit_log.record(action_journal, target=p_id)
+    return Response(
+        content=html.encode("utf-8"),
+        media_type="text/html; charset=utf-8",
+        headers={"Content-Disposition": f'inline; filename="{quote(nom)}"'},
+    )
+
+
+@router.get("/projects/{p_id}/report/synthese.html")
+def export_project_html_synthese(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "") -> Response:
+    """Synthèse de fin de mission sur une page — pour une restitution en direction."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    state = _read_state(state_file)
+    nom, html = report_html.build_synthese(state, p_id, auditeur, cabinet, logo)
+    return _servir_rapport_html(p_id, nom, html, "report.synthese")
+
+
+@router.get("/projects/{p_id}/report/tableau-restitution.html")
+def export_project_html_tableau(p_id: str) -> Response:
+    """Écran de clôture : ce qui a été diagnostiqué face à ce qui reste à faire."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    state = _read_state(state_file)
+    nom, html = report_html.build_tableau_restitution(state, p_id)
+    return _servir_rapport_html(p_id, nom, html, "report.tableau")
+
+
+@router.get("/projects/{p_id}/report/registre-conformite.html")
+def export_project_html_registre(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "") -> Response:
+    """Registre de conformité : écarts organisationnels avec preuve et registre des tiers."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    state = _read_state(state_file)
+    nom, html = report_html.build_registre_conformite(state, p_id, auditeur, cabinet, logo)
+    return _servir_rapport_html(p_id, nom, html, "report.registre")
+
+
+@router.get("/projects/{p_id}/report/cartographie-risque.html")
+def export_project_html_cartographie(p_id: str) -> Response:
+    """Cartographie du risque : matrice gravité × vraisemblance et classement des tiers."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    state = _read_state(state_file)
+    nom, html = report_html.build_cartographie_risque(state, p_id)
+    return _servir_rapport_html(p_id, nom, html, "report.cartographie")
+
+
+@router.get("/controles-techniques")
+def list_controles_techniques() -> list[dict]:
+    """Rattachement des pratiques aux contrôles CIS / NIST CSF (§14.2.4)."""
+    return controles_techniques.referentiel()
+
+
+@router.get("/projects/{p_id}/controles-techniques")
+def get_controles_techniques(p_id: str) -> dict:
+    """État des pratiques rattachées, pour une mission."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    state_file = PROJECTS_DIR / p_id / "project.json"
+    if not state_file.is_file():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    return controles_techniques.etat(_read_state(state_file))
+
+
+@router.get("/aipd/obligations")
+def list_obligations_aipd() -> list[dict]:
+    """Référentiel des obligations de procédure de l'AIPD (§14.2.1).
+
+    Ces libellés décrivent le RGPD, pas une mission : ils n'ont donc rien à
+    faire dans `project.json`, et le navigateur les lit ici plutôt que d'en
+    tenir une seconde copie.
+    """
+    return [dict(o) for o in aipd.OBLIGATIONS]
+
+
 @router.get("/mesures")
 def list_mesures(axe: str | None = None, referentiel: str | None = None) -> list[dict]:
     """Catalogue de mesures réutilisable (décision G3) — filtrable par axe ou référentiel."""
@@ -1096,38 +1448,29 @@ def import_framework(data: dict) -> dict:
         audit_log.record("framework.import", target=fw_id, outcome="error")
         raise HTTPException(status_code=500, detail=str(exc))
 
-@router.get("/projects/{p_id}/report.docx")
-def export_project_docx(p_id: str, auditeur: str = "", cabinet: str = "") -> Response:
-    """Rapport d'audit au format Word natif (.docx), ouvrable sans avertissement.
-
-    Chemin distinct de /export/{doc_type} : cette route-là capturerait sinon un
-    doc_type="docx" et renverrait du Markdown.
-    """
+def _lire_state_pour_docx(p_id: str) -> tuple[str, dict]:
+    """Validation + lecture communes aux cinq routes d'export Word."""
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     state_file = PROJECTS_DIR / p_id / "project.json"
     if not state_file.is_file():
         raise HTTPException(status_code=404, detail="Projet introuvable")
     try:
-        state = _read_state(state_file)
+        return p_id, _read_state(state_file)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Erreur lecture projet: {exc}")
 
-    try:
-        content = docx_export.render_iso27001(state, auditeur=auditeur, cabinet=cabinet)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
 
+def _servir_docx(p_id: str, filename: str, content: bytes, action_journal: str) -> Response:
+    """Réponse HTTP `.docx` — factorisée pour les cinq formats de restitution."""
     # Les en-têtes HTTP ne transportent pas d'UTF-8 tel quel : un nom de client
     # accentué (« cassiopé ») arriverait mutilé. On fournit donc un repli ASCII
     # et la forme encodée RFC 5987, que les navigateurs privilégient.
-    filename = f"rapport_{p_id}.docx"
     ascii_fallback = unicodedata.normalize("NFKD", filename).encode("ascii", "ignore").decode() or "rapport.docx"
     disposition = (
         f'attachment; filename="{ascii_fallback}"; '
         f"filename*=UTF-8''{quote(filename, safe='')}"
     )
-
-    audit_log.record("project.export", target=p_id, detail="format=docx")
+    audit_log.record(action_journal, target=p_id, detail="format=docx")
     return Response(
         content=content,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -1135,8 +1478,66 @@ def export_project_docx(p_id: str, auditeur: str = "", cabinet: str = "") -> Res
     )
 
 
+@router.post("/projects/{p_id}/report.docx")
+def export_project_docx(p_id: str, data: dict = {}) -> Response:
+    """Rapport d'audit au format Word natif (.docx), ouvrable sans avertissement.
+
+    Chemin distinct de /export/{doc_type} : cette route-là capturerait sinon un
+    doc_type="docx" et renverrait du Markdown.
+
+    En POST (et non GET) depuis le 30/07/2026 : le logo personnalisé du
+    cabinet transite dans le corps de la requête — en base64, il dépasserait
+    largement une longueur d'URL sûre en paramètre de requête GET.
+    """
+    p_id, state = _lire_state_pour_docx(p_id)
+    filename, content = report_docx.build_report_docx(
+        state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
+        logo=data.get("logo", ""))
+    return _servir_docx(p_id, filename, content, "project.export")
+
+
+@router.post("/projects/{p_id}/nda.docx")
+def export_project_nda_docx(p_id: str, data: dict = {}) -> Response:
+    """Accord de confidentialité (NDA) au format Word — prêt à envoyer signer."""
+    p_id, state = _lire_state_pour_docx(p_id)
+    filename, content = report_docx.build_nda_docx(
+        state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
+        logo=data.get("logo", ""))
+    return _servir_docx(p_id, filename, content, "project.export.nda")
+
+
+@router.post("/projects/{p_id}/ebios.docx")
+def export_project_ebios_docx(p_id: str, data: dict = {}) -> Response:
+    """Analyse de risques EBIOS RM au format Word."""
+    p_id, state = _lire_state_pour_docx(p_id)
+    filename, content = report_docx.build_ebios_docx(
+        state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
+        logo=data.get("logo", ""))
+    return _servir_docx(p_id, filename, content, "project.export.ebios")
+
+
+@router.post("/projects/{p_id}/pssi.docx")
+def export_project_pssi_docx(p_id: str, data: dict = {}) -> Response:
+    """PSSI & Plan de reprise (PRI) au format Word."""
+    p_id, state = _lire_state_pour_docx(p_id)
+    filename, content = report_docx.build_pssi_docx(
+        state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
+        logo=data.get("logo", ""))
+    return _servir_docx(p_id, filename, content, "project.export.pssi")
+
+
+@router.post("/projects/{p_id}/aipd.docx")
+def export_project_aipd_docx(p_id: str, data: dict = {}) -> Response:
+    """AIPD / PIA (RGPD) au format Word."""
+    p_id, state = _lire_state_pour_docx(p_id)
+    filename, content = report_docx.build_aipd_docx(
+        state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
+        logo=data.get("logo", ""))
+    return _servir_docx(p_id, filename, content, "project.export.aipd")
+
+
 @router.get("/projects/{p_id}/export/{doc_type}")
-def export_project_document(p_id: str, doc_type: str) -> dict:
+def export_project_document(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "") -> dict:
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = PROJECTS_DIR / p_id
     if not p_dir.exists():
@@ -1149,7 +1550,7 @@ def export_project_document(p_id: str, doc_type: str) -> dict:
         raise HTTPException(status_code=500, detail=str(exc))
 
     try:
-        title, markdown_content = report_builder.build_document(state, p_id, doc_type)
+        title, markdown_content = report_builder.build_document(state, p_id, doc_type, auditeur, cabinet)
     except report_builder.TypeDocumentInconnu as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

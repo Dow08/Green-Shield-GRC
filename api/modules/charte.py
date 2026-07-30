@@ -5,6 +5,10 @@ sans dépendre d'un serveur d'images ni d'un fichier joint qui se perdrait à la
 transmission. Version 72 px (≈9 ko) — suffisante pour un en-tête de document
 et un ordre de grandeur plus légère que l'original.
 """
+from __future__ import annotations
+
+import base64
+import binascii
 
 LOGO_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAIAAADajyQQAAAlQUlEQVR42m17Z7Ck51XmOe/75c7d"
@@ -180,6 +184,53 @@ LOGO_BASE64 = (
 
 LOGO_DATA_URI = f"data:image/png;base64,{LOGO_BASE64}"
 
+# Signatures binaires suffisantes pour distinguer une image réelle d'un texte
+# quelconque envoyé par erreur — pas une validation de format complète, juste
+# un garde-fou avant d'embarquer l'octet brut dans un document.
+_SIGNATURES_IMAGE = {
+    b"\x89PNG\r\n\x1a\n": "png",
+    b"\xff\xd8\xff": "jpeg",
+}
+
+
+def _type_image(donnees: bytes) -> str | None:
+    for signature, type_mime in _SIGNATURES_IMAGE.items():
+        if donnees.startswith(signature):
+            return type_mime
+    return None
+
+
+def logo_bytes(logo_base64: str = "") -> bytes:
+    """Octets du logo à embarquer dans un livrable : celui du cabinet si le
+    consultant en a déposé un valide dans Réglages (PNG ou JPEG), sinon le
+    logo GREEN SHIELD par défaut.
+
+    Ne lève jamais : une image corrompue ou d'un format non pris en charge ne
+    doit jamais faire échouer la génération d'un rapport, elle retombe
+    silencieusement sur le logo par défaut.
+    """
+    if logo_base64:
+        try:
+            donnees = base64.b64decode(logo_base64, validate=True)
+        except (binascii.Error, ValueError):
+            donnees = b""
+        if donnees and _type_image(donnees):
+            return donnees
+    return base64.b64decode(LOGO_BASE64)
+
+
+def logo_data_uri(logo_base64: str = "") -> str:
+    """Équivalent de `logo_bytes()` sous forme de `data:` URI pour le HTML."""
+    if logo_base64:
+        try:
+            donnees = base64.b64decode(logo_base64, validate=True)
+        except (binascii.Error, ValueError):
+            donnees = b""
+        type_mime = _type_image(donnees) if donnees else None
+        if type_mime:
+            return f"data:image/{type_mime};base64,{logo_base64}"
+    return LOGO_DATA_URI
+
 
 # --- Feuille de style d'impression ------------------------------------------
 # Les livrables sont du Markdown enrichi de HTML : ils s'ouvrent dans Word et
@@ -209,6 +260,8 @@ FEUILLE_STYLE = """<style>
   font-size: 8pt; color: #6b7f78; text-align: center;
 }
 
+.gs-pied-note { font-size: 7pt; color: #8a9a94; font-style: italic; }
+
 @media print {
   body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--gs-encre); line-height: 1.5; padding: 1.6cm; }
   h1 { font-size: 22pt; color: var(--gs-sombre); border-bottom: 2px solid var(--gs-vert); padding-bottom: 5px; }
@@ -224,14 +277,49 @@ FEUILLE_STYLE = """<style>
 """
 
 
-def entete(titre_document: str, client: str, date_edition: str, reference: str) -> str:
+# L'application sert n'importe quel consultant, jamais un seul cabinet : ne
+# jamais retomber en silence sur un nom d'entreprise ou de personne écrit en
+# dur (retour utilisateur du 30/07/2026 — le NDA affichait "DP Cyber
+# Consulting" quel que soit le cabinet réellement saisi dans Réglages).
+_CABINET_DEFAUT = "Cabinet non renseigné"
+
+
+def entete_markdown(titre_document: str, client: str, date_edition: str, reference: str,
+                    cabinet: str = "") -> str:
+    """En-tête d'un livrable **Markdown** : uniquement du Markdown.
+
+    L'en-tête HTML+CSS ci-dessous était auparavant injecté dans les exports
+    Markdown. Le résultat ne rendait correctement nulle part (constaté le
+    30/07/2026) : GitHub retire les feuilles de style et bloque les images en
+    `data:` URI, tandis qu'un navigateur affiche les tableaux Markdown en texte
+    brut, tuyaux compris. Chaque format porte désormais sa propre mise en forme —
+    Markdown pur ici, HTML complet dans `report_html.py`.
+    """
+    return (f"**GREEN SHIELD** · {cabinet or _CABINET_DEFAUT} — Audit & Conseil Cybersécurité\n\n"
+            f"> **{titre_document}** — {client}\n"
+            f"> Édité le {date_edition} · Réf. `{reference}`\n"
+            f"> **Document confidentiel — diffusion restreinte**\n")
+
+
+def pied_markdown(empreinte: str, cabinet: str = "") -> str:
+    """Pied d'un livrable Markdown."""
+    return ("\n---\n\n"
+            f"GREEN SHIELD — {cabinet or _CABINET_DEFAUT} · Document confidentiel, "
+            "ne pas diffuser sans autorisation écrite.\n\n"
+            f"Empreinte SHA-256 de l'état de la mission à l'édition : `{empreinte}`\n\n"
+            "*Toute modification ultérieure de la mission, même rétablie, produit "
+            "une empreinte différente.*\n")
+
+
+def entete(titre_document: str, client: str, date_edition: str, reference: str,
+          cabinet: str = "") -> str:
     """En-tête de livrable : logo, marque, client et référence du document."""
     return f'''{FEUILLE_STYLE}
 <div class="gs-entete">
   <img src="{LOGO_DATA_URI}" alt="GREEN SHIELD" />
   <div>
     <div class="gs-marque">GREEN SHIELD</div>
-    <div class="gs-cabinet">DP Cyber Consulting — Audit &amp; Conseil Cybersécurité</div>
+    <div class="gs-cabinet">{cabinet or _CABINET_DEFAUT} — Audit &amp; Conseil Cybersécurité</div>
   </div>
   <div class="gs-meta">
     <div><strong>{titre_document}</strong></div>
@@ -244,11 +332,20 @@ def entete(titre_document: str, client: str, date_edition: str, reference: str) 
 '''
 
 
-def pied(empreinte: str) -> str:
-    """Pied de livrable : rappel de confidentialité et empreinte d'intégrité."""
+def pied(empreinte: str, cabinet: str = "") -> str:
+    """Pied de livrable : rappel de confidentialité et empreinte d'intégrité.
+
+    L'empreinte porte sur l'**état complet de la mission au moment de l'édition**,
+    horodatage de dernière modification compris. Elle ne revient donc pas à sa
+    valeur d'origine si une donnée est modifiée puis rétablie (constaté en
+    recette le 29/07/2026). C'est le comportement voulu — elle atteste une
+    version de la mission, pas seulement le texte du document — mais il faut le
+    dire, sinon le lecteur croit vérifier autre chose que ce qu'il vérifie.
+    """
     return f'''
 <div class="gs-pied">
-  GREEN SHIELD — DP Cyber Consulting · Document confidentiel, ne pas diffuser sans autorisation écrite.<br />
-  Empreinte d'intégrité SHA-256 : <code>{empreinte}</code>
+  GREEN SHIELD — {cabinet or _CABINET_DEFAUT} · Document confidentiel, ne pas diffuser sans autorisation écrite.<br />
+  Empreinte SHA-256 de l'état de la mission à l'édition : <code>{empreinte}</code><br />
+  <span class="gs-pied-note">Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.</span>
 </div>
 '''

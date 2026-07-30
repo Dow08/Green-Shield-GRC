@@ -168,7 +168,8 @@ def test_v06_export_ignore_les_caracteres_dangereux_du_champ_client(isolated_dir
     )
     doc = projects.export_project_document("victime", "audit_report")
     # Le nom de fichier dérive de p_id (sûr), jamais du champ libre "client".
-    assert doc["title"] == "Rapport_Audit_GRC_victime.md"
+    # Le volet figure dans le nom : cette mission n'a pas de type, donc « Conseil ».
+    assert doc["title"] == "Rapport_Audit_Conseil_victime.md"
     report_file = p_dir / "reports" / doc["title"]
     assert report_file.is_file()
     # Rien n'a été écrit hors de reports/.
@@ -179,3 +180,32 @@ def test_export_project_document_avec_p_id_traverse_est_rejete(isolated_dirs):
     with pytest.raises(HTTPException) as exc_info:
         projects.export_project_document("..", "nda")
     assert exc_info.value.status_code == 400
+
+
+# --- Routes .docx : passées en POST le 30/07/2026 --------------------------
+#
+# Le logo personnalisé (base64) transite désormais dans le corps de la
+# requête plutôt qu'en paramètre de requête GET, qui ne le supporterait pas
+# de façon fiable au-delà de quelques ko. Ces tests vérifient le branchement
+# route -> report_docx.py : l'identité et le logo transmis dans `data`
+# atteignent bien le document généré.
+
+def test_export_project_nda_docx_transmet_l_identite_et_le_logo(legit_project):
+    from docx import Document
+    import io as io_module
+    logo_perso = ("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY"
+                  "42YAAAAASUVORK5CYII=")
+    res = projects.export_project_nda_docx(
+        legit_project, data={"auditeur": "Camille Martin", "cabinet": "Martin Cyber Audit", "logo": logo_perso})
+    assert res.media_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    doc = Document(io_module.BytesIO(res.body))
+    texte = "\n".join(" | ".join(c.text for c in r.cells) for t in doc.tables for r in t.rows)
+    assert "Martin Cyber Audit" in texte
+    assert "Camille Martin" in texte
+
+
+def test_export_project_nda_docx_fonctionne_sans_identite_fournie(legit_project):
+    """`data` par défaut : un consommateur qui n'envoie aucun corps ne doit
+    pas faire planter la route."""
+    res = projects.export_project_nda_docx(legit_project)
+    assert res.status_code == 200

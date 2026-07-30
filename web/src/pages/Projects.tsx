@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock } from "lucide-react";
+import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import { formatDuree } from "../lib/duree";
 import { IsoPivotView } from "../components/IsoPivotView";
@@ -8,6 +8,7 @@ import { TempsPanel } from "../components/TempsPanel";
 import { ArchivePanel } from "../components/ArchivePanel";
 import { HistoriquePanel } from "../components/HistoriquePanel";
 import { RgpdPanel } from "../components/RgpdPanel";
+import { SoclePanel } from "../components/SoclePanel";
 import { PhaseCadrage } from "../components/phases/PhaseCadrage";
 import { PhaseDiagnostic } from "../components/phases/PhaseDiagnostic";
 import { PhaseTprm } from "../components/phases/PhaseTprm";
@@ -36,6 +37,9 @@ export function Projects() {
   const [revueEnCours, setRevueEnCours] = useState(false);
   const [instantanes, setInstantanes] = useState<SnapshotInfo[]>([]);
   const [echeanceRgpd, setEcheanceRgpd] = useState<EcheanceRgpdMission | null>(null);
+  // Alertes d'échéances RGPD sur tout le portefeuille — auparavant il fallait
+  // ouvrir chaque mission une à une pour découvrir une échéance dépassée.
+  const [echeancesPortefeuille, setEcheancesPortefeuille] = useState<EcheanceRgpdMission[]>([]);
   const [couverture, setCouverture] = useState<CouvertureTechnique | null>(null);
   const [saving, setSaving] = useState(false);
   const [auditing, setAuditing] = useState(false);
@@ -63,6 +67,9 @@ export function Projects() {
         setError(err instanceof Error ? err.message : "Erreur de chargement");
       })
       .finally(() => setLoading(false));
+    // Best-effort : une alerte RGPD manquante ne doit jamais bloquer le
+    // chargement du registre.
+    api.projects.echeancesRgpd().then(setEcheancesPortefeuille).catch(() => setEcheancesPortefeuille([]));
   };
 
   useEffect(() => {
@@ -269,6 +276,11 @@ export function Projects() {
     : 0;
   const grcCount = projects.filter(p => p.type === "grc").length;
   const consultingCount = projects.filter(p => p.type === "consulting").length;
+  // Alertes d'échéances RGPD : échue en priorité, sinon imminente (≤30 jours).
+  const echeancesEchues = echeancesPortefeuille.filter((e) => e.statut === "echue");
+  const echeancesImminentes = echeancesPortefeuille.filter(
+    (e) => e.statut === "en_conservation" && e.jours_restants !== null && e.jours_restants <= 30
+  );
   // Charges consommées sur l'ensemble du portefeuille (reste de F19) : le
   // cumul n'était visible qu'une mission à la fois.
   const minutesPortefeuille = projects.reduce(
@@ -396,6 +408,61 @@ export function Projects() {
             </div>
 
           </div>
+
+          {/* Alertes d'échéances RGPD (F17) — proactives, sur tout le
+              portefeuille : auparavant il fallait ouvrir chaque mission une à
+              une pour découvrir une échéance dépassée. */}
+          {(echeancesEchues.length > 0 || echeancesImminentes.length > 0) && (
+            <div className="glass-2 p-3 border border-[rgba(255,107,107,0.25)] rounded-2xl flex flex-col gap-1.5">
+              {echeancesEchues.length > 0 && (
+                <div className="flex items-start gap-2 text-xs">
+                  <AlertTriangle size={14} className="text-[var(--rose)] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[var(--rose)]">
+                      {echeancesEchues.length} mission(s) avec une échéance de conservation dépassée
+                    </span>
+                    <span className="text-[var(--soft)]"> — les données personnelles des personnes interrogées devraient être purgées : </span>
+                    {echeancesEchues.map((e, i) => (
+                      <span key={e.project_id}>
+                        {i > 0 && ", "}
+                        <button
+                          type="button"
+                          onClick={() => handleSelectProject(e.project_id)}
+                          className="underline decoration-dotted text-[var(--ink)] hover:text-[var(--rose)]"
+                        >
+                          {e.project_name}
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {echeancesImminentes.length > 0 && (
+                <div className="flex items-start gap-2 text-xs">
+                  <AlertTriangle size={14} className="text-[var(--amber)] flex-shrink-0 mt-0.5" />
+                  <div>
+                    <span className="font-bold text-[var(--amber)]">
+                      {echeancesImminentes.length} mission(s) avec une échéance de conservation à moins de 30 jours
+                    </span>
+                    <span className="text-[var(--soft)]"> : </span>
+                    {echeancesImminentes.map((e, i) => (
+                      <span key={e.project_id}>
+                        {i > 0 && ", "}
+                        <button
+                          type="button"
+                          onClick={() => handleSelectProject(e.project_id)}
+                          className="underline decoration-dotted text-[var(--ink)] hover:text-[var(--amber)]"
+                        >
+                          {e.project_name}
+                        </button>
+                        {" "}({e.jours_restants} j)
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex justify-between items-center mt-2">
             <div className="text-xs font-bold text-[var(--faint)]">Projets en cours ({projects.length})</div>
@@ -628,6 +695,14 @@ export function Projects() {
             </div>
           </div>
 
+          {/* SOCLE DE MISSION — cadrage contractuel repris au rapport d'audit.
+              Modélisé depuis le jalon 1, sans écran jusqu'au 30/07/2026. */}
+          <SoclePanel
+            key={`socle-${activeProject.id}`}
+            socle={activeProject.socle ?? {}}
+            onChange={(socle) => setActiveProject({ ...activeProject, socle })}
+          />
+
           {/* SUIVI DU TEMPS CONSOMMÉ (F19) — charges consommées vs budget vendu */}
           <TempsPanel
             entrees={activeProject.socle?.temps?.entrees ?? []}
@@ -691,6 +766,7 @@ export function Projects() {
                 activeProject={activeProject}
                 updateStepData={updateStepData}
                 handleSaveProject={handleSaveProject}
+                onProjectReplaced={setActiveProject}
               />
             )}
 

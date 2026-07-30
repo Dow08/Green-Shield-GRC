@@ -73,6 +73,21 @@ def test_mission_v2_est_migree_vers_la_version_courante_sans_perte():
     assert migree["socle"]["temps"] == {"entrees": []}  # nouveauté v3 ajoutée
 
 
+def test_mission_v6_gagne_le_volet_strategique_de_remediation_sans_perte():
+    """v6 → v7 (§14.2.3) : le volet stratégique de la remédiation ANSSI
+    s'ajoute sans toucher à l'E3R déjà saisi."""
+    v6 = {
+        "schema_version": 6, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {"resilience": {"e3r": {"endiguement": "Isolement réseau"}}},
+    }
+    migree = schema_migration.migrate(dict(v6))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+    assert migree["steps"]["resilience"]["e3r"]["endiguement"] == "Isolement réseau"
+    assert migree["steps"]["resilience"]["strategie_remediation"] == {
+        "urgence_redemarrage": "", "couts_risques_redemarrage": "", "decision_direction": "",
+    }
+
+
 def test_needs_migration():
     assert schema_migration.needs_migration(_mission_v1()) is True
     assert schema_migration.needs_migration(schema_migration.migrate(_mission_v1())) is False

@@ -199,11 +199,68 @@ export interface RGPDRegister {
   retention: string;
 }
 
+/** Obligation de procédure de l'AIPD — distincte des quatre volets d'analyse
+ *  (§14.2.1). Le libellé et la référence vivent côté serveur : ils décrivent le
+ *  RGPD, pas l'état de la mission. */
+export interface ObligationAIPD {
+  id: string;
+  satisfait: boolean;
+  commentaire: string;
+}
+
+export type RisqueResiduel = "non_evalue" | "acceptable" | "eleve";
+
+/** Rattachement d'une pratique à un contrôle de référentiel (§14.2.4). */
+export interface MappingControle {
+  referentiel: string;
+  ref: string;
+  intitule: string;
+}
+
+export interface PratiqueControle {
+  id: string;
+  libelle: string;
+  phase: number;
+  phase_libelle: string;
+  mappings: MappingControle[];
+  /** Présents seulement sur la route d'état d'une mission. */
+  couverte?: boolean;
+  justification?: string;
+}
+
+export interface EtatControlesTechniques {
+  pratiques: PratiqueControle[];
+  couvertes: number;
+  total: number;
+  taux: number;
+}
+
+/** Description d'une obligation, servie par l'API — jamais stockée en mission. */
+export interface ReferenceObligationAIPD {
+  id: string;
+  libelle: string;
+  reference: string;
+  aide: string;
+  conditionnelle: boolean;
+}
+
 export interface AIPDData {
   treatment_description: string;
   necessity_eval: string;
   risks_eval: string;
   mitigation_measures: string;
+  /** Qualifié par le consultant : rien ne le déduit à sa place. */
+  risque_residuel?: RisqueResiduel;
+  obligations?: ObligationAIPD[];
+}
+
+/** Exigence de conformité d'un tiers, volet GRC — remplace le scoring EBIOS,
+ *  que ni DORA ni NIS2 ne réclament (§14.1bis). */
+export interface ExigenceTiers {
+  id: string;
+  libelle: string;
+  satisfait: boolean;
+  preuve: string;
 }
 
 export interface Tiers {
@@ -212,8 +269,14 @@ export interface Tiers {
   penetration: number;  // 1-5
   maturity: number;     // 1-5
   trust: number;        // 1-5
-  score: number;        // auto-calculated
+  /** Ratio ANSSI calculé par le serveur — jamais par le navigateur. */
+  score: number;
   rating: "Critique" | "Élevé" | "Moyen" | "Faible";
+  /** Trace la formule qui a produit `score` : les notes antérieures au
+   *  29/07/2026 ne sont pas recalculées en silence. */
+  methode?: "ratio_anssi" | "moyenne_historique";
+  /** Volet GRC uniquement. */
+  exigences?: ExigenceTiers[];
 }
 
 export interface RedouteEvent {
@@ -255,6 +318,15 @@ export interface E3R {
   reconstruction: string;
 }
 
+// Volet stratégique de la remédiation ANSSI (§14.2.3) : E3R ne porte que la
+// séquence technique/opérationnelle. Manquaient les critères d'arbitrage
+// Direction entre urgence de redémarrage et coûts/risques induits.
+export interface StrategieRemediation {
+  urgence_redemarrage: string;
+  couts_risques_redemarrage: string;
+  decision_direction: string;
+}
+
 export interface Remediation {
   id: string;
   axe: "Gouvernance" | "Protection" | "Défense" | "Résilience";
@@ -284,6 +356,51 @@ export interface TempsEntree {
   note: string;
 }
 
+/** Entretien mené avec une partie prenante — la check-list Hermes des 8-10
+ *  interlocuteurs à rencontrer. */
+export interface Entretien {
+  id: string;
+  role: string;
+  personne: string;
+  date: string;
+  synthese: string;
+}
+
+/** Socle commun aux deux volets (schéma v2).
+ *
+ *  Modélisé et migré depuis le jalon 1, mais sans aucun écran jusqu'au
+ *  30/07/2026 : le cadrage contractuel d'une mission n'était pas saisissable.
+ */
+export interface Socle {
+  qualification?: {
+    declencheur?: string;
+    sponsor_executif?: string;
+    budget?: string;
+    maturite_actuelle?: string;
+    equipe_interne?: string;
+    echeance_cible?: string;
+  };
+  contractualisation?: {
+    perimetre_inclus?: string;
+    perimetre_exclu?: string;
+    livrables?: string[];
+    modalites?: string;
+    acces_si?: string;
+  };
+  kickoff?: {
+    date?: string;
+    participants?: string[];
+    gouvernance?: string;
+  };
+  entretiens?: Entretien[];
+  temps?: { entrees: TempsEntree[] };
+  rgpd_consultant?: {
+    duree_conservation_mois: number;
+    date_fin_mission: string;
+    purge_effectuee_le: string;
+  };
+}
+
 export interface ProjectState {
   id: string;
   name: string;
@@ -297,11 +414,7 @@ export interface ProjectState {
   // côté type le temps que toutes les missions soient passées par la migration.
   // Marqueur de la mission de démonstration (F16) : jamais une vraie mission.
   is_demo?: boolean;
-  socle?: {
-    qualification?: { budget?: string; [k: string]: unknown };
-    temps?: { entrees: TempsEntree[] };
-    [k: string]: unknown;
-  };
+  socle?: Socle;
   // Introduit au Jalon 1 (schema_version 2, api/modules/schema_migration.py) :
   // avancement des parcours référentiels pilotés par workflow.yaml, indexé par
   // référentiel puis par id d'étape. Optionnel côté type le temps que toutes
@@ -355,6 +468,7 @@ export interface ProjectState {
       logging_active: boolean;
       bcp_strategy: BCPStrategy;
       e3r: E3R;
+      strategie_remediation: StrategieRemediation;
       validated?: boolean; // Étape validée
     };
     // Phase 6 : Traitement & Restitution

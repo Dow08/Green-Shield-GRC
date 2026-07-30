@@ -4,6 +4,66 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [30/07/2026] — Volet stratégique ANSSI, alertes RGPD, vitrine régénérée
+
+Trois améliorations enchaînées après les corrections d'identité de la session, plus la régénération de la vitrine `docs/exemples`.
+
+**§14.2.3 — Volet stratégique de la remédiation ANSSI.** La séquence E3R (endiguement/éviction/éradication/reconstruction) est technique et opérationnelle ; il manquait les critères d'arbitrage Direction entre urgence de redémarrage et coûts/risques induits par un redémarrage précipité. `schema_version` **7** (`steps.resilience.strategie_remediation` : trois champs libres), exposé en Phase 5 sous la séquence E3R, repris dans le rapport de mission (chapitre Résilience, §7.3) et dans le PSSI/PRI (Word, HTML, Markdown, §2.4).
+
+**Alertes d'échéances RGPD, portées sur tout le portefeuille.** L'échéance de conservation (F17) n'était visible qu'en ouvrant une mission une à une (`RgpdPanel`). Un bandeau sur le registre des missions signale maintenant, sans rien ouvrir : les missions à échéance dépassée (rouge) et celles à moins de 30 jours (ambre), chacune cliquable vers la mission concernée. S'appuie sur la route `GET /api/rgpd/echeances` déjà existante — aucun nouveau calcul, seulement sa mise en avant proactive.
+
+**Logo personnalisé étendu aux exports HTML** — voir l'entrée précédente : ce qui restait « à faire » (M1, M2, M4) est fait le jour même, `charte.logo_data_uri()` branché dans `report_html.py`.
+
+### Vitrine `docs/exemples` régénérée
+Les 18 fichiers existants dataient d'avant les corrections du jour (pied de page peu lisible, vide sur la page de garde, identité codée en dur) et n'exposaient qu'un seul `.docx` par mission. Régénérés avec le code courant : **28 fichiers** (les 5 livrables Word pour chaque mission — pas seulement le rapport —, plus les 5 exports HTML et les 5 Markdown). Le `README.md` de la vitrine est mis à jour en conséquence (liens `.docx` ajoutés, description du format Word plus fidèle — elle affirmait encore « sept chapitres », reliquat d'avant la reconstruction complète du 31/07/2026).
+
+### Deux tâches volontairement non traitées — signalées plutôt que contournées
+Le plan de build restant comptait aussi **§14.3 (glossaire des 25 concepts)** et **§14.2.5 (NIST CSF en 6ᵉ parcours)**. Les deux citent une matière source externe (« Hermes ») absente de ce dépôt — aucun fichier de glossaire, aucun `references/nist-csf.md`, aucun script de scoring. Les construire aurait exigé d'inventer un contenu réglementaire/méthodologique (définitions, catégories NIST CSF, grille de maturité) — exactement ce que la philosophie « zéro invention » du projet interdit. Laissées de côté, à trancher avec l'utilisateur (obtenir la matière source, ou accepter un contenu construit et explicitement marqué comme non sourcé).
+
+**14 tests ajoutés** (`test_schema_migration.py`, `test_report_docx.py`, `test_revue_export.py`). **560 tests backend, 150 tests frontend.**
+
+---
+
+## [30/07/2026] — L'application n'est plus dédiée à un seul consultant
+
+Retour utilisateur sur le NDA envoyé pour relecture : « Dorian » et « DP Cyber Consulting » apparaissaient dans le document quels que soient l'auditeur et le cabinet réellement saisis dans Réglages — y compris quand ces champs étaient vides. Vérification faite, le défaut était générique : chaque module de génération de livrable (`report_docx.py`, `report_html.py`, `charte.py`, `report_builder.py`) retombait silencieusement sur `cabinet or "DP Cyber Consulting"` / un `"Dorian"` codé en dur, au lieu du paramètre `auditeur`/`cabinet` déjà reçu en argument. Corrigé dans les cinq livrables Word, les cinq exports HTML (M1 à M5) et les cinq exports Markdown, avec un même repli neutre (« Consultant » / « Cabinet non renseigné ») plutôt qu'un nom de personne. `Settings.tsx` ne pré-remplit plus le formulaire avec mon identité par défaut (champs vides à l'installation), et le message d'accueil du tableau de bord (`Home.tsx`) n'affiche « Bonjour, {prénom} » que si un nom a été configuré.
+
+**Deux bugs de rendu supplémentaires** signalés sur le même NDA :
+- **Pied de page presque illisible.** Le gris `_DOUX` choisi pour la dernière ligne du pied (contraste ~4,3:1) restait trop pâle une fois combiné au rendu grisé que Word applique par défaut à un pied de page inactif. Les trois lignes passent à la couleur du corps de texte (`_CORPS`, ~11:1) ; la hiérarchie visuelle reste portée par l'italique et la taille, pas par le contraste.
+- **Grand vide blanc sur la page de garde.** Le bandeau coloré (logo, titre, méta) ne remplissait que sa hauteur de contenu, laissant un espace blanc jusqu'au pied de page sur toute page de garde courte (flagrant sur un NDA d'une page). Le bandeau prend maintenant la hauteur utile de la page (`AT_LEAST`, contenu centré verticalement) — plus de vide, la page de garde est pleine.
+
+**35 tests ajoutés/adaptés** (`test_charte.py`, `test_report_docx.py`) vérifiant qu'aucun des cinq livrables Markdown ne contient plus « Dorian »/« DP Cyber Consulting » par défaut, et qu'une identité personnalisée (auditeur + cabinet) apparaît bien dans chaque document généré.
+
+### Logo de cabinet personnalisable (rapports Word)
+Nom et cabinet réglés, restait le logo — figé sur celui de GREEN SHIELD quel que soit le consultant. Choix confirmé avec l'utilisateur : garder le logo GREEN SHIELD par défaut, avec la possibilité d'en déposer un autre dans Réglages.
+
+Un logo dépasse largement la longueur d'URL sûre en paramètre de requête GET une fois encodé en base64 : les cinq routes `.docx` (`report`, `nda`, `ebios`, `pssi`, `aipd`) passent donc de `GET` à `POST`, le corps JSON portant `auditeur`/`cabinet`/`logo`. Côté client, les liens `<a href download>` deviennent des boutons déclenchant un `fetch()` + téléchargement de blob (même schéma que `exportArchive`/`importArchive`), le nom de fichier étant repris de l'en-tête `Content-Disposition` de la réponse plutôt que déduit par le navigateur.
+
+`charte.logo_bytes()`/`logo_data_uri()` centralisent la validation (signature PNG/JPEG vérifiée sur les octets réels, jamais sur le type MIME déclaré) : un logo absent, corrompu ou dans un format non pris en charge retombe silencieusement sur le logo GREEN SHIELD — la génération d'un rapport ne doit jamais échouer à cause d'une image. `Settings.tsx` ajoute le dépôt de fichier (PNG/JPEG, 300 ko max), un aperçu et un bouton de réinitialisation.
+
+**14 tests ajoutés** (`test_charte.py`, `test_report_docx.py`, `test_projects_security.py`) couvrant la validation du logo, son embarquement réel dans le `.docx` généré (comparaison des octets de l'image insérée), et le branchement route → générateur.
+
+### Extension aux exports HTML (M1-M5)
+Ce qui était noté « reste à faire » plus haut est fait le jour même : `report_html.py` reçoit le même paramètre `logo` sur `build_report` (M1), `build_synthese` (M2) et `build_registre_conformite` (M4) — M3 et M5 n'ont pas de bandeau de marque, rien à y brancher. Les trois routes `.html` correspondantes acceptent `logo` en paramètre de requête (restées en `GET` : ces routes ne sont consommées par aucun écran du frontend aujourd'hui, seulement par script — la contrainte de longueur d'URL qui a fait basculer les routes `.docx` en `POST` ne s'applique donc pas de la même façon ici). **4 tests ajoutés. 559 tests backend, 150 tests frontend.**
+
+---
+
+## [30/07/2026] — Les quatre autres livrables en Word : NDA, EBIOS RM, PSSI/PRI, AIPD
+
+Le rapport de mission avait déjà son identité Word (page de garde, sommaire, tableaux, pied de page à empreinte). Les quatre autres documents produits par `report_builder.py` (NDA, analyse EBIOS RM, PSSI & PRI, AIPD/PIA) n'existaient qu'en Markdown — un consultant qui voulait remettre un NDA signable au client n'avait rien d'autre à télécharger que du texte brut.
+
+**`report_docx.py`** gagne quatre nouveaux bâtisseurs : `build_nda_docx`, `build_ebios_docx`, `build_pssi_docx`, `build_aipd_docx`. Même contenu que la version Markdown correspondante (même source de données, même structure), seule la mise en forme change. Là où c'est le même contenu qu'une section du rapport de mission (patrimoine, cartographie des menaces, écosystème des tiers, plan d'action), les bâtisseurs `_ch_patrimoine`/`_ch_risque`/`_ch_ecosysteme`/`_ch_traitement` sont **réutilisés avec leur propre numérotation** plutôt que dupliqués — l'EBIOS RM autonome numérote ses 4 chapitres 1 à 4, indépendamment de leur position dans le rapport complet.
+
+Aidé par cet effort de réutilisation à repasser sur `report_html.py` et `report_docx.py`, un bug préexistant est ressorti : le chapitre « Plan de traitement » (chapitre **11** dans `report_html.CHAPITRES`) affichait encore des sous-titres « 10.1 »/« 10.2 » — reliquat d'avant l'ajout du chapitre AIPD, qui a décalé toute la numérotation en aval sans que ces deux chaînes codées en dur ne suivent. Les deux fichiers acceptent maintenant un paramètre `prefixe` sur les fonctions concernées (`_patrimoine`/`_ch_patrimoine`, `_risque`/`_ch_risque`, `_traitement`/`_ch_traitement`), avec la bonne valeur par défaut pour le rapport complet — le même paramètre qui permet leur réutilisation dans les documents autonomes sert aussi de garde-fou contre cette classe de bug.
+
+**Routes et frontend.** Quatre routes `GET /api/projects/{id}/{nda,ebios,pssi,aipd}.docx` dans `projects.py`, sur le même schéma que `/report.docx` (auditeur/cabinet en requête, jamais stockés côté serveur). Dans `PhaseTraitement.tsx`, chacun des quatre livrables affiche désormais son bouton `.md` et son lien `Word (.docx)` côte à côte plutôt qu'un unique format Markdown.
+
+Vérifié de bout en bout après redémarrage propre de l'API (le piège Windows `uvicorn --reload` documenté plus bas a de nouveau servi du code obsolète le temps du redémarrage) : les 5 routes `.docx` répondent, chaque fichier est un Word 2007+ valide, `Content-Disposition` porte le bon nom de fichier accentué.
+
+**35 tests ajoutés** dans `test_report_docx.py` pour les quatre nouveaux bâtisseurs (fichier valide, empreinte en pied de page, réutilisation correcte du contenu partagé, aucune ligne de tableau vide, survie aux caractères spéciaux). **543 tests backend, 150 tests frontend.**
+
+---
+
 ## [29/07/2026] — Points restants du todo : rendre visible ce qui était calculé sans être montré
 
 Quatre points, un même défaut de fond : des données produites ou stockées mais jamais présentées.
@@ -222,3 +282,53 @@ Suite à la revue d'un gabarit générique React/Next.js (28/07/2026), les point
 - **ESLint configuré** (`web/eslint.config.js`, flat config ESLint 10 + typescript-eslint) : `npm run lint` fonctionne réellement désormais (n'existait pas avant). Règles `react-hooks` limitées volontairement aux deux règles classiques (`rules-of-hooks`, `exhaustive-deps`) — le préréglage `recommended` de `eslint-plugin-react-hooks` v7 embarque par défaut les règles orientées React Compiler (`set-state-in-effect`, `immutability`...) qui signalent en erreur le pattern standard « fetch au montage + setState », légitime et déjà testé partout dans ce projet qui n'utilise pas le React Compiler.
 - **Scripts npm ajoutés** : `typecheck`, `lint`.
 - **Vérification complète, 4 commandes :** `npm run typecheck` (propre), `npm run lint` (0 erreur/warning), `npm run test` (42 tests, dont 16 nouveaux : `ids.test.ts` ×7, `storage.test.ts` ×5, `useDismissOnOutsideOrEscape.test.tsx` ×4), `npm run build` (réussit). Backend inchangé, re-vérifié : 113 tests toujours verts. Comportement vérifié en conditions réelles dans le navigateur pour chaque changement UI (pas seulement `tsc`).
+
+### 10. Jalon 2 — décisions méthodologiques tranchées du spec (§14.1bis et §14.2)
+
+Trois points que le spec laissait ouverts ou que le code contredisait, traités le 29/07/2026 avec le même exigence de traçabilité : chaque décision est justifiée sur les données réelles, pas sur une préférence.
+
+**§14.1bis — Criticité des tiers scindée par volet** (`api/modules/tprm.py`)
+- **Volet Consulting** : la moyenne arithmétique `(dép + pén + (6−mat) + (6−conf)) / 4` est remplacée par la formule ANSSI `(dépendance × pénétration) / (maturité × confiance)`. Justification vérifiée sur les tiers pré-remplis avant d'écrire une ligne : la moyenne donnait AWS 3,50 et ESN 3,75 — indistinguables, et dans le mauvais ordre au regard du risque. Le ratio donne 1,56 et 2,22 (écart de 1,4×, l'ESN ayant plus de pénétration pour moins de maturité et de confiance) et fait tomber le cabinet comptable de 2,25 à 0,25. L'amplitude du classement passe d'un intervalle de 1,5 point à un facteur 9 : il redevient priorisable, ce qui est l'objet même de l'atelier EBIOS RM 3.
+- **Volet GRC** : **aucun score**. DORA et NIS2 ne se réclament pas d'EBIOS RM ; leur appliquer un scoring de risque inventerait une exigence qu'ils ne portent pas. À la place, quatre exigences vérifiables par tiers (registre d'information DORA Art. 28.3, clauses contractuelles Art. 30, stratégie de sortie, évaluation avant acquisition NIST ID.RA-10), avec une métrique « prestataires sans écart » et non une criticité.
+- **Aucune note n'est recalculée en silence.** Un consultant a pu présenter une criticité à son client : chaque tiers porte donc la méthode qui l'a produit (`ratio_anssi` / `moyenne_historique`), la migration `schema_version` 5 se contente de l'étiqueter, et le passage au ratio est une action explicite (`POST /api/projects/{id}/tprm/recalculer`) précédée d'un instantané. Un bandeau propose la migration sans l'imposer.
+- **Duplication de formule éliminée au passage** : `PhaseTprm.tsx` possédait sa propre copie du calcul et renotait le tiers à chaque édition — les deux versions avaient déjà divergé. Le navigateur n'envoie plus que les curseurs (`POST /api/projects/{id}/tprm/tiers`), le serveur seul note. Un test (`test_docx_export.py`) échoue désormais si une affectation de `score` ou `rating` réapparaît côté frontend.
+
+**§14.2.1 — Les cinq obligations organisationnelles de l'AIPD** (`api/modules/aipd.py`)
+Le module couvrait les quatre volets d'*analyse* ; manquaient les obligations de *conduite* : avis du DPO (Art. 35 §2), avis des personnes concernées (Art. 35 §9), confrontation aux listes CNIL (Art. 35 §4-5), réexamen à chaque évolution du risque (Art. 35 §11) et consultation préalable de la CNIL (Art. 36 §1). Sans elles, une AIPD peut être parfaitement argumentée et néanmoins irrégulière. La cinquième est **conditionnelle** : elle n'entre au dénominateur que si le risque résiduel après mesures est qualifié d'élevé — la compter systématiquement afficherait un taux inférieur à la réalité. Ce risque résiduel démarre à « non évalué » et non à « acceptable » : le supposer acceptable ferait disparaître l'obligation Art. 36 sans que personne ne l'ait jugée. Un avertissement explicite s'affiche tant qu'un risque élevé n'a pas été soumis, et le livrable AIPD porte le tableau des obligations *y compris les manques* — taire un manque laisserait croire la démarche achevée.
+
+**§14.2.4 — Rattachement des pratiques aux référentiels** (`api/modules/controles_techniques.py`)
+`vulnerabilities_active` et `logging_active` existaient sans mapping : une case cochée qui ne se rattache à rien ne vaut rien devant un client. Quatre pratiques sont désormais rattachées à leurs contrôles (inventaire → NIST ID.AM + CIS 1/2, vulnérabilités → CIS 7 + NIST ID.RA-01, journalisation → CIS 8, évaluation fournisseurs → NIST ID.RA-10), avec badges à l'écran et section dédiée au rapport d'audit citant la phase d'origine de chaque constat. Le module lit un état saisi ailleurs, il ne le rejuge pas — et sur une mission Consulting, l'évaluation fournisseurs est « non tracée » plutôt que « non satisfaite », l'écart serait inventé.
+- **Bug réel corrigé** : `logging_active` comptait pour 5 % de la progression de mission alors qu'**aucun écran ne permettait de le cocher**. Case ajoutée en Phase 5.
+
+**Vérification** : 448 tests backend (+57) et 150 tests frontend (+31), `tsc --noEmit` propre. Vérifié en conditions réelles dans le navigateur, pas seulement en unitaire : classement ANSSI affiché sur une mission Consulting, check-list DORA sur la mission de démo GRC (bascule d'exigence persistée côté serveur), bascule 0/4 → 0/5 des obligations AIPD au passage en risque élevé avec apparition de l'alerte Art. 36, badges CIS 7 / ID.RA-01 / CIS 8 rendus, et taux de rattachement passant de 25 % à 50 % après activation de la journalisation.
+
+### 11. Rapport Word reconstruit en `python-docx` direct — le `.docx` ne ressemblait à rien
+
+Constat le 31/07/2026, captures d'écran Word à l'appui : le rapport `.docx` n'avait aucun rapport visuel avec le rapport HTML (M1) livré la veille — police par défaut, aucune couleur, page de garde nue. En creusant `api/modules/docx_export.py`, deux causes distinctes :
+
+- Le `.docx` passait par un **gabarit `docxtpl` statique** (`api/templates/rapport_iso27001.docx`), généré en `python-docx` nu par `build_templates.py` — jamais mis à jour au fil des jalons : **7 sections génériques** (aucun TPRM, AIPD, E3R, DORA) pendant que `report_html.py` montait à **13**.
+- Le titre était **écrit en dur** — `"titre_rapport": "Rapport d'audit de conformité"` — affiché tel quel même sur une mission de conseil, indépendamment du volet réel.
+
+Quatre solutions évaluées avec l'utilisateur : retoucher le gabarit existant (écarté — reconduit le problème, deux implémentations tenues à la main qui peuvent diverger) ; conversion HTML→DOCX par bibliothèque tierce type `htmldocx` (écarté — dépendance non testée, fidélité incertaine sur le dégradé de la page de garde et les badges de chapitre) ; Pandoc (écarté d'emblée — dépendance native, interdite en local par la règle n°1) ; **reconstruire en `python-docx` directement, sur les mêmes données que le HTML** — retenu.
+
+**`api/modules/report_docx.py`** (nouveau) : page de garde à bande verte foncée (logo, titre, client, méta), sommaire, 13 chapitres + signatures, tableaux tramés (en-tête `#F2FBF7`, cellules de sévérité colorées dans la même palette que l'app), pied de page avec l'empreinte SHA-256. Deux points de passage uniques empêchent HTML et Word de diverger à nouveau :
+- `report_html.CHAPITRES` (renommé depuis `_CHAPITRES`) — la liste des titres de chapitre, importée telle quelle par les deux rendus.
+- `report_html.titre_et_meta()` (extrait de `build_report`) — même titre, même bandeau méta sur les deux formats. `test_le_titre_est_identique_a_celui_du_rapport_html` verrouille l'égalité, et `test_chaque_chapitre_a_son_batisseur` échoue si un chapitre est ajouté à l'un sans l'autre.
+
+**Retiré** : le gabarit `api/templates/rapport_iso27001.docx`, `build_templates.py`, la dépendance `docxtpl` (requirements.txt), et dans `docx_export.py` tout ce qui ne servait qu'au gabarit (`build_iso27001_context`, `render_iso27001`, `_collect_constats`, `_score_and_band`) — ne restent que les utilitaires réellement partagés (`data_fingerprint`, `mention_reserve`, `STATUS_LABELS`).
+
+**Bug trouvé en inspectant le `.docx` régénéré**, pas par un test : le tableau de signatures avait une ligne entièrement vide — `doc.add_table(rows=2, ...)` réserve déjà une deuxième ligne, et y appeler ensuite `table.add_row()` en ajoutait une troisième au lieu de remplir la deuxième. Corrigé (`rows=1`), et verrouillé par `test_aucune_ligne_de_tableau_n_est_entierement_vide`, qui parcourt tous les tableaux du document plutôt que de ne tester que les cas déjà connus.
+
+**Tests** : `test_docx_export.py` recentré sur les utilitaires survivants (retire les tests qui appelaient l'ancien `render_iso27001`) ; nouveau `test_report_docx.py` (21 tests) — fichier Word valide, titre par volet, parité de sommaire avec `report_html.CHAPITRES`, toutes les données d'une mission complète restituées chapitre par chapitre, section vide annoncée explicitement, volet GRC sans colonne « Ratio », statuts lisibles (pas de `NON_CONFORME` brut), empreinte au pied de page, caractères spéciaux (`&`, `<`, `>`) intacts, aucune ligne de tableau vide. **508 tests backend** (+18 nets), tous verts. Les deux missions de démonstration (`docs/exemples/`) régénérées : parité de chapitres confirmée par script, aucune anomalie de texte, aucune cellule ni ligne vide.
+
+### 12. Rapport Word — largeurs de colonnes et contraste corrigés
+
+Retour immédiat après livraison du rapport reconstruit (§11) : les tableaux étaient visuellement cassés — colonnes toutes de largeur égale quel que soit leur contenu (une colonne « G » à un chiffre aussi large qu'une colonne de scénario sur huit lignes), et la dernière ligne du pied de page presque invisible.
+
+**Cause des tableaux** : un tableau `python-docx` créé sans largeur de colonne explicite se répartit à parts égales à l'ouverture dans Word, quelle que soit la longueur du contenu — `table.autofit = True` ne suffit pas à empêcher ça. Corrigé par `_fixer_largeurs()` (`api/modules/report_docx.py`) : layout fixe (`autofit = False`) et largeur posée explicitement sur *chaque cellule de chaque ligne*, pas seulement sur `table.columns[i]` — cette dernière ne met à jour que les lignes déjà présentes au moment de l'appel, jamais celles ajoutées ensuite par `add_row()`. `_table()` accepte désormais un paramètre `largeurs` (poids relatifs, ex. `(0.7, 2.6, 0.55, 0.55, 2.6)` pour ID/Scénario/G/V/Mesure), renseigné à chacun des vingt appels du module en fonction de ce que chaque colonne contient réellement.
+
+**Cause du contraste** : une couleur `97A5A0` (contraste ~2:1 sur blanc) sur la dernière ligne du pied de page, en plus d'être en italique et à 6 pt. Remplacée par le même gris que le reste du pied.
+
+**Au passage** : le document ciblait la taille Letter par défaut de `python-docx` au lieu de l'A4 déjà utilisé par le rapport HTML (`@page{size:A4}`) — incohérence latente, jamais signalée, corrigée dans la foulée puisque la géométrie de page était déjà le sujet.
+
+**Vérifié** : script d'audit sur une mission complète — 20 des 22 tableaux du document ont des largeurs non uniformes correctes (les 2 restants sont volontairement à poids égal — cadrage « cible »/« valeur retenue » et bloc de signatures) ; page 21,0 × 29,7 cm confirmée. 508 tests toujours verts.

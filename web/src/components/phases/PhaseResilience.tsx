@@ -1,5 +1,6 @@
 import { CheckCircle2 } from "lucide-react";
 import type { ManualControl, ProjectState } from "../../types";
+import { BadgesControles } from "../BadgesControles";
 
 interface Props {
   activeProject: ProjectState;
@@ -134,6 +135,21 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       />
                     </div>
                   </div>
+
+                  {/* `logging_active` comptait déjà 5 % de la progression de la
+                      mission sans qu'aucun écran ne permette de le cocher. */}
+                  <div className="mt-3 pt-3 border-t border-white/[0.04]">
+                    <label className="flex items-center gap-2 cursor-pointer text-xs font-bold text-[var(--ink)]">
+                      <input
+                        type="checkbox"
+                        checked={activeProject.steps.resilience?.logging_active || false}
+                        onChange={(e) => updateStepData("resilience", "logging_active", e.target.checked)}
+                        className="rounded border-[var(--stroke)] bg-transparent text-[var(--g1)] focus:ring-0"
+                      />
+                      Journalisation collectée, conservée et exploitable
+                    </label>
+                    <BadgesControles pratique="journalisation" />
+                  </div>
                 </div>
 
                 {/* Séquence E3R de l'ANSSI */}
@@ -160,6 +176,55 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                         onChange={(e) => {
                           const e3r = { ...activeProject.steps.resilience?.e3r, reconstruction: e.target.value };
                           updateStepData("resilience", "e3r", e3r);
+                        }}
+                        className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Volet stratégique de la remédiation ANSSI (§14.2.3) */}
+                <div className="mt-2 border-t border-white/[0.04] pt-3">
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">Volet stratégique — arbitrage Direction</div>
+                  <p className="text-[10px] text-[var(--faint)] mb-2 leading-normal">
+                    La séquence E3R ci-dessus est technique et opérationnelle. Ce volet documente l'arbitrage rendu par la Direction entre l'urgence de redémarrer et les coûts ou risques induits par un redémarrage précipité.
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <span className="block text-[10px] font-bold text-[var(--amber)] mb-1">Urgence de redémarrage</span>
+                      <textarea
+                        rows={2}
+                        placeholder="Ce qui pousse à redémarrer vite : impact métier, contractuel, réglementaire..."
+                        value={activeProject.steps.resilience?.strategie_remediation?.urgence_redemarrage || ""}
+                        onChange={(e) => {
+                          const strategie = { ...activeProject.steps.resilience?.strategie_remediation, urgence_redemarrage: e.target.value };
+                          updateStepData("resilience", "strategie_remediation", strategie);
+                        }}
+                        className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="block text-[10px] font-bold text-[var(--amber)] mb-1">Coûts et risques d'un redémarrage précipité</span>
+                      <textarea
+                        rows={2}
+                        placeholder="Ré-infection, perte de la piste d'investigation, absence de garanties d'éradication..."
+                        value={activeProject.steps.resilience?.strategie_remediation?.couts_risques_redemarrage || ""}
+                        onChange={(e) => {
+                          const strategie = { ...activeProject.steps.resilience?.strategie_remediation, couts_risques_redemarrage: e.target.value };
+                          updateStepData("resilience", "strategie_remediation", strategie);
+                        }}
+                        className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="block text-[10px] font-bold text-[var(--g1)] mb-1">Décision retenue et autorité qui tranche</span>
+                      <textarea
+                        rows={2}
+                        placeholder="Arbitrage rendu, par qui, et le délai accepté."
+                        value={activeProject.steps.resilience?.strategie_remediation?.decision_direction || ""}
+                        onChange={(e) => {
+                          const strategie = { ...activeProject.steps.resilience?.strategie_remediation, decision_direction: e.target.value };
+                          updateStepData("resilience", "strategie_remediation", strategie);
                         }}
                         className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2 text-xs focus:outline-none"
                       />

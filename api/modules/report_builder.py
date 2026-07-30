@@ -10,9 +10,18 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from . import aipd as aipd_module
 from . import charte
+from . import controles_techniques
 from . import couverture
 from . import docx_export
+from . import tprm
+
+# Mêmes défauts neutres que `report_docx.py`/`report_html.py`/`charte.py` :
+# l'application sert n'importe quel consultant, jamais un nom écrit en dur
+# (retour utilisateur du 30/07/2026).
+_AUDITEUR_DEFAUT = "Consultant"
+_CABINET_DEFAUT = "Cabinet non renseigné"
 
 
 class TypeDocumentInconnu(ValueError):
@@ -79,7 +88,330 @@ def _charges_consommees(state: dict) -> str:
     return tableau
 
 
-def build_document(state: dict, p_id: str, doc_type: str) -> tuple[str, str]:
+def _cellule(valeur) -> str:
+    """Neutralise ce qui casserait une cellule Markdown, sans rien inventer.
+
+    Une barre verticale saisie par le consultant scinde la cellule et décale
+    toute la ligne ; un retour à la ligne la coupe en deux.
+    """
+    if valeur is None:
+        return "—"
+    texte = str(valeur).strip().replace("|", "/").replace("\n", " ")
+    return texte or "—"
+
+
+def _tableau(entetes: tuple[str, ...], lignes: list[tuple], vide: str) -> str:
+    """Tableau Markdown, ou une phrase explicite s'il n'y a rien à montrer.
+
+    Un tableau à en-têtes sans aucune ligne est le pire des deux mondes : il
+    promet un contenu au lecteur et n'en livre aucun (constaté en recette le
+    29/07/2026 sur le rapport d'audit d'une mission Consulting).
+    """
+    if not lignes:
+        return f"_{vide}_"
+    sortie = "| " + " | ".join(entetes) + " |\n"
+    sortie += "| " + " | ".join(":---" for _ in entetes) + " |\n"
+    for ligne in lignes:
+        sortie += "| " + " | ".join(_cellule(c) for c in ligne) + " |\n"
+    return sortie
+
+
+def _remediations_md(steps: dict) -> str:
+    """Plan de traitement priorisé — le livrable central d'une mission.
+
+    Il n'apparaissait dans aucun export Markdown avant le 29/07/2026 : la
+    section « Plan d'Action » n'était qu'un titre suivi d'une phrase générique.
+    """
+    remediations = (steps.get("traitement") or {}).get("remediations") or []
+    # Priorité décroissante : un plan d'action se lit par ce qui est urgent.
+    ordre = {"Critique": 0, "Élevé": 1, "Moyen": 2, "Faible": 3}
+    triees = sorted(remediations, key=lambda r: ordre.get(r.get("priority"), 9))
+    return _tableau(
+        ("ID", "Priorité", "Axe", "Mesure de traitement"),
+        [(r.get("id"), r.get("priority"), r.get("axe"), r.get("measure")) for r in triees],
+        "Aucune mesure de traitement n'a été définie à ce stade.",
+    )
+
+
+def _quick_wins_md(steps: dict) -> str:
+    wins = (steps.get("traitement") or {}).get("quick_wins") or []
+    if not wins:
+        return "_Aucune action immédiate n'a été retenue._"
+    return "\n".join(f"{i}. {_cellule(w)}" for i, w in enumerate(wins, 1))
+
+
+def _sources_risque_md(steps: dict) -> str:
+    sources = (steps.get("ebios") or {}).get("risk_sources") or []
+    return _tableau(
+        ("ID", "Source de risque", "Objectif visé"),
+        [(s.get("id"), s.get("name"), s.get("objective")) for s in sources],
+        "Aucune source de risque n'a été caractérisée.",
+    )
+
+
+def _cas_reels_md(steps: dict) -> str:
+    cas = (steps.get("ebios") or {}).get("case_studies") or []
+    return _tableau(
+        ("Cas réel", "Enseignement retenu pour ce client"),
+        [(c.get("case"), c.get("lessons")) for c in cas],
+        "Aucun cas comparable n'a été versé au dossier.",
+    )
+
+
+def _tprm_md(state: dict) -> str:
+    """Écosystème de tiers, restitué selon le volet (§14.1bis).
+
+    Consulting : classement par ratio ANSSI. GRC : avancement des exigences
+    DORA/NIS2, sans score — ces référentiels n'en réclament pas.
+    """
+    tiers = ((state.get("steps") or {}).get("tprm") or {}).get("tiers") or []
+
+    if state.get("type") == "grc":
+        lignes = []
+        for t in tiers:
+            etat = tprm.conformite(t)
+            manquantes = [e["libelle"] for e in (t.get("exigences") or []) if not e.get("satisfait")]
+            lignes.append((
+                t.get("name"),
+                f"{etat['satisfaites']}/{etat['total']} ({etat['taux']} %)",
+                # Typographie française : le point-virgule prend une espace avant.
+                "Conforme" if etat["conforme"] else " ; ".join(manquantes) or "—",
+            ))
+        return _tableau(
+            ("Prestataire", "Exigences satisfaites", "Écarts restants"), lignes,
+            "Aucun prestataire n'a été inscrit au registre.",
+        )
+
+    classement = sorted(tiers, key=lambda t: t.get("score", 0), reverse=True)
+    return _tableau(
+        ("Tiers", "Criticité", "Ratio", "Dép. / Pén. / Mat. / Conf."),
+        [(t.get("name"), t.get("rating"), t.get("score"),
+          f"{t.get('dependence')} / {t.get('penetration')} / {t.get('maturity')} / {t.get('trust')}")
+         for t in classement],
+        "Aucun tiers n'a été évalué.",
+    )
+
+
+def _e3r_md(steps: dict) -> str:
+    e3r = (steps.get("resilience") or {}).get("e3r") or {}
+    etapes = (("Endiguement", "endiguement"), ("Éviction", "eviction"),
+              ("Éradication", "eradication"), ("Reconstruction", "reconstruction"))
+    return _tableau(
+        ("Étape E3R", "Procédure retenue"),
+        [(libelle, e3r.get(cle)) for libelle, cle in etapes if (e3r.get(cle) or "").strip()],
+        "La séquence de remédiation E3R n'a pas été documentée.",
+    )
+
+
+def _strategie_remediation_md(steps: dict) -> str:
+    """Volet stratégique de la remédiation ANSSI (§14.2.3) : la séquence E3R
+    ci-dessus est technique/opérationnelle ; ceci documente l'arbitrage rendu
+    par la Direction entre urgence de redémarrage et coûts/risques induits."""
+    strategie = (steps.get("resilience") or {}).get("strategie_remediation") or {}
+    criteres = (("Urgence de redémarrage", "urgence_redemarrage"),
+                ("Coûts et risques d'un redémarrage précipité", "couts_risques_redemarrage"),
+                ("Décision retenue et autorité", "decision_direction"))
+    return _tableau(
+        ("Critère d'arbitrage", "Position retenue"),
+        [(libelle, strategie.get(cle)) for libelle, cle in criteres if (strategie.get(cle) or "").strip()],
+        "Le volet stratégique (arbitrage Direction) n'a pas été documenté.",
+    )
+
+
+def _identite_md(name: str, client: str, fw_name: str | None, scope: str, now: str,
+                 auditeur: str = "", cabinet: str = "") -> str:
+    """Bloc d'identification du livrable, rendu en tableau.
+
+    Une suite de lignes « **Champ :** valeur » exige deux espaces en fin de ligne
+    pour produire un saut ; sans eux, Markdown les agglomère en un seul
+    paragraphe illisible — c'est ce qui est arrivé au 30/07/2026. Un tableau
+    n'a pas cette fragilité et s'aligne proprement partout, y compris sur les
+    rendus Markdown qui ignorent les sauts de ligne implicites.
+    """
+    lignes = [("Projet", name), ("Client", client)]
+    if fw_name:
+        lignes.append(("Référentiel principal", fw_name))
+    lignes += [("Périmètre de l'audit", scope), ("Date d'édition", now),
+               ("Auditeur", f"{auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}")]
+    return _tableau((" ", " "), [(f"**{cle}**", valeur) for cle, valeur in lignes],
+                    "Identification du livrable indisponible.")
+
+
+def _synthese_md(state: dict) -> str:
+    """Synthèse pour la direction — le premier chapitre lu, jamais inventé."""
+    resume = ((state.get("steps") or {}).get("restitution") or {}).get("exec_summary") or ""
+    if resume.strip():
+        return resume.strip()
+    return ("_Synthèse non rédigée. Elle se saisit en phase 6 (Traitement & Livrables) "
+            "et n'est jamais produite automatiquement : elle engage le jugement du consultant._")
+
+
+def _valeurs_metier_md(steps: dict) -> str:
+    actifs = (steps.get("cadrage") or {}).get("assets_metier") or []
+    return _tableau(
+        ("ID", "Valeur métier", "Description", "Données personnelles"),
+        [(a.get("id"), a.get("name"), a.get("description"),
+          "Oui" if a.get("is_personal_data") else "Non") for a in actifs],
+        "Aucune valeur métier n'a été cartographiée.",
+    )
+
+
+def _biens_supports_md(steps: dict) -> str:
+    actifs = (steps.get("cadrage") or {}).get("assets_support") or []
+    return _tableau(
+        ("ID", "Bien support", "Type", "Description", "Responsable"),
+        [(a.get("id"), a.get("name"), a.get("type"), a.get("description"), a.get("owner"))
+         for a in actifs],
+        "Aucun bien support n'a été inventorié.",
+    )
+
+
+def _redoutes_md(steps: dict) -> str:
+    evenements = (steps.get("ebios") or {}).get("redoute_events") or []
+    return _tableau(
+        ("ID", "Événement redouté", "Gravité", "Impacts"),
+        [(e.get("id"), e.get("event"), f"{e.get('gravity')}/4", e.get("impact"))
+         for e in evenements],
+        "Aucun événement redouté n'a été caractérisé.",
+    )
+
+
+def _scenarios_md(steps: dict) -> str:
+    scenarios = (steps.get("ebios") or {}).get("operational_scenarios") or []
+    return _tableau(
+        ("ID", "Scénario opérationnel", "Gravité", "Vraisemblance", "Mesure d'atténuation"),
+        [(s.get("id"), s.get("event"), f"{s.get('gravity')}/4", f"{s.get('likelihood')}/5",
+          s.get("mitigation")) for s in scenarios],
+        "Aucun scénario opérationnel n'a été construit.",
+    )
+
+
+def _cadrage_mission_md(state: dict) -> str:
+    """Cadrage contractuel — rend le périmètre opposable.
+
+    Ce qui n'a pas été saisi n'apparaît pas : mieux vaut un cadrage court qu'un
+    cadrage rempli de valeurs de repli.
+    """
+    socle = state.get("socle") or {}
+    qualif = socle.get("qualification") or {}
+    contrat = socle.get("contractualisation") or {}
+    kickoff = socle.get("kickoff") or {}
+
+    champs = (
+        ("Déclencheur de la mission", qualif.get("declencheur")),
+        ("Sponsor exécutif", qualif.get("sponsor_executif")),
+        ("Budget vendu", qualif.get("budget")),
+        ("Maturité constatée à l'entrée", qualif.get("maturite_actuelle")),
+        ("Échéance cible", qualif.get("echeance_cible")),
+        ("Périmètre inclus", contrat.get("perimetre_inclus")),
+        ("Périmètre explicitement exclu", contrat.get("perimetre_exclu")),
+        ("Modalités d'intervention", contrat.get("modalites")),
+        ("Accès au SI consentis", contrat.get("acces_si")),
+        ("Date de réunion de lancement", kickoff.get("date")),
+        ("Gouvernance de la mission", kickoff.get("gouvernance")),
+    )
+    lignes = [(libelle, valeur) for libelle, valeur in champs if str(valeur or "").strip()]
+
+    livrables = contrat.get("livrables") or []
+    participants = kickoff.get("participants") or []
+    if livrables:
+        lignes.append(("Livrables contractuels", " · ".join(str(l) for l in livrables)))
+    if participants:
+        lignes.append(("Participants au lancement", " · ".join(str(p) for p in participants)))
+
+    return _tableau(("Élément de cadrage", "Contenu"), lignes,
+                    "Le cadrage contractuel de la mission n'a pas été renseigné.")
+
+
+def _entretiens_md(state: dict) -> str:
+    """Entretiens conduits — ce qui rend chaque constat attribuable (ISO 19011).
+
+    Volontairement par **rôle** et non par nom : le champ nominatif n'est pas
+    collecté, et la politique de conservation (F17) purge ces déclarations en fin
+    de mission. Un rapport déjà exporté échappe à cette purge — c'est pourquoi
+    l'interface invite à saisir une fonction plutôt qu'une identité.
+    """
+    entretiens = (state.get("socle") or {}).get("entretiens") or []
+    return _tableau(
+        ("Rôle rencontré", "Date", "Ce qui a été déclaré"),
+        [(e.get("role"), e.get("date"), e.get("synthese")) for e in entretiens],
+        "Aucun entretien n'a été consigné : les constats de ce rapport ne sont "
+        "pas rattachés à une source déclarative identifiée.",
+    )
+
+
+def _continuite_md(steps: dict) -> str:
+    bcp = (steps.get("resilience") or {}).get("bcp_strategy") or {}
+    champs = (("RTO — durée maximale d'interruption admissible", bcp.get("rto")),
+              ("RPO — perte de données maximale admissible", bcp.get("rpo")),
+              ("Politique de sauvegarde", bcp.get("backup_policy")))
+    return _tableau(
+        ("Cible de continuité", "Valeur retenue"),
+        [(libelle, valeur) for libelle, valeur in champs if str(valeur or "").strip()],
+        "Aucune cible de continuité n'a été définie.",
+    )
+
+
+def _reserve_md(state: dict, date_emission: str) -> str:
+    """Réserve nominative et datée — c'est elle qui borne la responsabilité.
+
+    Réutilise la formulation du rapport Word pour qu'un même client ne reçoive
+    pas deux délimitations de responsabilité différentes selon le format.
+    """
+    return docx_export.mention_reserve(date_emission, str(state.get("client") or ""))
+
+
+_ETAT_OBLIGATION = {True: "Fait", False: "**Reste à faire**"}
+
+
+def _obligations_aipd_md(aipd: dict) -> str:
+    """Tableau des obligations de procédure de l'AIPD (§14.2.1).
+
+    Rendu tel quel, y compris les manques : le livrable doit montrer ce qui
+    reste dû, pas laisser croire la démarche achevée.
+    """
+    saisies = {o.get("id"): o for o in (aipd.get("obligations") or [])}
+    etat = aipd_module.etat(aipd)
+
+    lignes = "| Obligation | Référence | État | Commentaire |\n| :--- | :--- | :--- | :--- |\n"
+    for obligation in aipd_module.OBLIGATIONS:
+        if obligation["conditionnelle"] and not etat["art36_requise"]:
+            lignes += (f"| {obligation['libelle']} | {obligation['reference']} "
+                       f"| Non applicable (risque résiduel non élevé) | |\n")
+            continue
+        saisie = saisies.get(obligation["id"], {})
+        commentaire = (saisie.get("commentaire") or "").replace("\n", " ").replace("|", "/")
+        lignes += (f"| {obligation['libelle']} | {obligation['reference']} "
+                   f"| {_ETAT_OBLIGATION[bool(saisie.get('satisfait'))]} | {commentaire} |\n")
+
+    alerte = aipd_module.alerte_bloquante(aipd)
+    if alerte:
+        lignes += f"\n> ⚠️ **{alerte}**\n"
+    return lignes
+
+
+def _controles_techniques_md(state: dict) -> str:
+    """Rattachement des pratiques relevées aux contrôles CIS / NIST (§14.2.4).
+
+    Restitue l'état tel qu'il est saisi dans les phases, sans le rejuger : ce
+    tableau dit à quelle exigence chaque case cochée répond, et cite la phase
+    d'où vient l'information pour qu'elle reste vérifiable.
+    """
+    resultat = controles_techniques.etat(state)
+
+    lignes = "| Pratique | Contrôles rattachés | État | Constaté en |\n| :--- | :--- | :--- | :--- |\n"
+    for pratique in resultat["pratiques"]:
+        refs = ", ".join(f"{m['referentiel']} {m['ref']}" for m in pratique["mappings"])
+        etat = "Couverte" if pratique["couverte"] else "**Non couverte**"
+        lignes += (f"| {pratique['libelle']} | {refs} | {etat} — {pratique['justification']} "
+                   f"| Phase {pratique['phase']} ({pratique['phase_libelle']}) |\n")
+
+    return (f"{lignes}\n{resultat['couvertes']} pratique(s) couverte(s) sur "
+            f"{resultat['total']} ({resultat['taux']} %).\n")
+
+
+def build_document(state: dict, p_id: str, doc_type: str,
+                   auditeur: str = "", cabinet: str = "") -> tuple[str, str]:
     """Rend (nom de fichier, contenu Markdown) pour un livrable de mission."""
     client = state.get("client", "Client")
     name = state.get("name", "Projet")
@@ -95,13 +427,13 @@ def build_document(state: dict, p_id: str, doc_type: str) -> tuple[str, str]:
     if doc_type == "nda":
         title = f"Accord_Confidentialite_{p_id}.md"
         nda_text = steps.get("cadrage", {}).get("nda_text") or "NDA non rédigé."
-        markdown_content = f"""{charte.entete("ACCORD DE CONFIDENTIALITÉ", client, now, p_id)}
+        markdown_content = f"""{charte.entete_markdown("ACCORD DE CONFIDENTIALITÉ", client, now, p_id, cabinet=cabinet)}
 # ACCORD DE CONFIDENTIALITÉ & PROTECTION DES DONNÉES (NDA)
 
 **Projet :** {name}  
 **Client :** {client}  
 **Date d'édition :** {now}  
-**Classification :** <span style="color:#ff6f91;font-weight:bold;">CONFIDENTIEL AFFAIRES</span>  
+**Classification :** **CONFIDENTIEL AFFAIRES**  
 
 ---
 
@@ -113,9 +445,9 @@ def build_document(state: dict, p_id: str, doc_type: str) -> tuple[str, str]:
 
 En foi de quoi, les parties s'engagent et signent électroniquement ou de manière manuscrite :
 
-| Pour DP Cyber Consulting | Pour {client} |
+| Pour {cabinet or _CABINET_DEFAUT} | Pour {client} |
 | :--- | :--- |
-| **Dorian, Consultant Cyber** | **Mandataire habilité** |
+| **{auditeur or _AUDITEUR_DEFAUT}, Consultant Cyber** | **Mandataire habilité** |
 | Signature cryptographique locale : `SHA256:{docx_export.data_fingerprint(state)}` | Signature : |
 | Date : {now} | Date : |
 """
@@ -143,13 +475,13 @@ En foi de quoi, les parties s'engagent et signent électroniquement ou de maniè
         for s in scenarios:
             scenarios_md += f"| {s.get('id')} | {s.get('event')} | {s.get('gravity')}/4 | {s.get('likelihood')}/5 | {s.get('mitigation')} |\n"
             
-        markdown_content = f"""{charte.entete("ANALYSE DE RISQUES EBIOS RM", client, now, p_id)}
+        markdown_content = f"""{charte.entete_markdown("ANALYSE DE RISQUES EBIOS RM", client, now, p_id, cabinet=cabinet)}
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
 **Projet :** {name}  
 **Client :** {client}  
 **Date d'édition :** {now}  
-**Consultant :** Dorian, DP Cyber Consulting  
+**Consultant :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}  
 **Classification :** CONFIDENTIEL  
 
 ---
@@ -170,13 +502,30 @@ Ce chapitre identifie le périmètre d'évaluation, les missions fondamentales d
 ### 2.1 Événements Redoutés
 {redoutes_md}
 
-### 2.2 Scénarios Opérationnels d'Attaque (Analyse Factuelle)
+### 2.2 Sources de Risque et Objectifs Visés
+{_sources_risque_md(steps)}
+
+### 2.3 Scénarios Opérationnels d'Attaque (Analyse Factuelle)
 {scenarios_md}
+
+### 2.4 Cas Réels Versés au Dossier
+{_cas_reels_md(steps)}
 
 ---
 
-## 3. Plan d'Action & Traitement
-Chaque risque identifié ci-dessus doit être mitigé par l'application des contrôles techniques correspondants.
+## 3. Écosystème et Risques Tiers
+{_tprm_md(state)}
+
+---
+
+## 4. Plan d'Action & Traitement
+Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au chapitre 2.
+
+### 4.1 Mesures de Traitement Priorisées
+{_remediations_md(steps)}
+
+### 4.2 Actions Immédiates
+{_quick_wins_md(steps)}
 """
     elif doc_type == "pssi_pri":
         title = f"PSSI_PRI_{p_id}.md"
@@ -189,14 +538,15 @@ Chaque risque identifié ci-dessus doit être mitigé par l'application des cont
         rpo = steps.get("resilience", {}).get("bcp_strategy", {}).get("rpo", "N/A")
         bcp = steps.get("resilience", {}).get("bcp_strategy", {}).get("backup_policy", "N/A")
         e3r = steps.get("resilience", {}).get("e3r", {})
-        
-        markdown_content = f"""{charte.entete("PSSI & PLAN DE REPRISE", client, now, p_id)}
+        strategie = steps.get("resilience", {}).get("strategie_remediation", {})
+
+        markdown_content = f"""{charte.entete_markdown("PSSI & PLAN DE REPRISE", client, now, p_id, cabinet=cabinet)}
 # POLITIQUE DE SÉCURITÉ DE L'INFORMATION (PSSI) & PLAN DE REPRISE (PRI)
 
 **Client :** {client}  
 **Projet :** {name}  
 **Date :** {now}  
-**Auteur :** Dorian, DP Cyber Consulting  
+**Auteur :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}  
 
 ---
 
@@ -224,16 +574,21 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
     {e3r.get('eviction', 'N/A')}
 3.  **Éradication (Nettoyage en profondeur des emprises) :**  
     {e3r.get('eradication', 'N/A')}
-4.  **Reconstruction (Rebâtir de façon durcie dès la conception) :**  
+4.  **Reconstruction (Rebâtir de façon durcie dès la conception) :**
     {e3r.get('reconstruction', 'N/A')}
+
+### 2.4 Volet Stratégique — Arbitrage Direction
+*   **Urgence de redémarrage :** {strategie.get('urgence_redemarrage', 'N/A')}
+*   **Coûts et risques d'un redémarrage précipité :** {strategie.get('couts_risques_redemarrage', 'N/A')}
+*   **Décision retenue et autorité :** {strategie.get('decision_direction', 'N/A')}
 
 ---
 
 ### SIGNATURES POUR HOMOLOGATION DE SÉCURITÉ
 
-| Pour DP Cyber Consulting | Pour la Direction de {client} |
+| Pour {cabinet or _CABINET_DEFAUT} | Pour la Direction de {client} |
 | :--- | :--- |
-| **Dorian** | **Directeur Général / RSSI** |
+| **{auditeur or _AUDITEUR_DEFAUT}** | **Directeur Général / RSSI** |
 | Signature : | Signature : |
 """
     elif doc_type == "aipd":
@@ -246,7 +601,7 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
         for r in rgpd_reg:
             register_md += f"| {r.get('id')} | {r.get('name')} | {r.get('purpose')} | {r.get('data_categories')} | {r.get('retention')} |\n"
             
-        markdown_content = f"""{charte.entete("AIPD / PIA (RGPD)", client, now, p_id)}
+        markdown_content = f"""{charte.entete_markdown("AIPD / PIA (RGPD)", client, now, p_id, cabinet=cabinet)}
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
 **Client :** {client}  
@@ -277,6 +632,11 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ---
 
+## 3. Obligations Organisationnelles (Conduite de l'AIPD)
+{_obligations_aipd_md(aipd)}
+
+---
+
 ### SIGNATURE DE VALIDATION CONFORMITÉ CNIL
 
 | Avis du Délégué à la Protection des Données (DPO) | Validation du Responsable du Traitement |
@@ -285,16 +645,28 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 | Signature : | Signature : |
 """
     elif doc_type == "audit_report":
-        title = f"Rapport_Audit_GRC_{p_id}.md"
+        est_grc = state.get("type") == "grc"
+        title = f"Rapport_Audit_{'GRC' if est_grc else 'Conseil'}_{p_id}.md"
         cadrage = steps.get("cadrage", {})
-        fw_name = cadrage.get("framework_name", "Standard GRC")
-        scope = cadrage.get("scope", "N/A")
-        
+        scope = cadrage.get("scope") or "_Périmètre non défini._"
+
+        # Ligne omise plutôt que remplie d'un « Standard GRC » qui n'existe
+        # nulle part : une mission Conseil ne se réclame d'aucun référentiel, et
+        # l'affirmer était une invention (constat de recette du 29/07/2026).
+        fw_name = cadrage.get("framework_name")
+
         controls = steps.get("evaluation", {}).get("manual_controls", [])
-        manual_md = "| ID | Exigence Organisationnelle | Statut de Conformité | Notes du Consultant |\n| :--- | :--- | :--- | :--- |\n"
-        for c in controls:
-            manual_md += f"| {c.get('id')} | {c.get('title')} | {c.get('status')} | {c.get('notes', 'N/A')} |\n"
-            
+        manual_md = _tableau(
+            ("ID", "Exigence Organisationnelle", "Statut de Conformité", "Notes du Consultant"),
+            [(c.get("id"), c.get("title"),
+              # STATUS_LABELS existait déjà mais n'était branché que sur le DOCX :
+              # le Markdown affichait « NON_CONFORME » brut au client.
+              docx_export.STATUS_LABELS.get(c.get("status"), c.get("status")),
+              c.get("notes")) for c in controls],
+            "Aucune check-list de conformité n'est rattachée à cette mission : "
+            "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 2.",
+        )
+
         tech_results = steps.get("evaluation", {}).get("technical_results", {})
         tech_md = ""
         if tech_results:
@@ -304,25 +676,69 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
         charges_md = _charges_consommees(state)
         couverture_md = couverture.phrase(couverture.couverture_technique(state))
+        titre = ("RAPPORT D'AUDIT DE CONFORMITÉ & GRC" if est_grc
+                 else "RAPPORT D'AUDIT DE SÉCURITÉ & D'ANALYSE DE RISQUE")
 
-        markdown_content = f"""{charte.entete("RAPPORT D'AUDIT GRC", client, now, p_id)}
-# RAPPORT D'AUDIT DE CONFORMITÉ & GRC
+        markdown_content = f"""{charte.entete_markdown(titre, client, now, p_id, cabinet=cabinet)}
+# {titre}
 
-**Projet :** {name}  
-**Client :** {client}  
-**Référentiel principal :** {fw_name}  
-**Périmètre de l'audit :** {scope}  
-**Date d'édition :** {now}  
-**Auditeur :** Dorian, DP Cyber Consulting  
+{_identite_md(name, client, fw_name, scope, now, auditeur=auditeur, cabinet=cabinet)}
 
 ---
 
-## 1. Synthèse de l'Évaluation Organisationnelle (Manuelle)
+## 1. Synthèse à destination de la direction
+{_synthese_md(state)}
+
+---
+
+## 2. Cadrage de la mission
+{_cadrage_mission_md(state)}
+
+### 2.1 Entretiens conduits
+{_entretiens_md(state)}
+
+---
+
+## 3. Patrimoine évalué
+### 3.1 Valeurs métier
+{_valeurs_metier_md(steps)}
+
+### 3.2 Biens supports
+{_biens_supports_md(steps)}
+
+---
+
+## 4. Évaluation organisationnelle
 {manual_md}
 
 ---
 
-## 2. Évaluation Technique des Configurations (Automatique)
+## 5. Analyse de risque
+### 5.1 Événements redoutés
+{_redoutes_md(steps)}
+
+### 5.2 Scénarios opérationnels
+{_scenarios_md(steps)}
+
+---
+
+## 6. Écosystème et risques tiers
+{_tprm_md(state)}
+
+---
+
+## 7. Résilience et continuité
+{_continuite_md(steps)}
+
+### 7.1 Séquence de remédiation E3R
+{_e3r_md(steps)}
+
+### 7.2 Volet stratégique — arbitrage Direction
+{_strategie_remediation_md(steps)}
+
+---
+
+## 8. Évaluation technique des configurations
 
 > **Couverture technique de cet audit.** {couverture_md}
 
@@ -330,22 +746,41 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ---
 
-## 3. Charges consommées
+## 9. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
+{_controles_techniques_md(state)}
+
+---
+
+## 10. Plan de traitement
+### 10.1 Mesures priorisées
+{_remediations_md(steps)}
+
+### 10.2 Actions immédiates
+{_quick_wins_md(steps)}
+
+---
+
+## 11. Charges consommées
 {charges_md}
 
 ---
 
-## 4. Certifications et signatures d'audit
+## 12. Réserves et limites
+{_reserve_md(state, now)}
+
+---
+
+## 13. Certifications et signatures d'audit
 L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
-| **Dorian** | **DSI / Responsable de la sécurité** |
+| **{auditeur or _AUDITEUR_DEFAUT}** | **DSI / Responsable de la sécurité** |
 | Signature cryptographique locale : `SHA256:{docx_export.data_fingerprint(state)}` | Signature : |
 """
     else:
         raise TypeDocumentInconnu(doc_type)
         
 
-    markdown_content += charte.pied(empreinte)
+    markdown_content += charte.pied_markdown(empreinte, cabinet=cabinet)
     return title, markdown_content

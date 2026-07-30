@@ -3,7 +3,9 @@ import { motion } from "framer-motion";
 import { CheckCircle2, HelpCircle, Plus, Shield, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import { useDismissOnOutsideOrEscape } from "../../lib/useDismissOnOutsideOrEscape";
-import type { ProjectState, RGPDRegister } from "../../types";
+import type { AIPDData, ProjectState, RGPDRegister } from "../../types";
+import { ObligationsAIPD } from "../ObligationsAIPD";
+import { BadgesControles } from "../BadgesControles";
 import { AnimatePresence } from "framer-motion";
 import { SUGGESTED_RGPD } from "../../lib/gabarits";
 
@@ -82,8 +84,9 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         onClick={(e) => e.stopPropagation()}
                         className="rounded border-[var(--stroke)] bg-transparent text-[var(--g1)] focus:ring-0"
                       />
-                      Gestion des Vulnérabilités (CIS 7)
+                      Gestion continue des Vulnérabilités
                     </label>
+                    <BadgesControles pratique="vulnerabilites" />
                     <p className="text-[10px] text-[var(--soft)] flex items-center gap-1">
                       <HelpCircle size={10} className="text-[var(--g3)]" /> Cliquez pour voir le contrôle continu.
                     </p>
@@ -363,6 +366,11 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                           className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2.5 text-xs focus:outline-none"
                         />
                       </div>
+
+                      <ObligationsAIPD
+                        aipd={activeProject.steps.diagnostic?.aipd || ({} as AIPDData)}
+                        onChange={(aipd) => updateStepData("diagnostic", "aipd", aipd)}
+                      />
                     </motion.div>
                   )}
                 </div>

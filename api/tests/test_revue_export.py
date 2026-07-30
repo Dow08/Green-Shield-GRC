@@ -13,7 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from modules import revue_export  # noqa: E402
+from modules import aipd, revue_export  # noqa: E402
 
 
 def mission_complete() -> dict:
@@ -26,17 +26,34 @@ def mission_complete() -> dict:
             },
             "diagnostic": {
                 "rgpd_register": [{"id": "RGPD-01"}], "aipd_required": True,
+                # Une AIPD complète, c'est les 4 volets d'analyse *et* les
+                # obligations de procédure (§14.2.1).
                 "aipd": {"treatment_description": "d", "necessity_eval": "n",
-                         "risks_eval": "r", "mitigation_measures": "m"},
+                         "risks_eval": "r", "mitigation_measures": "m",
+                         "risque_residuel": "acceptable",
+                         "obligations": [{"id": o["id"], "satisfait": True, "commentaire": ""}
+                                         for o in aipd.OBLIGATIONS]},
             },
             "tprm": {"tiers": [{"name": "Hébergeur"}]},
             "ebios": {"redoute_events": [{"id": "ER-01"}], "operational_scenarios": [{"id": "SC-01"}]},
             "resilience": {
                 "bcp_strategy": {"rto": "4 h", "rpo": "1 h", "backup_policy": "Immuable"},
                 "e3r": {"endiguement": "e", "eviction": "v", "eradication": "r", "reconstruction": "c"},
+                "strategie_remediation": {"decision_direction": "Priorité à l'éradication avant redémarrage."},
             },
             "traitement": {"remediations": [{"id": "REM-01"}], "quick_wins": ["a"]},
-        }
+            # Une mission « complète » l'est désormais aussi du point de vue du
+            # *rendu* : la revue vérifie qu'aucun chapitre du rapport ne sortirait
+            # vide, ce qui suppose une synthèse rédigée (§14.2, recette 29/07/2026).
+            "restitution": {"exec_summary": "Deux écarts majeurs, aucun structurel."},
+        },
+        "socle": {
+            "qualification": {"declencheur": "Exigence du donneur d'ordre",
+                              "sponsor_executif": "Directeur Général", "budget": "12 jours"},
+            "contractualisation": {"perimetre_inclus": "SI de production",
+                                   "perimetre_exclu": "Filiale étrangère"},
+            "kickoff": {"date": "2026-06-03", "gouvernance": "Comité bimensuel"},
+        },
     }
 
 

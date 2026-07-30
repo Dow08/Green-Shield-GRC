@@ -49,7 +49,9 @@ def test_migration_v4_ajoute_la_politique_de_conservation():
     rgpd = state["socle"]["rgpd_consultant"]
     assert rgpd["duree_conservation_mois"] == 36
     assert rgpd["date_fin_mission"] == ""
-    assert state["schema_version"] == 4
+    # Épingler le numéro figerait ce test à chaque maillon ajouté à la chaîne :
+    # ce qui compte ici est que la migration mène jusqu'au bout.
+    assert state["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
 
 
 def test_migration_v4_n_ecrase_pas_une_politique_existante():

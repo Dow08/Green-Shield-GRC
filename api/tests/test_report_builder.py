@@ -105,7 +105,10 @@ def test_l_aipd_reprend_les_quatre_volets_cnil():
 def test_le_rapport_d_audit_reprend_les_controles_manuels():
     _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
     assert "Politiques" in contenu
-    assert "CONFORME" in contenu
+    # Libellé lisible, pas l'énumération interne : « NON_CONFORME » partait
+    # tel quel chez le client avant la recette du 29/07/2026.
+    assert "Conforme" in contenu
+    assert "CONFORME" not in contenu
 
 
 def test_le_rapport_d_audit_indique_l_absence_de_scan_technique():

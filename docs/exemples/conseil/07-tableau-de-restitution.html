@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Restitution — Vernier Composites SAS</title>
+<style>
+:root{
+  --bg:#070f14;--panel:rgba(255,255,255,.03);--stroke:rgba(255,255,255,.09);
+  --ink:#eaf4f0;--soft:#8ea6a0;--faint:#5d746e;
+  --vert:#2ee6a0;--rose:#ff6f91;--ambre:#ffcf6b;--ciel:#5cc8ff;
+  --sans:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+     font-size:10.5pt;line-height:1.55}
+.board{max-width:64rem;margin:0 auto;padding:1.6rem 1.1rem 3rem;display:flex;
+       flex-direction:column;gap:1.1rem}
+.glass{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;
+       padding:1.1rem 1.25rem}
+.board-tete{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-start}
+.board-tete h3{margin:0;font-size:1.1rem;font-family:var(--serif);font-weight:600}
+.board-tete .sous{color:var(--soft);font-size:.85rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.8rem}
+.kpi span{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);display:block}
+.kpi b{font-size:1.65rem;font-weight:700;font-variant-numeric:tabular-nums;display:block}
+.duo-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1.1rem}
+.col-tete{display:flex;align-items:center;gap:.5rem;font-size:.64rem;text-transform:uppercase;
+          letter-spacing:.11em;color:var(--faint);margin-bottom:.75rem}
+.col-tete b{color:var(--ink);letter-spacing:.11em}
+.ligne{display:flex;gap:.7rem;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05);
+       font-size:.8rem;align-items:flex-start}
+.ligne:last-child{border-bottom:none}
+.ligne .id{font-family:var(--mono);font-size:.66rem;color:var(--faint);flex-shrink:0;
+           width:3.8rem;padding-top:.12rem}
+.ligne .txt{flex:1;min-width:0}
+.ligne .txt b{display:block;color:var(--ink);font-weight:600}
+.ligne .txt small{color:var(--soft);font-size:.72rem}
+.puce{font-family:var(--mono);font-size:.6rem;font-weight:700;padding:.12rem .42rem;
+      border-radius:999px;white-space:nowrap;flex-shrink:0}
+.p-crit{background:rgba(255,111,145,.16);color:var(--rose)}
+.p-elev{background:rgba(255,207,107,.16);color:var(--ambre)}
+.p-moy{background:rgba(92,200,255,.16);color:var(--ciel)}
+.p-faib{background:rgba(255,255,255,.08);color:var(--soft)}
+.p-ok{background:rgba(46,230,160,.16);color:var(--vert)}
+.p-info{background:rgba(92,200,255,.16);color:var(--ciel)}
+.barre{height:7px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;display:flex}
+.note{font-size:.74rem;color:var(--soft);margin-top:.6rem}
+.vide{font-size:.8rem;color:var(--faint);font-style:italic;padding:.6rem 0}
+.carto{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:1.1rem}
+.matrice-hote{display:grid;grid-template-columns:auto 1fr;gap:.4rem;align-items:center}
+.axe-titre-y{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.6rem;
+             letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+             justify-self:center;white-space:nowrap}
+.axe-titre-x{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;
+             color:var(--faint);text-align:center;margin-top:.25rem}
+.matrice{display:grid;grid-template-columns:auto repeat(5,1fr);gap:3px;font-size:.62rem}
+.matrice .axe-y,.matrice .axe-x{color:var(--faint);font-family:var(--mono);
+                                display:flex;align-items:center;justify-content:center}
+.matrice .case{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;
+               justify-content:center;gap:2px;flex-wrap:wrap;padding:2px;
+               border:1px solid rgba(255,255,255,.05)}
+.matrice .jeton{font-family:var(--mono);font-size:.56rem;font-weight:700;padding:.1rem .28rem;
+                border-radius:3px;background:rgba(0,0,0,.35);color:#fff}
+.rangs{display:flex;flex-direction:column;gap:.55rem}
+.rang{display:grid;grid-template-columns:minmax(0,1fr) 3.4rem;gap:.7rem;align-items:center;font-size:.78rem}
+.rang .nom b{display:block;color:var(--ink);font-weight:600;font-size:.78rem}
+.rang .piste{height:6px;border-radius:999px;background:rgba(255,255,255,.07);
+             margin-top:.3rem;overflow:hidden}
+.rang .piste i{display:block;height:100%;border-radius:999px;background:var(--rose)}
+.rang .val{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;
+           font-size:.82rem;font-weight:700}
+@media print{@page{size:A4 landscape;margin:1cm}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="board">
+
+
+<div class="glass board-tete">
+  <div>
+    <h3>Restitution de fin de mission — Vernier Composites SAS</h3>
+    <div class="sous">Volet Conseil — EBIOS RM</div>
+  </div>
+  <span class="puce p-ok">100 % du périmètre</span>
+</div>
+
+<div class="glass kpis"><div class="kpi"><span>Événements redoutés</span><b>4</b></div><div class="kpi"><span>Scénarios construits</span><b>4</b></div><div class="kpi"><span>Tiers évalués</span><b>5</b></div><div class="kpi"><span>Mesures au plan</span><b>8</b></div></div>
+<div class="duo-col">
+  <div class="glass"><div class="col-tete">◂ <b>Ce qui a été diagnostiqué</b></div><div class="ligne"><span class="id">ER-01</span><span class="txt"><b>Chiffrement du SI de production par rançongiciel</b><small>Arrêt des 4 fours de cuisson, 38 k€/jour ouvré, pénalités de retard contractuelles au-delà de 5 jours.</small></span><span class="puce p-crit">G 4/4</span></div><div class="ligne"><span class="id">ER-02</span><span class="txt"><b>Exfiltration des formulations composites</b><small>Perte définitive de l&#x27;avantage concurrentiel : les formulations ne sont pas brevetées et leur valeur repose entièrement sur le secret.</small></span><span class="puce p-crit">G 4/4</span></div><div class="ligne"><span class="id">ER-03</span><span class="txt"><b>Falsification d&#x27;un dossier de qualification client</b><small>Perte de la qualification aéronautique, exclusion de la chaîne d&#x27;approvisionnement du donneur d&#x27;ordre.</small></span><span class="puce p-crit">G 3/4</span></div><div class="ligne"><span class="id">ER-04</span><span class="txt"><b>Divulgation des données de santé au travail</b><small>Atteinte grave à la vie privée de salariés identifiables, sanction CNIL, conflit social.</small></span><span class="puce p-crit">G 3/4</span></div><div class="ligne"><span class="id">SO-01</span><span class="txt"><b>Hameçonnage d&#x27;un poste bureautique (BS-04, sans EDR) → récupération d&#x27;identifiants → élévation de privilèges sur l&#x27;AD (BS-01) → propagation vers le MES (BS-03) faute de segmentation OT/IT → chiffrement, y compris des sauvegardes (BS-06) placées sur le même VLAN.</b><small>Déploiement EDR, MFA généralisé, segmentation OT/IT, sauvegarde immuable hors site.</small></span><span class="puce p-elev">G4 V3</span></div><div class="ligne"><span class="id">SO-02</span><span class="txt"><b>Compromission du compte VPN du prestataire de maintenance des fours → rebond vers le NAS R&amp;D (BS-02) dont le partage SMB est accessible sans cloisonnement → copie des formulations.</b><small>VPN nominatif par prestataire, MFA obligatoire, restriction d&#x27;accès au NAS R&amp;D par groupe AD, journalisation des accès.</small></span><span class="puce p-elev">G4 V2</span></div><div class="ligne"><span class="id">SO-03</span><span class="txt"><b>Salarié R&amp;D copiant les formulations sur un support amovible avant son départ, aucun contrôle des périphériques USB n&#x27;étant en place.</b><small>Blocage USB par GPO sauf dérogation, journalisation des copies volumineuses, clause de confidentialité renforcée.</small></span><span class="puce p-elev">G3 V3</span></div><div class="ligne"><span class="id">SO-04</span><span class="txt"><b>Accès illégitime au NVR de vidéoprotection depuis le VLAN bureautique, faute de segmentation.</b><small>VLAN dédié au NVR, authentification nominative, journalisation des consultations.</small></span><span class="puce p-elev">G3 V2</span></div><div class="ligne"><span class="id">Prestataire maintenance automates (accès VPN permanent)</span><span class="txt"><b>Ratio 4.17</b><small>D5/P5/M2/C3</small></span><span class="puce p-crit">Critique</span></div></div>
+  <div class="glass"><div class="col-tete"><b>Ce qui reste à faire</b> ▸</div><div class="ligne"><span class="id">REM-01</span><span class="txt"><b>Segmenter le réseau OT du réseau bureautique (pare-feu industriel, flux autorisés en liste blanche) — traite SO-01 et SO-02.</b><small>Protection</small></span><span class="puce p-crit">Critique</span></div><div class="ligne"><span class="id">REM-02</span><span class="txt"><b>Mettre en place une sauvegarde immuable hors site et tester la restauration complète du MES — traite ER-01.</b><small>Résilience</small></span><span class="puce p-crit">Critique</span></div><div class="ligne"><span class="id">REM-03</span><span class="txt"><b>Généraliser le MFA à tous les comptes M365 et VPN, y compris prestataires — traite SO-01 et SO-02.</b><small>Protection</small></span><span class="puce p-crit">Critique</span></div><div class="ligne"><span class="id">REM-04</span><span class="txt"><b>Déployer un EDR sur les 168 postes et les serveurs, avec supervision — traite SO-01.</b><small>Défense</small></span><span class="puce p-elev">Élevé</span></div><div class="ligne"><span class="id">REM-05</span><span class="txt"><b>Restreindre l&#x27;accès au NAS R&amp;D par groupe AD et bloquer les périphériques USB par GPO — traite SO-03.</b><small>Protection</small></span><span class="puce p-elev">Élevé</span></div><div class="ligne"><span class="id">REM-06</span><span class="txt"><b>Faire adopter la PSSI par la direction et nommer un référent sécurité à temps partiel — aucune gouvernance formalisée à ce jour.</b><small>Gouvernance</small></span><span class="puce p-elev">Élevé</span></div><div class="ligne"><span class="id">REM-07</span><span class="txt"><b>Centraliser les journaux (AD, pare-feu, M365, NVR) avec une rétention de 12 mois — traite SO-04 et conditionne toute investigation.</b><small>Défense</small></span><span class="puce p-moy">Moyen</span></div><div class="ligne"><span class="id">REM-08</span><span class="txt"><b>Mettre en place une revue trimestrielle des accès et un processus de départ salarié — traite SO-03.</b><small>Gouvernance</small></span><span class="puce p-moy">Moyen</span></div></div>
+</div>
+<div class="glass">
+  <div class="col-tete"><b>Rattachement aux référentiels de contrôles</b> · CIS v8 / NIST CSF 2.0</div>
+  <div class="barre"><i style="width:25%;background:var(--vert)"></i><i style="width:75%;background:rgba(255,255,255,.06)"></i></div>
+  <div class="note">1 pratique(s) couverte(s) sur 4 — 25 %.</div>
+</div>
+
+</div>
+</body>
+</html>

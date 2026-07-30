@@ -22,7 +22,7 @@ GREEN SHIELD est une plateforme locale, modulaire et souveraine (100 % hors-lign
 
 ## Règles non négociables (héritées de l'audit critique, §7)
 
-1. **Aucune dépendance native obligatoire en local** — si une brique ne s'installe pas sur Windows en une commande, elle vit dans Docker ou n'existe pas (raison du choix `docxtpl` plutôt que WeasyPrint pour le DOCX).
+1. **Aucune dépendance native obligatoire en local** — si une brique ne s'installe pas sur Windows en une commande, elle vit dans Docker ou n'existe pas (raison du choix `python-docx` — pur Python — plutôt que WeasyPrint ou Pandoc pour le DOCX ; le rapport Word est construit directement en `python-docx` par `api/modules/report_docx.py` depuis le 31/07/2026, sans gabarit `docxtpl` intermédiaire).
 2. **Tout composant générique réutilisé ailleurs est testé avant d'être branché.**
 3. **Toute écriture dans `project.json` est atomique** (`_write_json_atomic` dans `api/modules/projects.py` — fichier temporaire + `os.replace`).
 4. **Un LLM n'écrit jamais directement dans un champ de données structuré** — le Copilote (mission ou transverse) ne produit que du texte libre affiché à l'écran ; aucune saisie de formulaire n'est auto-remplie par une réponse IA.

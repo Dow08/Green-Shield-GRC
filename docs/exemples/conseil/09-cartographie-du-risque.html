@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Cartographie du risque — Vernier Composites SAS</title>
+<style>
+:root{
+  --bg:#070f14;--panel:rgba(255,255,255,.03);--stroke:rgba(255,255,255,.09);
+  --ink:#eaf4f0;--soft:#8ea6a0;--faint:#5d746e;
+  --vert:#2ee6a0;--rose:#ff6f91;--ambre:#ffcf6b;--ciel:#5cc8ff;
+  --sans:"Segoe UI",-apple-system,BlinkMacSystemFont,Roboto,Arial,sans-serif;
+  --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Liberation Mono",monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+     font-size:10.5pt;line-height:1.55}
+.board{max-width:64rem;margin:0 auto;padding:1.6rem 1.1rem 3rem;display:flex;
+       flex-direction:column;gap:1.1rem}
+.glass{background:var(--panel);border:1px solid var(--stroke);border-radius:16px;
+       padding:1.1rem 1.25rem}
+.board-tete{display:flex;flex-wrap:wrap;justify-content:space-between;gap:1rem;align-items:flex-start}
+.board-tete h3{margin:0;font-size:1.1rem;font-family:var(--serif);font-weight:600}
+.board-tete .sous{color:var(--soft);font-size:.85rem}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(9.5rem,1fr));gap:.8rem}
+.kpi span{font-size:.6rem;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);display:block}
+.kpi b{font-size:1.65rem;font-weight:700;font-variant-numeric:tabular-nums;display:block}
+.duo-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1.1rem}
+.col-tete{display:flex;align-items:center;gap:.5rem;font-size:.64rem;text-transform:uppercase;
+          letter-spacing:.11em;color:var(--faint);margin-bottom:.75rem}
+.col-tete b{color:var(--ink);letter-spacing:.11em}
+.ligne{display:flex;gap:.7rem;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05);
+       font-size:.8rem;align-items:flex-start}
+.ligne:last-child{border-bottom:none}
+.ligne .id{font-family:var(--mono);font-size:.66rem;color:var(--faint);flex-shrink:0;
+           width:3.8rem;padding-top:.12rem}
+.ligne .txt{flex:1;min-width:0}
+.ligne .txt b{display:block;color:var(--ink);font-weight:600}
+.ligne .txt small{color:var(--soft);font-size:.72rem}
+.puce{font-family:var(--mono);font-size:.6rem;font-weight:700;padding:.12rem .42rem;
+      border-radius:999px;white-space:nowrap;flex-shrink:0}
+.p-crit{background:rgba(255,111,145,.16);color:var(--rose)}
+.p-elev{background:rgba(255,207,107,.16);color:var(--ambre)}
+.p-moy{background:rgba(92,200,255,.16);color:var(--ciel)}
+.p-faib{background:rgba(255,255,255,.08);color:var(--soft)}
+.p-ok{background:rgba(46,230,160,.16);color:var(--vert)}
+.p-info{background:rgba(92,200,255,.16);color:var(--ciel)}
+.barre{height:7px;border-radius:999px;background:rgba(255,255,255,.07);overflow:hidden;display:flex}
+.note{font-size:.74rem;color:var(--soft);margin-top:.6rem}
+.vide{font-size:.8rem;color:var(--faint);font-style:italic;padding:.6rem 0}
+.carto{display:grid;grid-template-columns:repeat(auto-fit,minmax(20rem,1fr));gap:1.1rem}
+.matrice-hote{display:grid;grid-template-columns:auto 1fr;gap:.4rem;align-items:center}
+.axe-titre-y{writing-mode:vertical-rl;transform:rotate(180deg);font-size:.6rem;
+             letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+             justify-self:center;white-space:nowrap}
+.axe-titre-x{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;
+             color:var(--faint);text-align:center;margin-top:.25rem}
+.matrice{display:grid;grid-template-columns:auto repeat(5,1fr);gap:3px;font-size:.62rem}
+.matrice .axe-y,.matrice .axe-x{color:var(--faint);font-family:var(--mono);
+                                display:flex;align-items:center;justify-content:center}
+.matrice .case{aspect-ratio:1;border-radius:4px;display:flex;align-items:center;
+               justify-content:center;gap:2px;flex-wrap:wrap;padding:2px;
+               border:1px solid rgba(255,255,255,.05)}
+.matrice .jeton{font-family:var(--mono);font-size:.56rem;font-weight:700;padding:.1rem .28rem;
+                border-radius:3px;background:rgba(0,0,0,.35);color:#fff}
+.rangs{display:flex;flex-direction:column;gap:.55rem}
+.rang{display:grid;grid-template-columns:minmax(0,1fr) 3.4rem;gap:.7rem;align-items:center;font-size:.78rem}
+.rang .nom b{display:block;color:var(--ink);font-weight:600;font-size:.78rem}
+.rang .piste{height:6px;border-radius:999px;background:rgba(255,255,255,.07);
+             margin-top:.3rem;overflow:hidden}
+.rang .piste i{display:block;height:100%;border-radius:999px;background:var(--rose)}
+.rang .val{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right;
+           font-size:.82rem;font-weight:700}
+@media print{@page{size:A4 landscape;margin:1cm}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="board">
+
+
+<div class="glass board-tete">
+  <div>
+    <h3>Cartographie du risque — Vernier Composites SAS</h3>
+    <div class="sous">4 scénario(s) opérationnel(s) · 5 tiers évalué(s)</div>
+  </div>
+  <span class="puce p-info">Volet Conseil</span>
+</div>
+
+<div class="carto">
+  <div class="glass">
+    <div class="col-tete"><b>Scénarios opérationnels</b> · gravité × vraisemblance</div>
+    <div class="matrice-hote"><div class="axe-titre-y">Gravité →</div><div class="matrice"><div class="axe-y">G4</div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(255,207,107,.16)"><span class="jeton">SO-02</span></div><div class="case" style="background:rgba(255,111,145,.22)"><span class="jeton">SO-01</span></div><div class="case" style="background:rgba(255,111,145,.22)"></div><div class="case" style="background:rgba(255,111,145,.22)"></div><div class="axe-y">G3</div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(255,207,107,.16)"><span class="jeton">SO-04</span></div><div class="case" style="background:rgba(255,207,107,.16)"><span class="jeton">SO-03</span></div><div class="case" style="background:rgba(255,111,145,.22)"></div><div class="case" style="background:rgba(255,111,145,.22)"></div><div class="axe-y">G2</div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(255,207,107,.16)"></div><div class="case" style="background:rgba(255,207,107,.16)"></div><div class="case" style="background:rgba(255,207,107,.16)"></div><div class="axe-y">G1</div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(46,230,160,.06)"></div><div class="case" style="background:rgba(46,230,160,.06)"></div><div></div><div class="axe-x">V1</div><div class="axe-x">V2</div><div class="axe-x">V3</div><div class="axe-x">V4</div><div class="axe-x">V5</div></div></div><div class="axe-titre-x">Vraisemblance →</div>
+  </div>
+  <div class="glass">
+    <div class="col-tete"><b>Écosystème de tiers</b></div>
+    <p class="note">Criticité selon la formule ANSSI : (dépendance × pénétration) / (maturité × confiance).</p>
+    <div class="rangs"><div class="rang"><div class="nom"><b>Prestataire maintenance automates (accès VPN permanent)</b><div class="piste"><i style="width:100%"></i></div></div><div class="val">4.17</div></div><div class="rang"><div class="nom"><b>Infogéreur poste de travail</b><div class="piste"><i style="width:32%"></i></div></div><div class="val">1.33</div></div><div class="rang"><div class="nom"><b>Hébergeur Microsoft 365</b><div class="piste"><i style="width:19%"></i></div></div><div class="val">0.8</div></div><div class="rang"><div class="nom"><b>Fournisseur de résines (portail EDI)</b><div class="piste"><i style="width:16%"></i></div></div><div class="val">0.67</div></div><div class="rang"><div class="nom"><b>Cabinet d&#x27;expertise comptable</b><div class="piste"><i style="width:4%"></i></div></div><div class="val">0.17</div></div></div>
+  </div>
+</div>
+<div class="glass">
+  <div class="col-tete"><b>Événements redoutés</b></div>
+  <div class="ligne"><span class="id">ER-01</span><span class="txt"><b>Chiffrement du SI de production par rançongiciel</b><small>Arrêt des 4 fours de cuisson, 38 k€/jour ouvré, pénalités de retard contractuelles au-delà de 5 jours.</small></span><span class="puce p-crit">4/4</span></div><div class="ligne"><span class="id">ER-02</span><span class="txt"><b>Exfiltration des formulations composites</b><small>Perte définitive de l&#x27;avantage concurrentiel : les formulations ne sont pas brevetées et leur valeur repose entièrement sur le secret.</small></span><span class="puce p-crit">4/4</span></div><div class="ligne"><span class="id">ER-03</span><span class="txt"><b>Falsification d&#x27;un dossier de qualification client</b><small>Perte de la qualification aéronautique, exclusion de la chaîne d&#x27;approvisionnement du donneur d&#x27;ordre.</small></span><span class="puce p-elev">3/4</span></div><div class="ligne"><span class="id">ER-04</span><span class="txt"><b>Divulgation des données de santé au travail</b><small>Atteinte grave à la vie privée de salariés identifiables, sanction CNIL, conflit social.</small></span><span class="puce p-elev">3/4</span></div>
+</div>
+
+</div>
+</body>
+</html>
