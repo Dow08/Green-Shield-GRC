@@ -19,6 +19,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from modules import projects  # noqa: E402
 
 
+# --- NIST CSF 2.0, 6e référentiel livré (§14.2.5) ---------------------------
+#
+# Ajouté le 30/07/2026 : cité comme source dans le spec sans faire partie des
+# référentiels sélectionnables, alors que le contenu (fonctions/catégories
+# NIST CSF 2.0) était disponible dans le skill grc-agent-hermes de
+# l'utilisateur — non présent dans ce dépôt jusqu'ici, ce qui avait bloqué
+# une première tentative.
+
+def test_nist_csf_est_livre_et_selectionnable():
+    """Le fichier réel livré avec l'application (pas un fixture isolé) :
+    vérifie qu'il apparaît bien au consultant au même titre qu'ISO 27001,
+    DORA, NIS2 et EU AI Act dans le sélecteur de mission GRC."""
+    frameworks = [f["id"] for f in projects.list_frameworks()]
+    assert "nist_csf" in frameworks
+
+
+def test_nist_csf_porte_les_six_fonctions_representees():
+    detail = projects.get_framework_detail("nist_csf")
+    assert detail["name"] == "NIST CSF 2.0"
+    ids = [r["id"] for r in detail["requirements"]]
+    # Une exigence par fonction représentée (GV/ID/PR/DE/RC) — pas les 106
+    # sous-catégories complètes, à l'image des 4 exigences des autres
+    # référentiels (enrichissement au fil des missions, pas en amont).
+    prefixes = {i.split(".")[0] for i in ids}
+    assert {"GV", "ID", "PR", "DE", "RC"} <= prefixes
+
+
 @pytest.fixture()
 def referentiels(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "FRAMEWORKS_DIR", tmp_path)

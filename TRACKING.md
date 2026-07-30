@@ -4,6 +4,16 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [30/07/2026] — NIST CSF débloqué : la source « Hermes » identifiée
+
+L'entrée précédente signalait §14.2.5 (NIST CSF comme 6ᵉ parcours) bloqué faute de matière source dans ce dépôt. L'utilisateur a corrigé : la source existe dans son skill `grc-agent-hermes` (`C:\Users\Dow\Desktop\Mes prompts\Dossier MCP\grc-agent-hermes`) — `references/nist-csf.md` (6 fonctions CSF 2.0, échelle de maturité 4 Tiers) et `scripts/scoring_maturite_nist_csf.py` (structure complète fonctions/catégories/sous-catégories). Absente de ce dépôt, donc invisible sans le pointeur.
+
+`api/frameworks/nist_csf.yaml` créé, 5 exigences représentatives (une par fonction Govern/Identify/Protect/Detect/Recover, codes réels du script de scoring — pas des identifiants inventés), sélectionnable dès la création d'une mission GRC au même titre qu'ISO 27001/DORA/NIS2/EU AI Act. Le glossaire des 25 concepts (§14.3), lui, reste introuvable même dans ce skill — recherché dans tout le dossier `Mes prompts`, sans résultat. Toujours en attente d'une source.
+
+**2 tests ajoutés** (`test_frameworks_perso.py`). 562 tests backend, 150 tests frontend.
+
+---
+
 ## [30/07/2026] — Volet stratégique ANSSI, alertes RGPD, vitrine régénérée
 
 Trois améliorations enchaînées après les corrections d'identité de la session, plus la régénération de la vitrine `docs/exemples`.
