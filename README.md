@@ -18,12 +18,15 @@ Un shell moderne (React) qui héberge des **modules** branchés sur un moteur Py
 
 ## 📄 Voir ce que l'application produit
 
-**[docs/exemples/](docs/exemples/) — douze livrables, sortie brute de l'application, sans retouche.**
+**[docs/exemples/](docs/exemples/) — 28 fichiers, sortie brute de l'application, sans retouche.**
 
 Deux missions fictives menées de bout en bout et exportées : une mission de **conseil** (EBIOS RM,
 PME industrielle) et une mission de **conformité** (ISO 27001 & DORA, établissement de crédit). Le
 même outil, deux raisonnements différents — le conseil produit une priorisation de risques, le GRC
-produit des écarts opposables. C'est le meilleur endroit pour juger le produit sans l'installer.
+produit des écarts opposables. Pour chaque mission : les 5 livrables réglementaires (NDA, analyse
+EBIOS RM, PSSI/PRI, AIPD, rapport d'audit complet) en **Word** et en **Markdown**, plus 4 vues HTML
+de restitution (synthèse direction, tableau de clôture, registre de conformité, cartographie du
+risque). C'est le meilleur endroit pour juger le produit sans l'installer.
 
 ---
 
@@ -106,9 +109,38 @@ cd web && npm install && npm run dev      # http://localhost:5173 (proxifie /api
 | Module | Rôle | État |
 |---|---|:---:|
 | **AuditCraft-GRC** | Audit de conformité (offline parsing + Policy-as-Code ISO 27001/RGPD/EBIOS + rapport COMEX). | ✅ Actif |
-| **Registre de missions** | Conduite de mission en 6 phases (cadrage, diagnostic RGPD, TPRM, EBIOS RM, résilience E3R, plan de traitement) + génération des livrables Word/Markdown. | ✅ Actif |
+| **Registre de missions** | Conduite de mission en 6 phases (cadrage, diagnostic RGPD, TPRM, EBIOS RM, résilience E3R, plan de traitement) + génération des livrables Word/Markdown/HTML. | ✅ Actif |
 | **Copilote GRC** | Synthèse transverse du portefeuille : priorise les constats réels de toutes les missions. Hors-ligne par défaut, en ligne (Gemini) uniquement si le consultant fournit sa clé API. | ✅ Actif |
 | **Collecte technique** | Empreinte factuelle d'une configuration (SSH, Nginx, Apache, MySQL, PostgreSQL, Docker Compose, OS) alimentant l'inventaire des Biens Supports. Aucun verdict de conformité. | ✅ Actif |
+
+### Ce que couvre une mission
+
+- **6 référentiels sélectionnables** dès la création d'une mission GRC : ISO/IEC 27001:2022, DORA,
+  NIS2, EU AI Act, NIST CSF 2.0, ou un référentiel personnel enrichi par le consultant (Réglages).
+- **Analyse de risque EBIOS RM** (volet Conseil) — patrimoine, événements redoutés, sources de
+  risque, scénarios opérationnels, écosystème de tiers noté au **ratio ANSSI**
+  `(dépendance × pénétration) / (maturité × confiance)`.
+- **Écarts organisationnels avec preuve** (volet GRC) — aucun score de risque emprunté à EBIOS ;
+  DORA et NIS2 ne s'en réclament pas.
+- **Résilience** — cibles RTO/RPO, séquence de remédiation E3R de l'ANSSI (endiguement / éviction /
+  éradication / reconstruction) et son **volet stratégique** (arbitrage Direction entre urgence de
+  redémarrage et coûts induits).
+- **AIPD/PIA** — registre Art. 30, 4 volets d'analyse d'impact, 5 obligations organisationnelles
+  (dont la consultation CNIL Art. 36, conditionnée au risque résiduel qualifié par le consultant).
+- **Conservation RGPD du consultant lui-même** — durée de conservation par mission, échéance
+  calculée depuis la fin de la relation, purge qui n'efface que les personnes interrogées (jamais
+  les constats), et une **alerte proactive** sur le registre des missions pour toute échéance
+  dépassée ou à moins de 30 jours.
+- **Identité personnalisable** (Réglages) — nom, cabinet et logo (PNG/JPEG) du consultant, repris
+  sur la page de garde, le pied de page et le bloc de signatures des cinq livrables Word ainsi que
+  sur les exports HTML. Sans configuration, aucun nom n'est présumé.
+- **Traçabilité** — historique versionné (instantané à chaque phase validée, restauration),
+  empreinte SHA-256 de l'état de la mission sur chaque livrable, export/import en archive chiffrée
+  AES-256, journal d'audit des actions sensibles.
+- **Suivi de charge** — temps consommé par phase, comparé au budget vendu, remonté au tableau de
+  bord du registre et dans le rapport exporté.
+- **Mission de démonstration** — un jeu de données entièrement fictif (« Cabinet Fictif SAS »),
+  pour présenter l'outil sans jamais ouvrir une mission cliente.
 
 ### Ajouter un module
 
