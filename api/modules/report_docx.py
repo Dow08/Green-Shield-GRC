@@ -42,6 +42,7 @@ from . import controles_techniques
 from . import couverture
 from . import docx_export
 from . import report_html
+from . import soa as soa_module
 from . import tprm
 
 # L'application sert n'importe quel consultant, pas un seul cabinet : jamais
@@ -525,6 +526,18 @@ def _ch_evaluation(doc: Document, state: dict, steps: dict) -> None:
           "Aucune check-list de conformité n'est rattachée à cette mission : "
           "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 5.",
           colonnes_sev=(2,), largeurs=(0.7, 2, 1, 2.8))
+
+    soa_donnees = (steps.get("evaluation") or {}).get("soa") or []
+    if soa_donnees:
+        _sous_titre(doc, "Déclaration d'Applicabilité (SoA) — synthèse par thème")
+        p = doc.add_paragraph()
+        p.paragraph_format.space_after = Pt(4)
+        _run(p, "Détail des 93 contrôles de l'Annexe A dans le livrable dédié "
+               "« Déclaration d'Applicabilité ».", couleur=_DOUX, taille=8.5, italique=True)
+        _table(doc, ("Thème", "Total", "Applicables", "Exclus", "Non statués"),
+              [(t["theme"], t["total"], t["applicables"], t["exclus"], t["non_statues"])
+               for t in soa_module.par_theme(soa_donnees)],
+              "", colonnes_num=(1, 2, 3, 4), largeurs=(1.6, 0.7, 0.9, 0.7, 0.9))
 
 
 def _ch_technique(doc: Document, state: dict, steps: dict) -> None:
@@ -1061,3 +1074,58 @@ def build_aipd_docx(state: dict, p_id: str, auditeur: str = "", cabinet: str = "
     buffer = io.BytesIO()
     doc.save(buffer)
     return f"AIPD_RGPD_{p_id}.docx", buffer.getvalue()
+
+
+def _libelle_applicable(valeur) -> str:
+    if valeur is True:
+        return "Applicable"
+    if valeur is False:
+        return "Exclu"
+    return "Non statué"
+
+
+def build_soa_docx(state: dict, p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "") -> tuple[str, bytes]:
+    """Déclaration d'Applicabilité (SoA) — ISO/IEC 27001:2022 Annexe A.
+
+    Manque identifié en revue GRC senior le 30/07/2026 : sans SoA, une
+    mission ISO 27001 ne peut pas passer un audit de certification, c'est le
+    premier document qu'un auditeur externe demande (clause 6.1.3 d).
+
+    Ne se produit que si `steps.evaluation.soa` existe (mission au
+    référentiel ISO 27001) — la route appelante le vérifie et répond 404
+    sinon, plutôt que de générer un document vide et trompeur.
+    """
+    client = str(state.get("client") or "")
+    steps = state.get("steps") or {}
+    empreinte = docx_export.data_fingerprint(state)
+    now = datetime.now().strftime("%d/%m/%Y")
+    donnees = (steps.get("evaluation") or {}).get("soa") or []
+    resume = soa_module.etat(donnees)
+
+    meta = [("Réf. mission", p_id), ("Référentiel", "ISO/IEC 27001:2022 Annexe A"),
+            ("Auditeur", auditeur or "—"), ("Cabinet", cabinet or _CABINET_DEFAUT),
+            ("Édité le", now)]
+
+    doc, section = _nouveau_document()
+    _page_de_garde(doc, "Déclaration d'Applicabilité (SoA)", client,
+                   str(state.get("name") or ""), meta, cabinet=cabinet, logo=logo)
+
+    p = doc.add_paragraph()
+    p.paragraph_format.space_after = Pt(8)
+    _run(p, f"{resume['statues']}/{resume['total']} contrôle(s) statué(s) ({resume['taux']} %) — "
+           f"{resume['applicables']} applicable(s), {resume['exclus']} exclu(s).",
+        couleur=_CORPS, taille=9.5, gras=True)
+
+    for numero, theme in enumerate(soa_module.THEMES, 1):
+        entrees = [e for e in donnees if e.get("theme") == theme]
+        _chapitre_titre(doc, numero, theme)
+        _table(doc, ("Code", "Contrôle", "Applicabilité", "Statut", "Justification"),
+              [(e.get("code"), e.get("titre"), _libelle_applicable(e.get("applicable")),
+                e.get("statut") or "—", e.get("justification")) for e in entrees],
+              f"Aucun contrôle du thème {theme}.",
+              largeurs=(0.7, 1.9, 0.9, 0.9, 1.6))
+
+    _pied_de_page(section, empreinte, cabinet=cabinet)
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    return f"Declaration_Applicabilite_SoA_{p_id}.docx", buffer.getvalue()

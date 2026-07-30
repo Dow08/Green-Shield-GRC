@@ -209,3 +209,25 @@ def test_export_project_nda_docx_fonctionne_sans_identite_fournie(legit_project)
     pas faire planter la route."""
     res = projects.export_project_nda_docx(legit_project)
     assert res.status_code == 200
+
+
+# --- Route SoA : 404 plutôt qu'un document vide et trompeur -----------------
+
+def test_export_soa_docx_repond_404_sans_declaration_d_applicabilite(legit_project):
+    """La mission `legit_project` n'a pas de référentiel ISO 27001 : générer
+    un .docx quand même produirait un document trompeur (93 lignes vides)."""
+    with pytest.raises(HTTPException) as exc_info:
+        projects.export_project_soa_docx(legit_project)
+    assert exc_info.value.status_code == 404
+
+
+def test_export_soa_docx_fonctionne_quand_la_soa_existe(legit_project):
+    from modules import soa as soa_module
+    state_file = projects.PROJECTS_DIR / legit_project / "project.json"
+    state = json.loads(state_file.read_text(encoding="utf-8"))
+    state["steps"]["evaluation"] = {"soa": soa_module.entrees_par_defaut()}
+    state_file.write_text(json.dumps(state), encoding="utf-8")
+
+    res = projects.export_project_soa_docx(legit_project)
+    assert res.status_code == 200
+    assert res.media_type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE CONFORMITÉ & GRC** — Banque Aurore SA
-> Édité le 30/07/2026 21:45 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 30/07/2026 22:05 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE CONFORMITÉ & GRC
@@ -12,7 +12,7 @@
 | **Client** | Banque Aurore SA |
 | **Référentiel principal** | ISO/IEC 27001:2022 |
 | **Périmètre de l'audit** | Système d'information de la banque de détail et des services de paiement, incluant les fonctions critiques ou importantes au sens DORA. Hors périmètre : salle de marché (entité juridique distincte) et réseau d'agences physiques. |
-| **Date d'édition** | 30/07/2026 21:45 |
+| **Date d'édition** | 30/07/2026 22:05 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -83,6 +83,16 @@ La banque présente une maturité de sécurité supérieure à la moyenne de son
 | ISO-A.7 | Sécurité des ressources humaines | Non conforme | Aucune procédure formalisée de retrait des accès au départ : 14 comptes actifs de personnes sorties des effectifs, dont 3 à privilèges. Écart majeur. |
 | ISO-A.8 | Gestion des actifs | Non conforme | Inventaire des actifs tenu mais non rapproché du parc réel depuis 19 mois ; 37 serveurs découverts au scan ne figurent pas à l'inventaire. |
 
+
+### Déclaration d'Applicabilité (SoA) — synthèse par thème
+_Détail des 93 contrôles de l'Annexe A dans le livrable dédié « Déclaration d'Applicabilité »._
+
+| Thème | Total | Applicables | Exclus | Non statués |
+| :--- | :--- | :--- | :--- | :--- |
+| Organisationnel | 37 | 3 | 0 | 34 |
+| Personnel | 8 | 0 | 0 | 8 |
+| Physique | 14 | 0 | 1 | 13 |
+| Technologique | 34 | 1 | 0 | 33 |
 
 ---
 
@@ -213,7 +223,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 ---
 
 ## 12. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 30/07/2026 21:45, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 30/07/2026 22:05, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
@@ -223,12 +233,12 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
 | **Consultant** | **DSI / Responsable de la sécurité** |
-| Signature cryptographique locale : `SHA256:3e8cb366ed86aa35bd97defafbf838fa2e7be95c4cc680c1fa3ed5a0b7f51633` | Signature : |
+| Signature cryptographique locale : `SHA256:c6c4d45e568cff57cfe0161d28b9ae8c7b73842f56e0660190548ad3e4992b08` | Signature : |
 
 ---
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `3e8cb366ed86aa35bd97defafbf838fa2e7be95c4cc680c1fa3ed5a0b7f51633`
+Empreinte SHA-256 de l'état de la mission à l'édition : `c6c4d45e568cff57cfe0161d28b9ae8c7b73842f56e0660190548ad3e4992b08`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

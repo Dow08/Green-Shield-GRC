@@ -110,6 +110,7 @@ et entité essentielle NIS2. 100 % du parcours renseigné · 111 h sur 34 jours 
 | [03 · PSSI & plan de reprise](grc/03-pssi-et-plan-de-reprise.md) · [`.docx`](grc/03-pssi-et-plan-de-reprise.docx) | RTO 2 h sur la fonction critique DORA, bascule testée trimestriellement, volet stratégique d'arbitrage Direction |
 | [04 · AIPD RGPD](grc/04-aipd-rgpd.md) · [`.docx`](grc/04-aipd-rgpd.docx) | Scoring de crédit, décision automatisée Art. 22, **consultation préalable CNIL Art. 36** déclenchée par un risque résiduel élevé |
 | [05 · Rapport d'audit](grc/05-rapport-d-audit.md) · [`.html`](grc/05-rapport-d-audit.html) · [`.docx`](grc/05-rapport-d-audit.docx) | Écarts ISO 27001 avec preuve, registre DORA, plan de remédiation |
+| [10 · Déclaration d'Applicabilité (SoA)](grc/10-declaration-applicabilite-soa.md) · [`.docx`](grc/10-declaration-applicabilite-soa.docx) | Les 93 contrôles de l'Annexe A 2022, applicabilité et justification — propre à ISO 27001, absent de la mission conseil (sans référentiel de certification) |
 
 ## Ce que ces documents ne font jamais
 

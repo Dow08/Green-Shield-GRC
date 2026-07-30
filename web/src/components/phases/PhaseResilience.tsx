@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import type { ManualControl, ProjectState } from "../../types";
 import { BadgesControles } from "../BadgesControles";
+import { SoaPanel } from "../SoaPanel";
 
 interface Props {
   activeProject: ProjectState;
@@ -73,6 +74,16 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+
+                {/* Déclaration d'Applicabilité (SoA) — ISO 27001 uniquement */}
+                {(activeProject.steps.evaluation?.soa?.length ?? 0) > 0 && (
+                  <div className="mt-2 border-t border-white/[0.04] pt-3">
+                    <SoaPanel
+                      soa={activeProject.steps.evaluation!.soa!}
+                      onChange={(soa) => updateStepData("evaluation", "soa", soa)}
+                    />
                   </div>
                 )}
 

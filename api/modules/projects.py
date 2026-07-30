@@ -29,6 +29,7 @@ from . import report_html
 from . import retention
 from . import revue_export
 from . import snapshots
+from . import soa
 from . import tprm
 
 router = APIRouter(prefix="/api")
@@ -275,6 +276,11 @@ def create_empty_state(project_id: str, name: str, client: str, project_type: st
             ],
             "technical_results": None,
         }
+        # Déclaration d'Applicabilité (SoA) : uniquement pour ISO 27001, dont
+        # c'est une exigence de certification (clause 6.1.3 d) — une mission
+        # DORA ou NIS2 n'a pas à porter 93 contrôles hors sujet.
+        if framework_id == "iso27001":
+            state["steps"]["evaluation"]["soa"] = soa.entrees_par_defaut()
 
     return state
 
@@ -505,7 +511,10 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
             },
             "evaluation": {
                 "manual_controls": manual_controls,
-                "technical_results": None
+                "technical_results": None,
+                # SoA (93 contrôles) uniquement pour ISO 27001 — non statuée,
+                # au même titre qu'une mission réelle (zéro invention).
+                "soa": soa.entrees_par_defaut() if framework_id == "iso27001" else [],
             },
             "restitution": {
                 "exec_summary": f"Audit de conformité par rapport au référentiel {fw.get('name')}.",
@@ -1545,6 +1554,24 @@ def export_project_aipd_docx(p_id: str, data: dict = {}) -> Response:
         state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
         logo=data.get("logo", ""))
     return _servir_docx(p_id, filename, content, "project.export.aipd")
+
+
+@router.post("/projects/{p_id}/soa.docx")
+def export_project_soa_docx(p_id: str, data: dict = {}) -> Response:
+    """Déclaration d'Applicabilité (SoA) au format Word — ISO 27001 uniquement.
+
+    Répond 404 plutôt que de générer un document vide et trompeur si la
+    mission n'a pas de SoA (référentiel différent d'ISO 27001).
+    """
+    p_id, state = _lire_state_pour_docx(p_id)
+    if not (state.get("steps", {}).get("evaluation", {}).get("soa")):
+        raise HTTPException(status_code=404,
+                           detail="Cette mission n'a pas de Déclaration d'Applicabilité "
+                                  "(référentiel ISO 27001 requis).")
+    filename, content = report_docx.build_soa_docx(
+        state, p_id, auditeur=data.get("auditeur", ""), cabinet=data.get("cabinet", ""),
+        logo=data.get("logo", ""))
+    return _servir_docx(p_id, filename, content, "project.export.soa")
 
 
 @router.get("/projects/{p_id}/export/{doc_type}")

@@ -27,6 +27,7 @@ from . import charte
 from . import controles_techniques
 from . import couverture
 from . import docx_export
+from . import soa
 from . import tprm
 
 # Même défaut neutre que `report_docx.py` — l'application sert n'importe quel
@@ -164,13 +165,25 @@ def _patrimoine(steps: dict, prefixe: str = "3") -> str:
 
 def _evaluation(steps: dict) -> str:
     controles = (steps.get("evaluation") or {}).get("manual_controls") or []
-    return _table(
+    tableau = _table(
         ("ID", "Exigence organisationnelle", "Statut", "Constat et preuve"),
         [(c.get("id"), c.get("title"), c.get("status"), c.get("notes")) for c in controles],
         "Aucune check-list de conformité n'est rattachée à cette mission : "
         "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 5.",
         colonnes_sev=(2,),
     )
+    soa_donnees = (steps.get("evaluation") or {}).get("soa") or []
+    if not soa_donnees:
+        return tableau
+    soa_tableau = _table(
+        ("Thème", "Total", "Applicables", "Exclus", "Non statués"),
+        [(t["theme"], t["total"], t["applicables"], t["exclus"], t["non_statues"])
+         for t in soa.par_theme(soa_donnees)],
+        "", colonnes_num=(1, 2, 3, 4),
+    )
+    return (tableau + '<h3 class="sans-num">Déclaration d\'Applicabilité (SoA) — synthèse par thème</h3>'
+            '<p class="note">Détail des 93 contrôles de l\'Annexe A dans le livrable dédié '
+            '« Déclaration d\'Applicabilité ».</p>' + soa_tableau)
 
 
 def _risque(steps: dict, prefixe: str = "5") -> str:

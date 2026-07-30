@@ -178,6 +178,9 @@ export const api = {
     downloadEbiosDocx: (id: string) => downloadDocx(id, "ebios"),
     downloadPssiDocx: (id: string) => downloadDocx(id, "pssi"),
     downloadAipdDocx: (id: string) => downloadDocx(id, "aipd"),
+    // Déclaration d'Applicabilité (SoA) : n'existe que sur une mission ISO
+    // 27001 — l'API répond 404 sinon, remonté via l'erreur du fetch.
+    downloadSoaDocx: (id: string) => downloadDocx(id, "soa"),
   },
   
   frameworks: {

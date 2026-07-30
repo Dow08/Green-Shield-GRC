@@ -15,6 +15,7 @@ from . import charte
 from . import controles_techniques
 from . import couverture
 from . import docx_export
+from . import soa as soa_module
 from . import tprm
 
 # Mêmes défauts neutres que `report_docx.py`/`report_html.py`/`charte.py` :
@@ -33,7 +34,7 @@ class TypeDocumentInconnu(ValueError):
 
 
 # Types de livrables proposés par l'interface.
-TYPES_DOCUMENTS = ("nda", "ebios", "pssi_pri", "aipd", "audit_report")
+TYPES_DOCUMENTS = ("nda", "ebios", "pssi_pri", "aipd", "soa", "audit_report")
 
 
 
@@ -679,6 +680,51 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 | **Avis Favorable / Non Favorable** | **Validé pour mise en œuvre** |
 | Signature : | Signature : |
 """
+    elif doc_type == "soa":
+        title = f"Declaration_Applicabilite_SoA_{p_id}.md"
+        donnees = steps.get("evaluation", {}).get("soa", [])
+        resume = soa_module.etat(donnees)
+
+        def _tableau_theme(theme: str) -> str:
+            entrees = [e for e in donnees if e.get("theme") == theme]
+            return _tableau(
+                ("Code", "Contrôle", "Applicabilité", "Statut", "Justification"),
+                [(e.get("code"), e.get("titre"),
+                  "Applicable" if e.get("applicable") is True else "Exclu" if e.get("applicable") is False else "Non statué",
+                  e.get("statut") or "—", e.get("justification")) for e in entrees],
+                f"Aucun contrôle du thème {theme}.",
+            )
+
+        markdown_content = f"""{charte.entete_markdown("DÉCLARATION D'APPLICABILITÉ (SoA)", client, now, p_id, cabinet=cabinet)}
+# DÉCLARATION D'APPLICABILITÉ (SoA) — ISO/IEC 27001:2022 ANNEXE A
+
+**Client :** {client}
+**Projet :** {name}
+**Date d'édition :** {now}
+**Auteur :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}
+
+**{resume['statues']}/{resume['total']} contrôle(s) statué(s) ({resume['taux']} %)** — {resume['applicables']} applicable(s), {resume['exclus']} exclu(s).
+
+---
+
+## 1. Organisationnel
+{_tableau_theme("Organisationnel")}
+
+---
+
+## 2. Personnel
+{_tableau_theme("Personnel")}
+
+---
+
+## 3. Physique
+{_tableau_theme("Physique")}
+
+---
+
+## 4. Technologique
+{_tableau_theme("Technologique")}
+"""
     elif doc_type == "audit_report":
         est_grc = state.get("type") == "grc"
         title = f"Rapport_Audit_{'GRC' if est_grc else 'Conseil'}_{p_id}.md"
@@ -708,6 +754,16 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
             tech_md = f"### Résultats Scan Technique (AuditCraft-GRC)\n\n*   **Score technique :** {tech_results.get('score')}% ({tech_results.get('band')})\n*   **Failles critiques :** {tech_results.get('critical_count')}\n\n{tech_results.get('report_markdown', '_Pas de rapport généré_')}"
         else:
             tech_md = "_Aucun scan technique d'audit de configuration n'a été exécuté pour ce projet._"
+
+        soa_donnees = steps.get("evaluation", {}).get("soa", [])
+        soa_md = ""
+        if soa_donnees:
+            soa_md = ("\n### Déclaration d'Applicabilité (SoA) — synthèse par thème\n"
+                      "_Détail des 93 contrôles de l'Annexe A dans le livrable dédié "
+                      "« Déclaration d'Applicabilité »._\n\n" +
+                      _tableau(("Thème", "Total", "Applicables", "Exclus", "Non statués"),
+                               [(t["theme"], t["total"], t["applicables"], t["exclus"], t["non_statues"])
+                                for t in soa_module.par_theme(soa_donnees)], ""))
 
         charges_md = _charges_consommees(state)
         couverture_md = couverture.phrase(couverture.couverture_technique(state))
@@ -745,7 +801,7 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ## 4. Évaluation organisationnelle
 {manual_md}
-
+{soa_md}
 ---
 
 ## 5. Analyse de risque

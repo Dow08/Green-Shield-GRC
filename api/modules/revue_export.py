@@ -17,6 +17,7 @@ Deux niveaux :
 from __future__ import annotations
 
 from . import aipd as aipd_module
+from . import soa as soa_module
 
 # Libellés des phases, alignés sur le stepper de l'interface.
 PHASES = {
@@ -110,6 +111,14 @@ def revue(state: dict) -> dict:
         verifier(5, f"Séquence E3R — {libelle}", e3r.get(cle), "recommande")
     strategie = resilience.get("strategie_remediation") or {}
     verifier(5, "Volet stratégique — décision Direction", strategie.get("decision_direction"), "recommande")
+
+    soa_donnees = (steps.get("evaluation") or {}).get("soa") or []
+    if soa_donnees:
+        etat_soa = soa_module.etat(soa_donnees)
+        if etat_soa["non_statues"] > 0:
+            manques.append({"phase": 5, "phase_libelle": PHASES[5],
+                            "champ": f"Déclaration d'Applicabilité — {etat_soa['non_statues']}/{etat_soa['total']} "
+                                     "contrôle(s) sans décision d'applicabilité", "gravite": "recommande"})
 
     traitement = steps.get("traitement") or {}
     remediations = traitement.get("remediations") or []

@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ACCORD DE CONFIDENTIALITÉ** — Vernier Composites SAS
-> Édité le 30/07/2026 21:45 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 30/07/2026 22:05 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # ACCORD DE CONFIDENTIALITÉ & PROTECTION DES DONNÉES (NDA)
 
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
 **Client :** Vernier Composites SAS  
-**Date d'édition :** 30/07/2026 21:45  
+**Date d'édition :** 30/07/2026 22:05  
 **Classification :** **CONFIDENTIEL AFFAIRES**  
 
 ---
@@ -33,13 +33,13 @@ En foi de quoi, les parties s'engagent et signent électroniquement ou de maniè
 | Pour Cabinet non renseigné | Pour Vernier Composites SAS |
 | :--- | :--- |
 | **Consultant, Consultant Cyber** | **Mandataire habilité** |
-| Signature cryptographique locale : `SHA256:b74a86b53875b57c1a939c4a3399b4add2a26263c49b95e3f621b4069c7ebd63` | Signature : |
-| Date : 30/07/2026 21:45 | Date : |
+| Signature cryptographique locale : `SHA256:143dfce57d167905bbe2b6cf363f1f64f3ee118732de9c36683e1622a5bb2e87` | Signature : |
+| Date : 30/07/2026 22:05 | Date : |
 
 ---
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `b74a86b53875b57c1a939c4a3399b4add2a26263c49b95e3f621b4069c7ebd63`
+Empreinte SHA-256 de l'état de la mission à l'édition : `143dfce57d167905bbe2b6cf363f1f64f3ee118732de9c36683e1622a5bb2e87`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

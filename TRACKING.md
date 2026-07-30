@@ -4,6 +4,18 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [30/07/2026] — Lot B : Déclaration d'Applicabilité (SoA), 6ᵉ livrable
+
+Manque le plus grave identifié en revue GRC senior : sans SoA, une mission ISO 27001 ne peut pas passer un audit de certification — c'est le premier document qu'un auditeur externe demande (clause 6.1.3 d, justification d'inclusion **et** d'exclusion de chacun des 93 contrôles de l'Annexe A 2022).
+
+`api/frameworks/soa_iso27001.yaml` : les 93 contrôles (code, intitulé court, thème) importés du skill Hermes de l'utilisateur — seule la structure, jamais le texte normatif ISO (F3). `api/modules/soa.py` porte le catalogue et les calculs d'avancement. `schema_version` **9** : une mission au référentiel **ISO 27001 uniquement** reçoit les 93 entrées, `applicable` démarrant à `None` — un consultant qui n'a pas tranché ne doit jamais voir 93 décisions qu'il n'a pas prises s'afficher comme actées. Une mission DORA/NIS2/EU AI Act/NIST CSF n'en reçoit pas : ce n'est pas une exigence de ces référentiels.
+
+`SoaPanel.tsx` (Phase 5) : compteur d'avancement, filtre par thème, applicable/exclu/statut/justification/document de référence/owner par contrôle. **6ᵉ livrable** — Word et Markdown, route `POST /projects/{id}/soa.docx` (404 explicite plutôt qu'un document vide si la mission n'a pas de SoA). Le rapport de mission ne reproduit pas les 93 lignes : une synthèse par thème renvoie vers le livrable dédié. `revue_export.py` signale un compte agrégé de contrôles non statués (recommandé), pas ligne par ligne — 93 manques individuels auraient noyé le reste de la revue.
+
+**24 tests ajoutés** (`test_soa.py`, `test_schema_migration.py`, `test_report_docx.py`, `test_projects_security.py`). Vérifié en direct dans le navigateur : panneau, filtres et sauvegarde corrects sur la mission GRC de la vitrine, enrichie de 5 décisions illustratives et régénérée en 6 livrables. **589 tests backend, 150 tests frontend.**
+
+---
+
 ## [30/07/2026] — Lot A : la chaîne risque → traitement, et un module EBIOS RM enfin utilisable
 
 Revue GRC senior demandée par l'utilisateur : comparaison avec les outils du marché (CISO Assistant, Vanta, Archer) et audit du modèle de données réel. Deux manques structurels identifiés, tous deux corrigés dans ce lot.

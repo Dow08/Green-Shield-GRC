@@ -366,6 +366,25 @@ export interface ManualControl {
   notes: string;
 }
 
+// Déclaration d'Applicabilité (SoA) — ISO/IEC 27001:2022 Annexe A, clause
+// 6.1.3 d. `applicable` démarre à `null` (non statué), jamais `true` : une
+// mission ne doit jamais afficher 93 décisions que le consultant n'a pas
+// prises comme si elles l'étaient (zéro invention).
+export type StatutSoa = "Implémenté" | "Partiel" | "Planifié" | null;
+export type ThemeSoa = "Organisationnel" | "Personnel" | "Physique" | "Technologique";
+
+export interface EntreeSoa {
+  code: string;
+  titre: string;
+  theme: ThemeSoa;
+  applicable: boolean | null;
+  statut: StatutSoa;
+  justification: string;
+  document_reference: string;
+  owner: string;
+  date_revue: string;
+}
+
 // Suivi du temps consommé (schema_version 3, cf. api/modules/schema_migration.py).
 // Phases alignées sur PHASES_TEMPS côté backend — toute valeur hors de cette
 // liste est rejetée par l'API.
@@ -508,6 +527,7 @@ export interface ProjectState {
     evaluation?: {
       manual_controls: ManualControl[];
       technical_results: AuditResult | null;
+      soa?: EntreeSoa[];
     };
     restitution?: {
       exec_summary: string;

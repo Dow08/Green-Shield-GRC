@@ -15,9 +15,10 @@ from __future__ import annotations
 from typing import Callable
 
 from . import aipd as aipd_module
+from . import soa as soa_module
 from . import tprm
 
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 9
 
 
 def _to_v2(state: dict) -> dict:
@@ -186,6 +187,25 @@ def _to_v8(state: dict) -> dict:
     return state
 
 
+def _to_v9(state: dict) -> dict:
+    """v8 → v9 : Déclaration d'Applicabilité ISO 27001 Annexe A (chantier ①).
+
+    Sans SoA, une mission ISO 27001 ne peut pas passer un audit de
+    certification — c'est le premier document qu'un auditeur externe demande.
+    Ne concerne que les missions dont le référentiel choisi est ISO 27001 :
+    une mission DORA ou NIS2 n'a pas à porter 93 contrôles hors sujet.
+
+    `applicable` démarre à `None` (non statué) sur les 93 contrôles, jamais à
+    une valeur présumée — un consultant qui n'a pas encore tranché ne doit
+    jamais voir 93 décisions qu'il n'a pas prises s'afficher comme actées.
+    """
+    cadrage = state.get("steps", {}).get("cadrage", {})
+    if cadrage.get("framework_id") == "iso27001":
+        evaluation = state.setdefault("steps", {}).setdefault("evaluation", {})
+        evaluation.setdefault("soa", soa_module.entrees_par_defaut())
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
@@ -195,6 +215,7 @@ _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (6, _to_v6),
     (7, _to_v7),
     (8, _to_v8),
+    (9, _to_v9),
 ]
 
 

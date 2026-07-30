@@ -132,3 +132,28 @@ def test_mission_v7_sans_scenario_ni_remediation_traverse_sans_erreur():
 def test_needs_migration():
     assert schema_migration.needs_migration(_mission_v1()) is True
     assert schema_migration.needs_migration(schema_migration.migrate(_mission_v1())) is False
+
+
+def test_mission_iso27001_gagne_la_soa():
+    """v8 → v9 (chantier ①) : une mission au référentiel ISO 27001 reçoit les
+    93 contrôles de l'Annexe A, non statués."""
+    v8 = {
+        "schema_version": 8, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {"cadrage": {"framework_id": "iso27001"}},
+    }
+    migree = schema_migration.migrate(dict(v8))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+    soa_donnees = migree["steps"]["evaluation"]["soa"]
+    assert len(soa_donnees) == 93
+    assert all(e["applicable"] is None for e in soa_donnees)
+
+
+def test_mission_hors_iso27001_ne_recoit_pas_de_soa():
+    """DORA/NIS2/EU AI Act n'ont pas de SoA — ce n'est pas une exigence de
+    ces référentiels, la porter serait hors sujet."""
+    v8 = {
+        "schema_version": 8, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {"cadrage": {"framework_id": "dora"}},
+    }
+    migree = schema_migration.migrate(dict(v8))
+    assert "soa" not in migree["steps"].get("evaluation", {})

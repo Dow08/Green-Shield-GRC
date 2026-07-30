@@ -364,6 +364,24 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                     </div>
+                    {/* SoA : n'existe que sur une mission au référentiel ISO 27001. */}
+                    {(activeProject.steps.evaluation?.soa?.length ?? 0) > 0 && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">Déclaration d'Applicabilité</span>
+                        <button
+                          onClick={() => handleExportDoc("soa")}
+                          className="flex items-center gap-1.5 rounded-xl bg-white/[0.04] border border-[var(--stroke)] hover:bg-white/[0.08] px-3 py-2 text-xs font-bold text-[var(--ink)] transition"
+                        >
+                          <FileDown size={13} /> .md
+                        </button>
+                        <button
+                          onClick={() => handleDownloadDocx(api.projects.downloadSoaDocx)}
+                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
+                        >
+                          <FileDown size={13} /> Word (.docx)
+                        </button>
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-2.5 mt-0.5">
                       <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">Rapport d'audit</span>
                       {activeProject.type === "grc" && (

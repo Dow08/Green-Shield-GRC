@@ -541,3 +541,57 @@ def test_chaque_livrable_n_a_aucune_ligne_de_tableau_entierement_vide(cle):
         for r in t.rows:
             assert any(c.text.strip() for c in r.cells), \
                 f"ligne de tableau entièrement vide dans le livrable {cle!r}"
+
+
+# --- Déclaration d'Applicabilité (SoA, 30/07/2026) --------------------------
+
+def _mission_avec_soa() -> dict:
+    from modules import soa as soa_module
+    mission = _mission_complete()
+    entrees = soa_module.entrees_par_defaut()
+    entrees[0]["applicable"] = True
+    entrees[0]["statut"] = "Implémenté"
+    entrees[0]["justification"] = "Document fondateur du SMSI"
+    entrees[1]["applicable"] = False
+    entrees[1]["justification"] = "Hors périmètre"
+    mission["steps"]["evaluation"] = {"soa": entrees}
+    return mission
+
+
+def test_soa_est_un_fichier_word_valide():
+    nom, contenu = report_docx.build_soa_docx(_mission_avec_soa(), "acme")
+    assert contenu[:2] == b"PK"
+    Document(io.BytesIO(contenu))
+    assert nom.endswith(".docx")
+
+
+def test_soa_reprend_les_93_controles_repartis_par_theme():
+    _, contenu = report_docx.build_soa_docx(_mission_avec_soa(), "acme")
+    doc = Document(io.BytesIO(contenu))
+    texte = _all_text(doc)
+    for theme in ("Organisationnel", "Personnel", "Physique", "Technologique"):
+        assert theme in texte
+    # Les deux entrées statuées dans la fixture apparaissent avec leur décision.
+    assert "Document fondateur du SMSI" in texte
+    assert "Hors périmètre" in texte
+
+
+def test_soa_affiche_le_taux_de_controles_statues():
+    _, contenu = report_docx.build_soa_docx(_mission_avec_soa(), "acme")
+    texte = _all_text(Document(io.BytesIO(contenu)))
+    assert "2/93" in texte
+
+
+def test_le_rapport_de_mission_porte_la_synthese_soa_par_theme():
+    """Le rapport complet ne reproduit pas les 93 lignes : seulement une
+    synthèse par thème, qui renvoie vers le livrable dédié."""
+    _, contenu = report_docx.build_report_docx(_mission_avec_soa(), "acme")
+    texte = _all_text(Document(io.BytesIO(contenu)))
+    assert "Déclaration d'Applicabilité" in texte
+    assert "livrable dédié" in texte
+
+
+def test_le_rapport_de_mission_sans_soa_ne_mentionne_pas_la_declaration():
+    _, contenu = report_docx.build_report_docx(_mission_complete(), "acme")
+    texte = _all_text(Document(io.BytesIO(contenu)))
+    assert "Déclaration d'Applicabilité" not in texte
