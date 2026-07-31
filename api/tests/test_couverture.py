@@ -140,6 +140,9 @@ def test_la_route_renvoie_le_detail_et_la_phrase(tmp_path, monkeypatch):
     from modules import projects
 
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     p_dir = tmp_path / "acme"
     p_dir.mkdir()
     etat = mission(CONTROLES, REGLES)

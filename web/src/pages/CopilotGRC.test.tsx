@@ -37,6 +37,7 @@ function mockFetch(context: CopilotContext, askResponse?: any) {
 
 beforeEach(() => {
   localStorage.clear();
+  sessionStorage.clear();
 });
 
 describe("CopilotGRC", () => {
@@ -94,7 +95,7 @@ describe("CopilotGRC", () => {
   });
 
   it("transmet la clé API sauvegardée dans les Réglages à l'appel du copilote", async () => {
-    localStorage.setItem("copilot_api_key", "ma-cle-secrete");
+    sessionStorage.setItem("copilot_api_key", "ma-cle-secrete");
     const fetchMock = mockFetch(contextFixture(), { status: "success", response: "ok", source: "online" });
     globalThis.fetch = fetchMock as any;
     const user = userEvent.setup();

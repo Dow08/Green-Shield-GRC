@@ -15,6 +15,7 @@ from . import charte
 from . import controles_techniques
 from . import couverture
 from . import docx_export
+from . import preuves as preuves_module
 from . import soa as soa_module
 from . import tprm
 
@@ -792,13 +793,19 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
         fw_name = cadrage.get("framework_name")
 
         controls = steps.get("evaluation", {}).get("manual_controls", [])
+        preuves_donnees = steps.get("evaluation", {}).get("preuves", [])
+
+        def _preuves_liees(c: dict) -> str:
+            liees = preuves_module.preuves_pour_controle(preuves_donnees, c.get("referentiel_id"), c.get("id"))
+            return "; ".join(p.get("libelle") for p in liees if p.get("libelle"))
+
         manual_md = _tableau(
-            ("ID", "Référentiel", "Exigence Organisationnelle", "Statut de Conformité", "Notes du Consultant"),
+            ("ID", "Référentiel", "Exigence Organisationnelle", "Statut de Conformité", "Notes du Consultant", "Preuve(s) associée(s)"),
             [(c.get("id"), c.get("referentiel_name") or c.get("referentiel_id"), c.get("title"),
               # STATUS_LABELS existait déjà mais n'était branché que sur le DOCX :
               # le Markdown affichait « NON_CONFORME » brut au client.
               docx_export.STATUS_LABELS.get(c.get("status"), c.get("status")),
-              c.get("notes")) for c in controls],
+              c.get("notes"), _preuves_liees(c)) for c in controls],
             "Aucune check-list de conformité n'est rattachée à cette mission : "
             "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 2.",
         )

@@ -1,4 +1,4 @@
-﻿# ==================================================================
+# ==================================================================
 # GREEN SHIELD â€” plateforme (3 services)
 #   target_lab : la cible (configs vulnÃ©rables)
 #   api        : FastAPI, moteurs des modules, lit la cible en READ-ONLY
@@ -28,6 +28,7 @@ services:
     environment:
       AUDIT_TARGET_DIR: /audit/target
       GREENSHIELD_DATA_DIR: /data/projects
+      GREENSHIELD_API_SECRET: ${GREENSHIELD_API_SECRET:-}
     restart: unless-stopped
 
   web:

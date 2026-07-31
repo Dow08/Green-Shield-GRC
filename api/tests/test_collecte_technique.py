@@ -122,6 +122,9 @@ def test_endpoint_fingerprint_rejette_un_contenu_vide():
 @pytest.fixture()
 def project_dir(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     p_dir = tmp_path / "acme"
     p_dir.mkdir()
     (p_dir / "project.json").write_text(
@@ -160,6 +163,9 @@ def test_import_sans_nom_est_rejete(project_dir):
 
 def test_import_sur_projet_introuvable_renvoie_404(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc_info:
         ct.import_asset_into_registry("does_not_exist", {"name": "X"})
     assert exc_info.value.status_code == 404
@@ -169,6 +175,9 @@ def test_import_avec_p_id_traverse_est_rejete(tmp_path, monkeypatch):
     """Non-régression : audit du 28/07/2026 — p_id non assaini permettait de
     remonter hors de PROJECTS_DIR (même défaut que V-02 dans projects.py)."""
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc_info:
         ct.import_asset_into_registry("..", {"name": "X"})
     assert exc_info.value.status_code == 400
@@ -176,8 +185,8 @@ def test_import_avec_p_id_traverse_est_rejete(tmp_path, monkeypatch):
 
 def test_next_bs_id_ignore_les_ids_non_numeriques_et_evite_les_collisions():
     assets = [{"id": "BS-AD"}, {"id": "BS-01"}, {"id": "BS-03"}]
-    assert ct._next_bs_id(assets) == "BS-04"
+    assert ct.ids.next_id("BS", assets) == "BS-04"
 
 
 def test_next_bs_id_sur_registre_vide():
-    assert ct._next_bs_id([]) == "BS-01"
+    assert ct.ids.next_id("BS", []) == "BS-01"

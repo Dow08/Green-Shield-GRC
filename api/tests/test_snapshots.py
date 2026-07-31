@@ -21,6 +21,9 @@ from modules import projects, snapshots  # noqa: E402
 @pytest.fixture()
 def mission(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     p_dir = tmp_path / "acme"
     p_dir.mkdir()
     (p_dir / "project.json").write_text(
@@ -171,6 +174,9 @@ def test_restaurer_un_instantane_inexistant_renvoie_404(mission):
 
 def test_lister_sur_mission_introuvable_renvoie_404(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc:
         projects.list_snapshots("inexistante")
     assert exc.value.status_code == 404

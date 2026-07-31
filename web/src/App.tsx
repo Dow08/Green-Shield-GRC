@@ -14,6 +14,7 @@ const Settings = lazy(() => import("./pages/Settings").then((m) => ({ default: m
 const CopilotGRC = lazy(() => import("./pages/CopilotGRC").then((m) => ({ default: m.CopilotGRC })));
 const CollecteTechnique = lazy(() =>
   import("./pages/CollecteTechnique").then((m) => ({ default: m.CollecteTechnique })));
+const BugTracker = lazy(() => import("./pages/BugTracker").then((m) => ({ default: m.BugTracker })));
 
 function ChargementVue() {
   return (
@@ -103,6 +104,7 @@ export default function App() {
             {view === "copilot" && <CopilotGRC onNavigate={setView} />}
             {view === "collect" && <CollecteTechnique />}
             {view === "settings" && <Settings />}
+            {view === "bugs" && <BugTracker />}
           </Suspense>
         </main>
       </div>

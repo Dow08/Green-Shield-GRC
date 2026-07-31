@@ -21,6 +21,9 @@ from modules import projects, schema_migration  # noqa: E402
 @pytest.fixture()
 def mission(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     p_dir = tmp_path / "acme"
     p_dir.mkdir()
     (p_dir / "project.json").write_text(
@@ -145,6 +148,9 @@ def test_phase_inconnue_est_rejetee(mission):
 
 def test_ajout_sur_mission_introuvable_renvoie_404(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc:
         projects.add_temps_entry("inexistante", {"phase": "cadrage", "minutes": 60})
     assert exc.value.status_code == 404
@@ -152,6 +158,9 @@ def test_ajout_sur_mission_introuvable_renvoie_404(tmp_path, monkeypatch):
 
 def test_ajout_avec_p_id_traverse_est_rejete(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc:
         projects.add_temps_entry("..", {"phase": "cadrage", "minutes": 60})
     assert exc.value.status_code == 400

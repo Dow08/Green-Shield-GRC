@@ -23,12 +23,18 @@ def _write_project(base: Path, project_id: str, state: dict) -> None:
 @pytest.fixture()
 def empty_registry(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     return tmp_path
 
 
 @pytest.fixture()
 def populated_registry(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     _write_project(tmp_path, "acme", {
         "id": "acme", "name": "Acme", "client": "Acme Corp", "type": "grc", "progress": 60,
         "steps": {

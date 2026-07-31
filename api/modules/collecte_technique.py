@@ -349,15 +349,9 @@ def run_fingerprint(data: dict) -> dict:
     return fingerprint(filename, content).to_dict()
 
 
-def _next_bs_id(assets_support: list[dict]) -> str:
-    existing = {a.get("id", "") for a in assets_support}
-    numeric = [int(m.group(1)) for a in existing if (m := re.fullmatch(r"BS-(\d+)", a))]
-    next_n = (max(numeric) + 1) if numeric else 1
-    candidate = f"BS-{next_n:02d}"
-    while candidate in existing:
-        next_n += 1
-        candidate = f"BS-{next_n:02d}"
-    return candidate
+from . import ids
+
+
 
 
 @router.post("/projects/{p_id}/collecte/import")
@@ -378,7 +372,7 @@ def import_asset_into_registry(p_id: str, data: dict) -> dict:
         state = projects._read_state(state_file)
         cadrage = state.setdefault("steps", {}).setdefault("cadrage", {})
         assets_support = cadrage.setdefault("assets_support", [])
-        bs_id = _next_bs_id(assets_support)
+        bs_id = ids.next_id("BS", assets_support)
         assets_support.append({
             "id": bs_id,
             "name": name,

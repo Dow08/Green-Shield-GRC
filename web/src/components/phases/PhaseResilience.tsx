@@ -2,6 +2,7 @@ import { CheckCircle2 } from "lucide-react";
 import type { ManualControl, ProjectState } from "../../types";
 import { BadgesControles } from "../BadgesControles";
 import { SoaPanel } from "../SoaPanel";
+import { PreuveLibraryPanel } from "../PreuveLibraryPanel";
 
 interface Props {
   activeProject: ProjectState;
@@ -33,70 +34,81 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                     tousControles.map((c) => c.referentiel_id || activeProject.steps.cadrage?.framework_id || "")
                   )).filter(Boolean);
                   return (
-                    <div className="flex flex-col gap-4">
-                      {referentiels.map((refId) => {
-                        const controles = tousControles.filter(
-                          (c) => (c.referentiel_id || activeProject.steps.cadrage?.framework_id) === refId
-                        );
-                        const nomReferentiel = controles[0]?.referentiel_name || activeProject.steps.cadrage?.framework_name || refId;
-                        return (
-                          <div key={refId} className="flex flex-col gap-3">
-                            <div className="text-xs font-bold text-[var(--sky)] mb-1">Check-list d'Audit Organisationnel ({nomReferentiel})</div>
-                            <div className="flex flex-col gap-2.5 max-h-[250px] overflow-y-auto pr-1">
-                              {controles.map((ctrl: ManualControl) => {
-                                const idx = tousControles.indexOf(ctrl);
-                                return (
-                                <div key={ctrl.id} className="bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] flex flex-col gap-2 animate-fade-in">
-                                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
-                                    <div>
-                                      <span className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[var(--sky)] mr-2">{ctrl.id}</span>
-                                      <span className="font-bold text-[var(--ink)]">{ctrl.title}</span>
-                                      <p className="text-[10px] text-[var(--soft)] mt-0.5">{ctrl.description}</p>
-                                    </div>
+                    <div className="flex flex-col gap-6">
+                      <div className="flex flex-col gap-4">
+                        {referentiels.map((refId) => {
+                          const controles = tousControles.filter(
+                            (c) => (c.referentiel_id || activeProject.steps.cadrage?.framework_id) === refId
+                          );
+                          const nomReferentiel = controles[0]?.referentiel_name || activeProject.steps.cadrage?.framework_name || refId;
+                          return (
+                            <div key={refId} className="flex flex-col gap-3">
+                              <div className="text-xs font-bold text-[var(--sky)] mb-1">Check-list d'Audit Organisationnel ({nomReferentiel})</div>
+                              <div className="flex flex-col gap-2.5 max-h-[250px] overflow-y-auto pr-1">
+                                {controles.map((ctrl: ManualControl) => {
+                                  const idx = tousControles.indexOf(ctrl);
+                                  return (
+                                  <div key={ctrl.id} className="bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] flex flex-col gap-2 animate-fade-in">
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 text-xs">
+                                      <div>
+                                        <span className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[var(--sky)] mr-2">{ctrl.id}</span>
+                                        <span className="font-bold text-[var(--ink)]">{ctrl.title}</span>
+                                        <p className="text-[10px] text-[var(--soft)] mt-0.5">{ctrl.description}</p>
+                                      </div>
 
-                                    <div className="flex gap-1.5 self-start md:self-center">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const list = [...tousControles];
-                                          list[idx].status = "CONFORME";
-                                          updateStepData("evaluation", "manual_controls", list);
-                                        }}
-                                        className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${ctrl.status === "CONFORME" ? "bg-[rgba(46,230,160,0.15)] text-[var(--g1)]" : "bg-white/[0.03] text-[var(--soft)]"}`}
-                                      >
-                                        Conforme
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          const list = [...tousControles];
-                                          list[idx].status = "NON_CONFORME";
-                                          updateStepData("evaluation", "manual_controls", list);
-                                        }}
-                                        className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${ctrl.status === "NON_CONFORME" ? "bg-[rgba(255,111,145,0.15)] text-[var(--rose)]" : "bg-white/[0.03] text-[var(--soft)]"}`}
-                                      >
-                                        Non conforme
-                                      </button>
+                                      <div className="flex gap-1.5 self-start md:self-center">
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const list = [...tousControles];
+                                            list[idx].status = "CONFORME";
+                                            updateStepData("evaluation", "manual_controls", list);
+                                          }}
+                                          className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${ctrl.status === "CONFORME" ? "bg-[rgba(46,230,160,0.15)] text-[var(--g1)]" : "bg-white/[0.03] text-[var(--soft)]"}`}
+                                        >
+                                          Conforme
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const list = [...tousControles];
+                                            list[idx].status = "NON_CONFORME";
+                                            updateStepData("evaluation", "manual_controls", list);
+                                          }}
+                                          className={`px-2 py-0.5 rounded text-[9px] font-bold transition ${ctrl.status === "NON_CONFORME" ? "bg-[rgba(255,111,145,0.15)] text-[var(--rose)]" : "bg-white/[0.03] text-[var(--soft)]"}`}
+                                        >
+                                          Non conforme
+                                        </button>
+                                      </div>
                                     </div>
+                                    <input
+                                      type="text"
+                                      placeholder="Observations, constats, preuves d'audit..."
+                                      value={ctrl.notes}
+                                      onChange={(e) => {
+                                        const list = [...tousControles];
+                                        list[idx].notes = e.target.value;
+                                        updateStepData("evaluation", "manual_controls", list);
+                                      }}
+                                      className="w-full bg-white/[0.03] border border-white/5 rounded-lg px-2 py-0.5 text-[10px] focus:outline-none"
+                                    />
                                   </div>
-                                  <input
-                                    type="text"
-                                    placeholder="Observations, constats, preuves d'audit..."
-                                    value={ctrl.notes}
-                                    onChange={(e) => {
-                                      const list = [...tousControles];
-                                      list[idx].notes = e.target.value;
-                                      updateStepData("evaluation", "manual_controls", list);
-                                    }}
-                                    className="w-full bg-white/[0.03] border border-white/5 rounded-lg px-2 py-0.5 text-[10px] focus:outline-none"
-                                  />
-                                </div>
-                                );
-                              })}
+                                  );
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
+
+                      <div className="border-t border-white/[0.04] pt-3">
+                        <PreuveLibraryPanel
+                          projectId={activeProject.id}
+                          preuves={activeProject.steps.evaluation?.preuves || []}
+                          manualControls={tousControles}
+                          onChange={(preuves) => updateStepData("evaluation", "preuves", preuves)}
+                        />
+                      </div>
                     </div>
                   );
                 })()}

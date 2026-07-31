@@ -8,6 +8,48 @@ import type {
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
 
+// --- API LOGGER SYSTEM ---
+export interface ApiLog {
+  id: string;
+  timestamp: string;
+  method: string;
+  url: string;
+  status?: number;
+  durationMs?: number;
+  error?: string;
+}
+
+export const apiLogs: ApiLog[] = [];
+const logSubscribers = new Set<() => void>();
+
+export function subscribeToApiLogs(callback: () => void) {
+  logSubscribers.add(callback);
+  return () => {
+    logSubscribers.delete(callback);
+  };
+}
+
+function notifySubscribers() {
+  logSubscribers.forEach((cb) => cb());
+}
+
+function addApiLog(log: ApiLog) {
+  apiLogs.unshift(log);
+  if (apiLogs.length > 50) {
+    apiLogs.pop(); // Keep only last 50 requests
+  }
+  notifySubscribers();
+}
+// -----------------------
+
+function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
+  return { ...extraHeaders };
+}
+
+async function handleResponse(res: Response) {
+  if (!res.ok) throw new Error(await errorDetail(res));
+}
+
 /**
  * Extrait le message d'erreur métier renvoyé par FastAPI (champ `detail`).
  * Sans ça l'utilisateur ne voit que « HTTP 400 » là où l'API dit précisément
@@ -24,37 +66,119 @@ export async function errorDetail(res: Response): Promise<string> {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(path);
-  if (!res.ok) throw new Error(await errorDetail(res));
-  return res.json() as Promise<T>;
+  const logId = crypto.randomUUID();
+  const startTime = performance.now();
+  let status: number | undefined;
+  let errorMsg: string | undefined;
+
+  try {
+    const res = await fetch(path, { headers: getHeaders() });
+    status = res.status;
+    await handleResponse(res);
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    errorMsg = err.message || String(err);
+    throw err;
+  } finally {
+    addApiLog({
+      id: logId,
+      timestamp: new Date().toLocaleTimeString("fr-FR"),
+      method: "GET",
+      url: path,
+      status,
+      durationMs: Math.round(performance.now() - startTime),
+      error: errorMsg,
+    });
+  }
 }
 
 async function post<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await errorDetail(res));
-  return res.json() as Promise<T>;
+  const logId = crypto.randomUUID();
+  const startTime = performance.now();
+  let status: number | undefined;
+  let errorMsg: string | undefined;
+
+  try {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: getHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    });
+    status = res.status;
+    await handleResponse(res);
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    errorMsg = err.message || String(err);
+    throw err;
+  } finally {
+    addApiLog({
+      id: logId,
+      timestamp: new Date().toLocaleTimeString("fr-FR"),
+      method: "POST",
+      url: path,
+      status,
+      durationMs: Math.round(performance.now() - startTime),
+      error: errorMsg,
+    });
+  }
 }
 
 async function put<T>(path: string, body: unknown): Promise<T> {
-  const res = await fetch(path, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(await errorDetail(res));
-  return res.json() as Promise<T>;
+  const logId = crypto.randomUUID();
+  const startTime = performance.now();
+  let status: number | undefined;
+  let errorMsg: string | undefined;
+
+  try {
+    const res = await fetch(path, {
+      method: "PUT",
+      headers: getHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    });
+    status = res.status;
+    await handleResponse(res);
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    errorMsg = err.message || String(err);
+    throw err;
+  } finally {
+    addApiLog({
+      id: logId,
+      timestamp: new Date().toLocaleTimeString("fr-FR"),
+      method: "PUT",
+      url: path,
+      status,
+      durationMs: Math.round(performance.now() - startTime),
+      error: errorMsg,
+    });
+  }
 }
 
 async function deleteReq<T>(path: string): Promise<T> {
-  const res = await fetch(path, {
-    method: "DELETE",
-  });
-  if (!res.ok) throw new Error(await errorDetail(res));
-  return res.json() as Promise<T>;
+  const logId = crypto.randomUUID();
+  const startTime = performance.now();
+  let status: number | undefined;
+  let errorMsg: string | undefined;
+
+  try {
+    const res = await fetch(path, { method: "DELETE", headers: getHeaders() });
+    status = res.status;
+    await handleResponse(res);
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    errorMsg = err.message || String(err);
+    throw err;
+  } finally {
+    addApiLog({
+      id: logId,
+      timestamp: new Date().toLocaleTimeString("fr-FR"),
+      method: "DELETE",
+      url: path,
+      status,
+      durationMs: Math.round(performance.now() - startTime),
+      error: errorMsg,
+    });
+  }
 }
 
 async function uploadFile<T>(path: string, file: File): Promise<T> {
@@ -62,9 +186,10 @@ async function uploadFile<T>(path: string, file: File): Promise<T> {
   formData.append("file", file);
   const res = await fetch(path, {
     method: "POST",
+    headers: getHeaders(),
     body: formData,
   });
-  if (!res.ok) throw new Error(await errorDetail(res));
+  await handleResponse(res);
   return res.json() as Promise<T>;
 }
 
@@ -87,14 +212,14 @@ function nomDepuisContentDisposition(res: Response, repli: string): string {
 async function downloadDocx(id: string, route: string): Promise<void> {
   const res = await fetch(`/api/projects/${id}/${route}.docx`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({
       auditeur: safeGetItem("consultant_name") ?? "",
       cabinet: safeGetItem("consultant_company") ?? "",
       logo: safeGetItem("consultant_logo") ?? "",
     }),
   });
-  if (!res.ok) throw new Error(await errorDetail(res));
+  await handleResponse(res);
   const blob = await res.blob();
   const nom = nomDepuisContentDisposition(res, `${route}.docx`);
   const url = URL.createObjectURL(blob);
@@ -123,6 +248,8 @@ export const api = {
     revue: (id: string) => get<RevueExportResult>(`/api/projects/${id}/revue`),
     couverture: (id: string) => get<CouvertureTechnique>(`/api/projects/${id}/couverture`),
     createDemo: () => post<ProjectState>("/api/projects/demo", {}),
+    copilotGenerate: (prompt: string) => post<{ name: string; client: string; type: string; framework_ids?: string[] }>("/api/projects/copilot/generate", { prompt }),
+    scanConnector: (id: string, connector_id: string) => post<{ connector_id: string; status: string; updates_count: number; details: string }>(`/api/connectors/${id}/scan`, { connector_id }),
     echeancesRgpd: () => get<EcheanceRgpdMission[]>("/api/rgpd/echeances"),
     updateRgpd: (id: string, politique: { duree_conservation_mois: number; date_fin_mission: string }) =>
       put<ProjectState>(`/api/projects/${id}/rgpd`, politique),
@@ -133,6 +260,7 @@ export const api = {
       post<ProjectState>(`/api/projects/${id}/snapshots/${nom}/restore`, {}),
     addTemps: (id: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
       post<ProjectState>(`/api/projects/${id}/temps`, entry),
+    getSuggestions: (id: string) => get<any>(`/api/projects/${id}/preuves/suggestions`),
     // TPRM : le navigateur n'envoie que les curseurs. La notation appartient au
     // serveur, sans quoi deux copies de la formule finissent par diverger.
     addTiers: (id: string, tiers: { name: string; dependence: number; penetration: number; maturity: number; trust: number }) =>
@@ -146,18 +274,22 @@ export const api = {
     exportArchive: async (id: string, password: string): Promise<Blob> => {
       const res = await fetch(`/api/projects/${id}/archive`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: getHeaders({ "Content-Type": "application/json" }),
         body: JSON.stringify({ password }),
       });
-      if (!res.ok) throw new Error(await errorDetail(res));
+      await handleResponse(res);
       return res.blob();
     },
     importArchive: async (file: File, password: string): Promise<ProjectState> => {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("password", password);
-      const res = await fetch("/api/projects/import-archive", { method: "POST", body: formData });
-      if (!res.ok) throw new Error(await errorDetail(res));
+      const res = await fetch("/api/projects/import-archive", { 
+        method: "POST", 
+        headers: getHeaders(), 
+        body: formData 
+      });
+      await handleResponse(res);
       return res.json() as Promise<ProjectState>;
     },
     deleteTemps: (id: string, entryId: string) =>

@@ -30,6 +30,9 @@ def legacy_et_cible(tmp_path, monkeypatch):
 
     monkeypatch.setattr(projects, "_LEGACY_PROJECTS_DIR", legacy)
     monkeypatch.setattr(projects, "PROJECTS_DIR", cible)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", cible, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", cible, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", cible, raising=False)
     return legacy, cible
 
 
@@ -72,6 +75,9 @@ def test_ne_recopie_pas_dans_un_repertoire_de_test(legacy_et_cible, tmp_path, mo
     autre = tmp_path / "repertoire_de_test"
     autre.mkdir()
     monkeypatch.setattr(projects, "PROJECTS_DIR", autre)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", autre, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", autre, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", autre, raising=False)
     projects._migrate_legacy_projects()          # 1re fois : migration légitime
     projects._migrate_legacy_projects()          # 2e fois : ne doit rien refaire
     projects._migrate_legacy_projects()          # 3e fois non plus
@@ -83,6 +89,9 @@ def test_ne_recopie_pas_dans_un_repertoire_de_test(legacy_et_cible, tmp_path, mo
 def test_ne_fait_rien_si_l_ancien_emplacement_n_existe_pas(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "_LEGACY_PROJECTS_DIR", tmp_path / "inexistant")
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path / "cible")
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path / "cible", raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path / "cible", raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path / "cible", raising=False)
     projects._migrate_legacy_projects()  # ne doit rien lever
     assert not (tmp_path / "cible").exists()
 

@@ -165,6 +165,9 @@ def test_la_purge_d_une_mission_vide_ne_plante_pas():
 @pytest.fixture()
 def registre(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     p_dir = tmp_path / "acme"
     p_dir.mkdir()
     (p_dir / "project.json").write_text(json.dumps(mission_avec_personnes()), encoding="utf-8")
@@ -227,6 +230,9 @@ def test_les_echeances_comptent_les_donnees_restantes(registre):
 
 def test_la_purge_sur_mission_introuvable_renvoie_404(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc:
         projects.purge_donnees_personnelles("inexistante")
     assert exc.value.status_code == 404
@@ -234,6 +240,9 @@ def test_la_purge_sur_mission_introuvable_renvoie_404(tmp_path, monkeypatch):
 
 def test_la_purge_avec_p_id_traverse_est_rejetee(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
     with pytest.raises(HTTPException) as exc:
         projects.purge_donnees_personnelles("..")
     assert exc.value.status_code == 400

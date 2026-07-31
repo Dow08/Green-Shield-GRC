@@ -1,0 +1,371 @@
+<USER_REQUEST>
+# Prompt d'Audit et d'Amélioration d'Application
+
+## Rôle
+Tu es un **Auditeur Application Senior** — architecte logiciel, expert en sécurité, performance, UX et dette technique. Ta mission est d'évaluer une application de A à Z, identifier ce qui fonctionne, ce qui peut être amélioré, et proposer un plan d'action priorisé et concret.
+
+## Méthodologie (en 7 dimensions)
+
+Analyse l'application selon ces 7 dimensions, chacune notée de 1 (critique) à 5 (excellent), avec justification :
+
+### 1. Fonctionnalité
+- L'application fait-elle ce qu'elle est censée faire ?
+- Les fonctionnalités principales sont-elles complètes et opérationnelles ?
+- Y a-t-il des fonctionnalités manquantes évidentes par rapport aux standards du domaine ?
+- Les cas limites (edge cases) sont-ils gérés ?
+
+### 2. Sécurité
+- Vulnérabilités OWASP Top 10 identifiées ?
+- Authentification et autorisation : robustesse et implémentation ?
+- Gestion des secrets, tokens, clés API ?
+- Validation et sanitisation des entrées utilisateur ?
+- Chiffrement des données en transit et au repos ?
+- Logs d'audit et traçabilité ?
+
+### 3. Architecture et Code
+- Structure du code : clarté, modularité, séparation des responsabilités ?
+- Dépendances : nombre, pertinence, vulnérabilités connues, mise à jour ?
+- Dette technique : volume, nature, impact ?
+- Design patterns utilisés : appropriés ou sur-ingénierie ?
+- Tests : couverture (unitaires, intégration, e2e), qualité des tests ?
+
+### 4. Performance
+- Temps de réponse perçu et mesures disponibles ?
+- Goulots d'étranglement identifiés (requêtes DB, I/O, CPU, mémoire) ?
+- Mise en cache : présence, pertinence, invalidation ?
+- Optimisations front-end (bundling, lazy loading, compression) si applicable ?
+- Scalabilité : l'app peut-elle tenir une montée en charge ?
+
+### 5. UX / Accessibilité
+- Parcours utilisateur : fluidité, intuitivité, nombre d'étapes ?
+- Gestion des erreurs : messages clairs, récupération pos
+<truncated 1644 bytes>
+ctionnelles Innovantes
+- 5 à 10 idées de nouvelles fonctionnalités ou améliorations qui rendraient l'application "parfaitement fonctionnelle et adaptée"
+- Pour chaque idée : description, valeur apportée, complexité estimée
+
+### Section 5 — Roadmap Recommandée
+- Sprint 1 (quick wins, 1-2 semaines)
+- Sprint 2 (corrections structurantes, 2-4 semaines)
+- Sprint 3 (évolutions et innovations, 1-2 mois)
+- Vision long terme (3-6 mois)
+
+## Règles de qualité
+- Chaque constat doit être justifié par une preuve (fichier, ligne, comportement observé, métrique)
+- Aucune suggestion vague — chaque solution doit être actionnable avec des étapes concrètes
+- Privilégier les solutions pragmatiques et adaptées au contexte (taille de l'équipe, budget, technos)
+- Séparer les "must-fix" (sécurité, crashes) des "nice-to-have" (refactoring esthétique)
+- Proposer des alternatives quand une solution est trop coûteuse
+
+## Contexte à fournir
+Avant de lancer l'audit, fournis :
+- Le nom et l'objectif de l'application
+- Le stack technique (langages, frameworks, base de données, infra)
+- Le lien vers le dépôt de code ou les fichiers à analyser
+- L'environnement cible (production, staging, dev)
+- Les contraintes connues (budget, équipe, délais)
+- Les préoccupations spécifiques (ex: focus sécurité, focus perf, focus UX)
+
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:31:05+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\Mes prompts\prompt-audit-application.md (LANGUAGE_MARKDOWN)
+Cursor is on line: 103
+Other open documents:
+- c:\Users\Dow\Desktop\Mes prompts\prompt-audit-application.md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.6 Flash (Medium). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+---
+<USER_REQUEST>
+# RÔLE & DIRECTIVES PRINCIPALES
+Tu incarnes le rôle combiné de **Lead Software Architect** et de **Principal Penetration Tester & Security Engineer**. 
+Ta mission est de réaliser un **audit combiné (Qualité Logicielle + SecOps/Pentest)** de l'application fournie afin d'établir un verdict impartial : **GO LIVE (Ready)** ou **NO-GO LIVE (Blocker)**.
+
+---
+
+# CONTEXTE & DÉFINITION DE L'APPLICATION
+- **Domaine / Type :** [ex: API REST, Application SaaS, Microservices...]
+- **Stack & Infra :** [ex: Node.js, Python FastAPI, React, PostgreSQL, Docker, AWS...]
+- **Fichiers / Endpoints / Code à analyser :**
+
+---
+
+# CADRE D'ANALYSE DÉTAILLÉ
+
+Exécute l'audit à travers ces 4 volets indissociables :
+
+### 1. Ingénierie Logicielle & Robustesse des Endpoints (Senior Software Architect)
+- **Validation & Typage :** Étanchéité de la validation des entrées (payloads, query/path parameters, type casting).
+- **Gestion des erreurs & Logique :** Normalisation des réponses d'erreur HTTP, absence d'exposition de stack traces, comportement face aux cas limites (edge cases).
+- **Performances & Résilience :** Idempotence des opérations, risques de fuites de mémoire, gestion de la pagination, timeouts, retries et comportement des requêtes lourdes.
+- **Cycle de vie de la donnée :** Intégrité du CRUD, consistance de la persistance BDD et des dépendances (cache, queues).
+
+### 2. Audit de Cybersécurité Offensive & Défensive (Lead Pentester / OWASP)
+- **Contrôle d'accès & IAM :** Évaluation BOLA/IDOR (Broken Object Level Authorization) et BFLA (Function Level Authorization) sur CHAQUE endpoint.
+- **Authentification & Session :** Sécurité de la gestion des jetons (JWT/OAuth2), politiques de rafraîchissement, révocabilité et expiration.
+- **OWASP / API Top 10 :** Recherche systématique d'injections (SQL, NoSQL, Command, XSS, SSRF) et d'expositions involontaires de données sensibles dans les headers/payloads.
+- **SecOps & Durcissement :** Absence de secrets/clés durs dans le code, stratégie de Rate Limiting/Throttling par route critique, politiques CORS, CSP et headers de sécurité HTTP.
+
+---
+
+# RESTITUTION REQUISE
+
+Délivre ton analyse sous la forme exacte suivante :
+
+## A. Synthèse Globale
+- **Score de Santé Globale :** [Note /100]
+- **Score de Maturation Sécurité :** [Note /100]
+- **Verdict Final :** `[GO LIVE]` ou `[NO-GO LIVE (BLOCKER)]` (En gras et mis en évidence).
+
+## B. Matrice Élevée des Vulnérabilités & Defauts
+*Présente uniquement les points posant un risque sous forme de tableau :*
+
+| ID | Endpoint / Composant | Type (Dev / Cyber) | Description de la défaillance | Risque (Critique / Majeur / Mineur) | Correctif Technique Recommandé |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+
+## C. Plan d'Action Impératif (Checklist de Remédiation)
+- [ ] **[CRITIQUE]** Action #1 à réaliser impérativement avant le déploiement.
+- [ ] **[MAJEUR]** Action #2 à réaliser impérativement avant le déploiement.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:33:16+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\Mes prompts\Audit, cybersécurité et vérification de logiciels..md (LANGUAGE_MARKDOWN)
+Cursor is on line: 49
+Other open documents:
+- c:\Users\Dow\Desktop\Mes prompts\Audit, cybersécurité et vérification de logiciels..md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+Commence par l'audit secops pentest de green shield 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:35:22+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\Mes prompts\Audit, cybersécurité et vérification de logiciels..md (LANGUAGE_MARKDOWN)
+Cursor is on line: 49
+Other open documents:
+- c:\Users\Dow\Desktop\Mes prompts\Audit, cybersécurité et vérification de logiciels..md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.6 Flash (Medium) to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+---
+<USER_REQUEST>
+Commence par l'audit secops pentest de green shield 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:35:22+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\Mes prompts\Audit, cybersécurité et vérification de logiciels..md (LANGUAGE_MARKDOWN)
+Cursor is on line: 49
+Other open documents:
+- c:\Users\Dow\Desktop\Mes prompts\Audit, cybersécurité et vérification de logiciels..md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from Gemini 3.6 Flash (Medium) to Gemini 3.1 Pro (High). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>
+---
+<USER_REQUEST>
+Mais à jour la liste todo.md Laissez moi un check de ce qui reste à faire
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:47:15+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\web\src\App.tsx (LANGUAGE_TSX)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\web\src\App.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+Vérifiez les fichiers s'il y a des bien à jour ou pas S'il y a des modifications qui en ont déjà eu lieu ou non 
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:48:58+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\web\src\App.tsx (LANGUAGE_TSX)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\web\src\App.tsx (LANGUAGE_TSX)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+
+J'étais en train de travailler làdessus On en est aux LOt E Avant de commencer vérifiez bien que tous les autres ont bien été faits Et qu'il n'y a pas de points de friction Ensuite tu enchaîneras Jus Avoir terminé le plan de build
+
+
+
+
+Jalons 3-5 — plan de build (Lots D, E, F, G, H)
+Contexte
+Après les Lots A/B/C (chaîne risque→traitement, SoA, registre des violations) et le correctif du chapitre RGPD Markdown, il reste trois jalons du plan de build (docs/audit-critique-plan.md §6, docs/spec-refonte-grc-consulting.md §10) non traités : Jalon 3 (compléments GRC), Jalon 4 (EU AI Act), Jalon 5 (Copilote, connecteurs, dashboard). Une revue factuelle du code (agent Explore, lecture directe) montre que la majorité de ces jalons est déjà couverte par du travail antérieur non documenté comme tel dans le spec d'origine. Ce plan isole ce qui reste réellement à construire.
+
+Déjà fait — rien à construire
+EU AI Act (Jalon 4) : api/frameworks/aiact.yaml existe (id/name/description + 4 exigences), auto-découvert par GET /api/frameworks (api/modules/projects.py:1392) exactement comme NIST CSF/NIS2/DORA — déjà sélectionnable à la création d'une mission GRC. Confirmé avec l'utilisateur : rien de plus pour l'instant, même traitement que les autres référentiels (contenu enrichi au fil des missions réelles, pas inventé en amont).
+Copilote LLM contraint (Jalon 5, §10.4) : api/modules/ai_gateway.py est déjà le connecteur pluggable unique (clé API optionnelle, repli local). Deux points d'entrée existent déjà : transverse (copilot_grc.py) et par mission (projects.py:1603 run_project_copilot). Le texte généré n'est jamais écrit dans un champ structuré (F11 déjà respecté, vérifié dans CopilotGRC.tsx/PhaseTraitement.tsx — uniquement du state React affiché en lecture seule). Rien à construire ici.
+Registre des violations (G5, Jalon 3) : fait au Lot C.
+Alertes d'échéances (Jalon 3) : déjà fait (tâche #27).
+Catalogue de mesures (G3, Jalon 1) : déjà f
+<truncated 8132 bytes>
+tée « tout le portefeuille » (comme copilot_grc.py::aggregate_context).
+
+Nouvelle fonction backend api/modules/copilot_grc.py::horizon_agregat() (ou nouveau petit module horizons.py) qui classe, tous projets confondus : court terme (quick wins non traités, steps.traitement.quick_wins), moyen terme (remédiations avec statut != "Fait" et echeance renseignée), long terme (items sans échéance proche — maturité/certification, ex. strategie_traitement scenarios encore "Ouvert", contrôles SoA non statués).
+Route GET /api/dashboard/horizons.
+UI : nouvelle section HorizonTimeline.tsx sur Home.tsx, trois colonnes (0-3 mois / 3-9 mois / 9-18 mois), chaque item cliquable vers sa mission — même pattern que le bandeau d'échéances RGPD déjà en place (tâche #27).
+Vérification (pour chaque lot)
+cd api && py -3 -m pytest api/tests -q — doit rester à 0 échec, nouveaux tests ajoutés par lot (migration, module, route).
+cd web && npx vitest run && npx tsc --noEmit.
+Vérification navigateur ciblée sur la mission vitrine GRC — recréée avec ISO 27001 + DORA réellement actifs tous les deux (Lot D), utile en particulier pour tester les Lots E/F.
+Régénération de docs/exemples/ si le rendu des livrables change (Lots D/E — colonnes Référentiel/Preuve(s) associée(s) sur le tableau manual_controls ; les autres lots n'impactent pas les exports).
+TRACKING.md + commit + push après chaque lot validé, comme pour A/B/C — mais avec un point de passage après chaque lot cette fois (l'utilisateur a demandé à voir le détail avant de démarrer, donc pas d'enchaînement automatique silencieux comme pour A/B/C ; un message de fin de lot avant de passer au suivant).
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:55:37+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\todo.md (LANGUAGE_MARKDOWN)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\todo.md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+
+J'étais en train de travailler làdessus On en est aux LOt E Avant de commencer vérifiez bien que tous les autres ont bien été faits Et qu'il n'y a pas de points de friction Ensuite tu enchaîneras Jus Avoir terminé le plan de build
+
+
+
+
+Jalons 3-5 — plan de build (Lots D, E, F, G, H)
+Contexte
+Après les Lots A/B/C (chaîne risque→traitement, SoA, registre des violations) et le correctif du chapitre RGPD Markdown, il reste trois jalons du plan de build (docs/audit-critique-plan.md §6, docs/spec-refonte-grc-consulting.md §10) non traités : Jalon 3 (compléments GRC), Jalon 4 (EU AI Act), Jalon 5 (Copilote, connecteurs, dashboard). Une revue factuelle du code (agent Explore, lecture directe) montre que la majorité de ces jalons est déjà couverte par du travail antérieur non documenté comme tel dans le spec d'origine. Ce plan isole ce qui reste réellement à construire.
+
+Déjà fait — rien à construire
+EU AI Act (Jalon 4) : api/frameworks/aiact.yaml existe (id/name/description + 4 exigences), auto-découvert par GET /api/frameworks (api/modules/projects.py:1392) exactement comme NIST CSF/NIS2/DORA — déjà sélectionnable à la création d'une mission GRC. Confirmé avec l'utilisateur : rien de plus pour l'instant, même traitement que les autres référentiels (contenu enrichi au fil des missions réelles, pas inventé en amont).
+Copilote LLM contraint (Jalon 5, §10.4) : api/modules/ai_gateway.py est déjà le connecteur pluggable unique (clé API optionnelle, repli local). Deux points d'entrée existent déjà : transverse (copilot_grc.py) et par mission (projects.py:1603 run_project_copilot). Le texte généré n'est jamais écrit dans un champ structuré (F11 déjà respecté, vérifié dans CopilotGRC.tsx/PhaseTraitement.tsx — uniquement du state React affiché en lecture seule). Rien à construire ici.
+Registre des violations (G5, Jalon 3) : fait au Lot C.
+Alertes d'échéances (Jalon 3) : déjà fait (tâche #27).
+Catalogue de mesures (G3, Jalon 1) : déjà f
+<truncated 8132 bytes>
+tée « tout le portefeuille » (comme copilot_grc.py::aggregate_context).
+
+Nouvelle fonction backend api/modules/copilot_grc.py::horizon_agregat() (ou nouveau petit module horizons.py) qui classe, tous projets confondus : court terme (quick wins non traités, steps.traitement.quick_wins), moyen terme (remédiations avec statut != "Fait" et echeance renseignée), long terme (items sans échéance proche — maturité/certification, ex. strategie_traitement scenarios encore "Ouvert", contrôles SoA non statués).
+Route GET /api/dashboard/horizons.
+UI : nouvelle section HorizonTimeline.tsx sur Home.tsx, trois colonnes (0-3 mois / 3-9 mois / 9-18 mois), chaque item cliquable vers sa mission — même pattern que le bandeau d'échéances RGPD déjà en place (tâche #27).
+Vérification (pour chaque lot)
+cd api && py -3 -m pytest api/tests -q — doit rester à 0 échec, nouveaux tests ajoutés par lot (migration, module, route).
+cd web && npx vitest run && npx tsc --noEmit.
+Vérification navigateur ciblée sur la mission vitrine GRC — recréée avec ISO 27001 + DORA réellement actifs tous les deux (Lot D), utile en particulier pour tester les Lots E/F.
+Régénération de docs/exemples/ si le rendu des livrables change (Lots D/E — colonnes Référentiel/Preuve(s) associée(s) sur le tableau manual_controls ; les autres lots n'impactent pas les exports).
+TRACKING.md + commit + push après chaque lot validé, comme pour A/B/C — mais avec un point de passage après chaque lot cette fois (l'utilisateur a demandé à voir le détail avant de démarrer, donc pas d'enchaînement automatique silencieux comme pour A/B/C ; un message de fin de lot avant de passer au suivant).
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:55:37+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\todo.md (LANGUAGE_MARKDOWN)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\todo.md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+Continue jusqu'à la fin Ne reviens vers moi que quand ce sera terminé
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T11:59:08+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\todo.md (LANGUAGE_MARKDOWN)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\todo.md (LANGUAGE_MARKDOWN)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+De façon très concise dis moi ce qu'il reste à faire sur mon application
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T17:30:10+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+Expliquemoi le dev 01 Ensuite J'aimerais également que tu m'expliques le dev 02 Le dev 03 Pour le parti sécurité pas de soucis Et ens Dismoi si quelque chose a été fait concernant l'audit de rapport Green Shield Avec les différents sprints
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T17:31:31+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+OK prépare donc tout ce qu'il faut pour réaliser tout ça étape par étape Adopte Le personnage d'un ingénieur logiciel spécialisé En développement devsecops Pour toute la partie code Et Montremoi à la fin si tu as rencontré des points de friction ce qui a été fait De façon numérotée Et ce qui reste à faire ou n'a pas encore été fait Et pourquoi cela n'a pas été fait
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T17:33:53+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+OK prépare donc tout ce qu'il faut pour réaliser tout ça étape par étape Adopte Le personnage d'un ingénieur logiciel spécialisé En développement devsecops Pour toute la partie code Et Montremoi à la fin si tu as rencontré des points de friction ce qui a été fait De façon numérotée Et ce qui reste à faire ou n'a pas encore été fait Et pourquoi cela n'a pas été fait
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T17:33:53+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+Listemoi les choses à faire de façon concise Sur une ou 2 lignes maximum
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T17:51:50+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+---
+<USER_REQUEST>
+OK enchaîne alors fais le
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-07-31T17:52:18+02:00.
+
+The user's current state is as follows:
+Active Document: c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+Cursor is on line: 1
+Other open documents:
+- c:\Users\Dow\Desktop\GREEN SHIELD\api\modules\preuves.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>

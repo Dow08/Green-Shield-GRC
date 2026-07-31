@@ -389,6 +389,23 @@ export interface ManualControl {
   referentiel_name?: string;
 }
 
+// Bibliothèque de preuves multi-référentiels (G3bis, 31/07/2026) : une
+// preuve écrite une fois (ex. une politique de sécurité) peut couvrir des
+// contrôles de plusieurs référentiels actifs de la même mission.
+export interface LienControle {
+  referentiel_id: string;
+  control_id: string;
+}
+
+export interface Preuve {
+  id: string;
+  libelle: string;
+  description: string;
+  document_reference: string;
+  date: string;
+  controles_lies: LienControle[];
+}
+
 // Déclaration d'Applicabilité (SoA) — ISO/IEC 27001:2022 Annexe A, clause
 // 6.1.3 d. `applicable` démarre à `null` (non statué), jamais `true` : une
 // mission ne doit jamais afficher 93 décisions que le consultant n'a pas
@@ -556,6 +573,7 @@ export interface ProjectState {
       manual_controls: ManualControl[];
       technical_results: AuditResult | null;
       soa?: EntreeSoa[];
+      preuves?: Preuve[];
     };
     restitution?: {
       exec_summary: string;

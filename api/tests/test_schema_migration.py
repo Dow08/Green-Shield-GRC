@@ -170,3 +170,18 @@ def test_mission_v9_gagne_le_registre_des_violations_vide():
     assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
     assert migree["steps"]["diagnostic"]["violations"] == []
     assert migree["steps"]["diagnostic"]["rgpd_register"] == [{"id": "RGPD-01"}]
+
+
+def test_mission_v10_gagne_la_bibliotheque_de_preuves_vide():
+    """v10 → v11 (G3bis) : la bibliothèque de preuves multi-référentiels
+    démarre vide — aucune preuve n'est présumée exister."""
+    v10 = {
+        "schema_version": 10, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {"evaluation": {"manual_controls": [{"id": "A.5"}]}},
+    }
+    migree = schema_migration.migrate(dict(v10))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+    assert migree["steps"]["evaluation"]["preuves"] == []
+    assert migree["steps"]["evaluation"]["manual_controls"] == [
+        {"id": "A.5", "referentiel_id": None, "referentiel_name": None}
+    ]

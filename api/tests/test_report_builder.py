@@ -128,6 +128,33 @@ def test_le_tableau_des_controles_manuels_porte_le_referentiel_d_origine():
     assert "DORA" in contenu
 
 
+def test_une_preuve_multi_referentiel_apparait_sur_les_deux_controles_qu_elle_couvre():
+    """L'intérêt de la bibliothèque de preuves (Lot E) : une preuve saisie une
+    fois apparaît sur chaque contrôle qu'elle couvre, quel que soit le
+    référentiel."""
+    etat = mission()
+    etat["steps"]["evaluation"]["manual_controls"] = [
+        {"id": "ISO-A.5", "title": "Politiques", "status": "CONFORME", "notes": "",
+         "referentiel_id": "iso27001", "referentiel_name": "ISO/IEC 27001:2022"},
+        {"id": "DORA-ICT", "title": "Cadre de gestion des risques TIC", "status": "CONFORME", "notes": "",
+         "referentiel_id": "dora", "referentiel_name": "DORA"},
+    ]
+    etat["steps"]["evaluation"]["preuves"] = [
+        {"id": "PRV-01", "libelle": "PSSI signée par la Direction", "controles_lies": [
+            {"referentiel_id": "iso27001", "control_id": "ISO-A.5"},
+            {"referentiel_id": "dora", "control_id": "DORA-ICT"},
+        ]},
+    ]
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert "Preuve(s) associée(s)" in contenu
+    assert contenu.count("PSSI signée par la Direction") == 2
+
+
+def test_un_controle_sans_preuve_liee_n_affiche_rien_dans_la_colonne():
+    _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
+    assert "Preuve(s) associée(s)" in contenu
+
+
 def test_le_rapport_d_audit_indique_l_absence_de_scan_technique():
     _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
     assert "Aucun scan technique" in contenu

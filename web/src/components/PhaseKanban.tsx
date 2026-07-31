@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Users, Clock, FileOutput, ExternalLink } from "lucide-react";
+import { ChevronDown, ChevronRight, Users, Clock, FileOutput, ExternalLink, Bot, Lock } from "lucide-react";
 import type {
   Workflow,
   EtapeWorkflow,
@@ -88,7 +88,10 @@ function EtapeCard({
     (etape.livrables?.length ?? 0) > 0 ||
     (etape.sources?.length ?? 0) > 0;
 
+  const isApiValidated = typeof valeurs.source === "string" && valeurs.source.startsWith("api:");
+
   function cyclerStatut() {
+    if (isApiValidated) return; // Ne peut pas être modifié manuellement si validé par API
     const i = STATUTS_ETAPE.indexOf(statut);
     onStatusChange(STATUTS_ETAPE[(i + 1) % STATUTS_ETAPE.length]);
   }
@@ -115,18 +118,22 @@ function EtapeCard({
         <button
           type="button"
           role="button"
+          disabled={isApiValidated}
           aria-label={`Statut de « ${etape.titre} » : ${STATUT_LABELS[statut]} — appuyer pour changer`}
           onClick={cyclerStatut}
           className={[
-            "flex-none rounded-full px-3 py-2 text-[10.5px] font-bold transition",
-            statut === "fait"
-              ? "bg-[rgba(46,230,160,0.18)] text-[var(--g1)]"
+            "flex-none rounded-full px-3 py-2 text-[10.5px] font-bold transition flex items-center gap-1",
+            isApiValidated 
+              ? "bg-[rgba(46,230,160,0.18)] text-[var(--g1)] border border-[var(--g1)] cursor-not-allowed opacity-90"
+              : statut === "fait"
+              ? "bg-[rgba(46,230,160,0.18)] text-[var(--g1)] cursor-pointer"
               : statut === "en_cours"
-                ? "bg-[rgba(255,207,107,0.18)] text-[var(--amber,#ffcf6b)]"
-                : "bg-white/[0.05] text-[var(--faint)]",
+                ? "bg-[rgba(255,207,107,0.18)] text-[var(--amber,#ffcf6b)] cursor-pointer"
+                : "bg-white/[0.05] text-[var(--faint)] cursor-pointer",
           ].join(" ")}
         >
-          {STATUT_LABELS[statut]}
+          {isApiValidated && <Lock size={10} />}
+          {isApiValidated ? "Validé par API" : STATUT_LABELS[statut] || statut}
         </button>
       </div>
 
@@ -205,6 +212,15 @@ function EtapeCard({
           {etape.avertissement && (
             <div className="rounded-lg bg-[rgba(255,111,145,0.1)] px-2 py-1.5 text-[var(--rose)]">
               {etape.avertissement}
+            </div>
+          )}
+          
+          {isApiValidated && (
+            <div className="mt-3 p-2.5 rounded-lg bg-[rgba(46,230,160,0.05)] border border-[var(--g1)]/20 text-[11px] text-[var(--g1)] flex items-start gap-2">
+              <Bot size={14} className="shrink-0 mt-0.5" />
+              <div>
+                <strong>Validation automatisée :</strong> {valeurs.commentaire || "Cette mesure a été validée par un connecteur Continuous Compliance."}
+              </div>
             </div>
           )}
         </div>

@@ -49,6 +49,9 @@ def test_nist_csf_porte_les_six_fonctions_representees():
 @pytest.fixture()
 def referentiels(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "FRAMEWORKS_DIR", tmp_path)
+    monkeypatch.setattr(projects.crud, "FRAMEWORKS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.exports, "FRAMEWORKS_DIR", tmp_path, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "FRAMEWORKS_DIR", tmp_path, raising=False)
     (tmp_path / "custom").mkdir()
     # Un référentiel « livré avec l'application »
     (tmp_path / "iso27001.yaml").write_text(

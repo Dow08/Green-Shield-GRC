@@ -39,7 +39,13 @@ def isolated_dirs(tmp_path, monkeypatch):
     frameworks_dir = tmp_path / "frameworks"
     (frameworks_dir / "custom").mkdir(parents=True)
     monkeypatch.setattr(projects, "PROJECTS_DIR", projects_dir)
+    monkeypatch.setattr(projects.crud, "PROJECTS_DIR", projects_dir, raising=False)
+    monkeypatch.setattr(projects.exports, "PROJECTS_DIR", projects_dir, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", projects_dir, raising=False)
     monkeypatch.setattr(projects, "FRAMEWORKS_DIR", frameworks_dir)
+    monkeypatch.setattr(projects.crud, "FRAMEWORKS_DIR", frameworks_dir, raising=False)
+    monkeypatch.setattr(projects.exports, "FRAMEWORKS_DIR", frameworks_dir, raising=False)
+    monkeypatch.setattr(projects.snapshots_routes, "FRAMEWORKS_DIR", frameworks_dir, raising=False)
     return tmp_path
 
 

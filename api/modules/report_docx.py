@@ -41,6 +41,7 @@ from . import charte
 from . import controles_techniques
 from . import couverture
 from . import docx_export
+from . import preuves as preuves_module
 from . import report_html
 from . import soa as soa_module
 from . import tprm
@@ -529,13 +530,20 @@ def _ch_resilience(doc: Document, state: dict, steps: dict) -> None:
 
 
 def _ch_evaluation(doc: Document, state: dict, steps: dict) -> None:
-    controles = (steps.get("evaluation") or {}).get("manual_controls") or []
-    _table(doc, ("ID", "Référentiel", "Exigence organisationnelle", "Statut", "Constat et preuve"),
+    evaluation = steps.get("evaluation") or {}
+    controles = evaluation.get("manual_controls") or []
+    preuves_donnees = evaluation.get("preuves") or []
+
+    def _preuves_liees(c: dict) -> str:
+        liees = preuves_module.preuves_pour_controle(preuves_donnees, c.get("referentiel_id"), c.get("id"))
+        return "; ".join(p.get("libelle") for p in liees if p.get("libelle"))
+
+    _table(doc, ("ID", "Référentiel", "Exigence organisationnelle", "Statut", "Constat et preuve", "Preuve(s) associée(s)"),
           [(c.get("id"), c.get("referentiel_name") or c.get("referentiel_id"), c.get("title"),
-            c.get("status"), c.get("notes")) for c in controles],
+            c.get("status"), c.get("notes"), _preuves_liees(c)) for c in controles],
           "Aucune check-list de conformité n'est rattachée à cette mission : "
           "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 5.",
-          colonnes_sev=(3,), largeurs=(0.6, 1, 1.7, 0.9, 2.4))
+          colonnes_sev=(3,), largeurs=(0.5, 0.9, 1.5, 0.7, 1.6, 1.3))
 
     soa_donnees = (steps.get("evaluation") or {}).get("soa") or []
     if soa_donnees:

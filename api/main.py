@@ -8,18 +8,28 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from modules import auditcraft_grc
-from modules import projects
+from modules.projects.router import router as projects_router
 from modules import collecte_technique
 from modules import copilot_grc
+from modules.connectors import router as connectors_router
 
 # Cible auditée : /audit/target en conteneur (monté :ro), sinon ../lab_target en local.
 TARGET_DIR = os.environ.get("AUDIT_TARGET_DIR", str(Path(__file__).resolve().parent.parent / "lab_target"))     
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
+
 app = FastAPI(title="GREEN SHIELD API", version="1.0.0")
+
+limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Le frontend (SPA) est servi sur http://localhost:8080 en prod
 app.add_middleware(
@@ -29,10 +39,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Enregistrement des routes projets/frameworks/collecte technique/copilote GRC
-app.include_router(projects.router)
+# Enregistrement des routes projets/frameworks/collecte technique/copilote GRC (sécurisées)
+app.include_router(projects_router)
 app.include_router(collecte_technique.router)
 app.include_router(copilot_grc.router)
+app.include_router(connectors_router)
 
 # Registre des modules (un descripteur par module installé).
 MODULES = [auditcraft_grc.MODULE]

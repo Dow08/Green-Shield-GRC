@@ -1,20 +1,24 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock, AlertTriangle } from "lucide-react";
+import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock, AlertTriangle, Wand2, Bot, Link2 } from "lucide-react";
 import { api } from "../lib/api";
 import { formatDuree } from "../lib/duree";
+import { ProjectWizard } from "../components/ProjectWizard";
+import { AICopilotCreator } from "../components/AICopilotCreator";
 import { IsoPivotView } from "../components/IsoPivotView";
 import { TempsPanel } from "../components/TempsPanel";
 import { ArchivePanel } from "../components/ArchivePanel";
 import { HistoriquePanel } from "../components/HistoriquePanel";
 import { RgpdPanel } from "../components/RgpdPanel";
 import { SoclePanel } from "../components/SoclePanel";
+import { ConnectorsPanel } from "../components/ConnectorsPanel";
 import { PhaseCadrage } from "../components/phases/PhaseCadrage";
 import { PhaseDiagnostic } from "../components/phases/PhaseDiagnostic";
 import { PhaseTprm } from "../components/phases/PhaseTprm";
 import { PhaseEbios } from "../components/phases/PhaseEbios";
 import { PhaseResilience } from "../components/phases/PhaseResilience";
 import { PhaseTraitement } from "../components/phases/PhaseTraitement";
+import { TimelineHorizons } from "../components/TimelineHorizons";
 import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo, EcheanceRgpdMission, CouvertureTechnique } from "../types";
 
 export function Projects() {
@@ -26,6 +30,8 @@ export function Projects() {
   
   // Project creation form state
   const [showCreate, setShowCreate] = useState(false);
+  const [showWizard, setShowWizard] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectClient, setNewProjectClient] = useState("");
   const [newProjectType, setNewProjectType] = useState<"grc" | "consulting">("consulting");
@@ -47,6 +53,7 @@ export function Projects() {
   const [saving, setSaving] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   // Help slideout state
 
@@ -101,6 +108,18 @@ export function Projects() {
     .catch((err) => alert(err instanceof Error ? err.message : "Échec de la création"));
   };
 
+  const handleWizardComplete = (data: { name: string; client: string; type: "grc" | "consulting"; framework_ids?: string[] }) => {
+    api.projects.create(data)
+    .then((created) => {
+      setShowWizard(false);
+      setShowCopilot(false);
+      setActiveProject(created);
+      setCurrentStep(1);
+      loadProjectsAndFrameworks();
+    })
+    .catch((err) => alert(err instanceof Error ? err.message : "Échec de la création"));
+  };
+
   const handleDeleteProject = (id: string, e: React.MouseEvent) => {
     e.stopPropagation(); // Avoid selecting project card
     if (!confirm("Voulez-vous vraiment supprimer définitivement ce rapport d'audit et toutes ses données associées ?")) return;
@@ -112,7 +131,7 @@ export function Projects() {
           setActiveProject(null);
         }
       })
-      .catch((err) => alert("Échec suppression : " + err.message));
+      .catch((err: any) => alert("Échec suppression : " + err.message));
   };
 
   const handleSelectProject = (id: string) => {
@@ -342,6 +361,8 @@ export function Projects() {
       {!activeProject && !loading && (
         <div className="flex-1 flex flex-col gap-4">
           
+          <TimelineHorizons projects={projects} />
+
           {/* STATS DIAGRAM DASHBOARD */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             
@@ -480,7 +501,19 @@ export function Projects() {
                 <FlaskConical size={14} /> Mission de démo
               </button>
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={() => setShowCopilot(true)}
+                className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-[var(--soft)] transition hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30"
+              >
+                <Bot size={14} /> IA Vocale
+              </button>
+              <button
+                onClick={() => setShowWizard(true)}
+                className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-[var(--soft)] transition hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30"
+              >
+                <Wand2 size={14} /> Assistant Création
+              </button>
+              <button
+                onClick={() => setShowCreate(!showCreate)}
                 className="flex items-center gap-1.5 rounded-full bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3.5 py-1.5 text-xs font-bold text-[#04150e] transition hover:opacity-90"
               >
                 <Plus size={14} /> Nouveau Projet
@@ -488,8 +521,37 @@ export function Projects() {
             </div>
           </div>
 
+          {/* PROJECT WIZARD */}
+          {showWizard && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass p-8 border-[var(--accent)] border-2 flex flex-col bg-[var(--bg2)] rounded-xl shadow-2xl mt-4 z-10 relative"
+            >
+              <ProjectWizard 
+                frameworks={frameworks}
+                onComplete={handleWizardComplete}
+                onCancel={() => setShowWizard(false)}
+              />
+            </motion.div>
+          )}
+
+          {/* AI COPILOT */}
+          {showCopilot && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.98 }} 
+              animate={{ opacity: 1, scale: 1 }}
+              className="glass p-8 border-indigo-500/50 border-2 flex flex-col bg-[var(--bg2)] rounded-xl shadow-2xl mt-4 z-10 relative"
+            >
+              <AICopilotCreator 
+                onProjectGenerated={handleWizardComplete}
+                onCancel={() => setShowCopilot(false)}
+              />
+            </motion.div>
+          )}
+
           {/* CREATE PROJECT FORM */}
-          {showCreate && (
+          {showCreate && !showWizard && !showCopilot && (
             <motion.form 
               initial={{ opacity: 0, y: -10 }} 
               animate={{ opacity: 1, y: 0 }}
@@ -665,6 +727,14 @@ export function Projects() {
                 <div className="bg-[var(--g1)] h-full" style={{ width: `${activeProject.progress}%` }} />
               </div>
               <span className="text-xs font-bold text-[var(--g1)]">{activeProject.progress}%</span>
+              
+              {/* Bouton Paramètres administratifs de la mission */}
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className={`ml-2 px-3 py-1.5 text-[10px] font-bold rounded-lg border transition flex items-center gap-2 ${showSettings ? "bg-white/10 border-white/20 text-white" : "bg-transparent border-[var(--stroke)] text-[var(--soft)] hover:text-white"}`}
+              >
+                ⚙️ Paramètres
+              </button>
             </div>
 
             {/* Stepper controls */}
@@ -682,9 +752,7 @@ export function Projects() {
                   </button>
                 );
               })}
-              {/* 7e onglet : parcours GRC pivot ISO 27001 piloté par workflow.yaml
-                  (Jalon 1). Volontairement séparé des 6 étapes historiques ci-dessus
-                  plutôt que d'y être mêlé — cf. docs/audit-critique-plan.md F4. */}
+              {/* 7e onglet : parcours GRC pivot ISO 27001 piloté par workflow.yaml */}
               {activeProject.type === "grc" && (
                 <button
                   onClick={() => setCurrentStep(7)}
@@ -693,9 +761,20 @@ export function Projects() {
                   <Shield size={11} /> ISO 27001
                 </button>
               )}
+
+              {/* 8e onglet : Connecteurs (Continuous Compliance) */}
+              <button
+                onClick={() => setCurrentStep(8)}
+                className={`ml-1 flex h-7 items-center gap-1 rounded-lg px-2 text-[10.5px] font-bold transition ${currentStep === 8 ? "bg-[var(--g1)] text-[#04150e]" : "bg-white/[0.04] text-[var(--soft)] hover:bg-white/10"}`}
+              >
+                <Link2 size={11} /> Connecteurs API
+              </button>
+              
               <div className="text-[11px] font-bold text-[var(--soft)] ml-2">
                 {currentStep === 7 ? (
                   "Parcours GRC pivot — ISO/IEC 27001:2022"
+                ) : currentStep === 8 ? (
+                  "Continuous Compliance & API"
                 ) : (
                   <>
                     P{currentStep} : {
@@ -714,40 +793,49 @@ export function Projects() {
             </div>
           </div>
 
-          {/* SOCLE DE MISSION — cadrage contractuel repris au rapport d'audit.
-              Modélisé depuis le jalon 1, sans écran jusqu'au 30/07/2026. */}
-          <SoclePanel
-            key={`socle-${activeProject.id}`}
-            socle={activeProject.socle ?? {}}
-            onChange={(socle) => setActiveProject({ ...activeProject, socle })}
-          />
+          {/* PANNEAUX ADMINISTRATIFS (Masqués par défaut pour l'UX) */}
+          {showSettings && (
+            <motion.div 
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              className="flex flex-col gap-4 mb-4"
+            >
+              {/* SOCLE DE MISSION — cadrage contractuel repris au rapport d'audit.
+                  Modélisé depuis le jalon 1, sans écran jusqu'au 30/07/2026. */}
+              <SoclePanel
+                key={`socle-${activeProject.id}`}
+                socle={activeProject.socle ?? {}}
+                onChange={(socle) => setActiveProject({ ...activeProject, socle })}
+              />
 
-          {/* SUIVI DU TEMPS CONSOMMÉ (F19) — charges consommées vs budget vendu */}
-          <TempsPanel
-            entrees={activeProject.socle?.temps?.entrees ?? []}
-            budget={activeProject.socle?.qualification?.budget}
-            onAdd={handleAddTemps}
-            onDelete={handleDeleteTemps}
-          />
+              {/* SUIVI DU TEMPS CONSOMMÉ (F19) — charges consommées vs budget vendu */}
+              <TempsPanel
+                entrees={activeProject.socle?.temps?.entrees ?? []}
+                budget={activeProject.socle?.qualification?.budget}
+                onAdd={handleAddTemps}
+                onDelete={handleDeleteTemps}
+              />
 
-          {/* SAUVEGARDE / PORTABILITÉ (F14, F15) */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <ArchivePanel
-              missionName={activeProject.name}
-              onExport={handleExportArchive}
-              onImport={handleImportArchive}
-            />
-            <HistoriquePanel instantanes={instantanes} onRestaurer={handleRestaurerInstantane} />
-          </div>
+              {/* SAUVEGARDE / PORTABILITÉ (F14, F15) */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ArchivePanel
+                  missionName={activeProject.name}
+                  onExport={handleExportArchive}
+                  onImport={handleImportArchive}
+                />
+                <HistoriquePanel instantanes={instantanes} onRestaurer={handleRestaurerInstantane} />
+              </div>
 
-          {/* F17 — conservation des données personnelles collectées en entretien */}
-          <RgpdPanel
-            key={activeProject.id}
-            echeance={echeanceRgpd}
-            donneesPersonnelles={echeanceRgpd?.donnees_personnelles ?? 0}
-            onEnregistrer={handleEnregistrerRgpd}
-            onPurger={handlePurgerRgpd}
-          />
+              {/* F17 — conservation des données personnelles collectées en entretien */}
+              <RgpdPanel
+                key={activeProject.id}
+                echeance={echeanceRgpd}
+                donneesPersonnelles={echeanceRgpd?.donnees_personnelles ?? 0}
+                onEnregistrer={handleEnregistrerRgpd}
+                onPurger={handlePurgerRgpd}
+              />
+            </motion.div>
+          )}
 
           {/* ACTIVE STEP WORKSPACE */}
           <div className="flex-1 min-h-0 bg-white/[0.01] border border-[var(--stroke)] rounded-2xl p-5 overflow-y-auto">
@@ -839,6 +927,19 @@ export function Projects() {
                 ======================================================== */}
             {currentStep === 7 && (
               <IsoPivotView project={activeProject} onChange={setActiveProject} />
+            )}
+
+            {/* ========================================================
+                ONGLET 8 : CONNECTEURS (Continuous Compliance)
+                ======================================================== */}
+            {currentStep === 8 && (
+              <ConnectorsPanel 
+                project={activeProject} 
+                onChange={(project) => {
+                  setActiveProject(project);
+                  setProjects(projects.map(p => p.id === project.id ? project : p));
+                }} 
+              />
             )}
 
           </div>

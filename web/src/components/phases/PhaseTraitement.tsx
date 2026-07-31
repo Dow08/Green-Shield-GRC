@@ -318,6 +318,12 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                       >
                         <FileDown size={13} /> Word (.docx)
                       </button>
+                      <button
+                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/nda`, "_blank")}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> PDF
+                      </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">Analyse EBIOS RM</span>
@@ -332,6 +338,12 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> Word (.docx)
+                      </button>
+                      <button
+                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/ebios`, "_blank")}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> PDF
                       </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -348,6 +360,12 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                       >
                         <FileDown size={13} /> Word (.docx)
                       </button>
+                      <button
+                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/pssi_pri`, "_blank")}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> PDF
+                      </button>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-[10px] font-bold text-[var(--faint)] w-32 flex-shrink-0">AIPD / PIA (RGPD)</span>
@@ -362,6 +380,12 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> Word (.docx)
+                      </button>
+                      <button
+                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/aipd`, "_blank")}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> PDF
                       </button>
                     </div>
                     {/* SoA : n'existe que sur une mission au référentiel ISO 27001. */}
@@ -380,6 +404,12 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         >
                           <FileDown size={13} /> Word (.docx)
                         </button>
+                        <button
+                          onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/soa`, "_blank")}
+                          className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
+                        >
+                          <FileDown size={13} /> PDF
+                        </button>
                       </div>
                     )}
                     <div className="flex flex-wrap items-center gap-2 border-t border-white/[0.04] pt-2.5 mt-0.5">
@@ -397,6 +427,12 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3 py-2 text-xs font-bold text-[#04150e] hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> Word (.docx)
+                      </button>
+                      <button
+                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/audit_report`, "_blank")}
+                        className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
+                      >
+                        <FileDown size={13} /> PDF
                       </button>
                     </div>
                   </div>

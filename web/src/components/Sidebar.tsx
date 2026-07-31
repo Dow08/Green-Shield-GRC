@@ -1,4 +1,4 @@
-import { LayoutGrid, Settings, X } from "lucide-react";
+import { LayoutGrid, Settings, X, Bug } from "lucide-react";
 import type { ModuleInfo } from "../types";
 import { iconFor } from "../lib/icons";
 import { useDismissOnOutsideOrEscape } from "../lib/useDismissOnOutsideOrEscape";
@@ -81,11 +81,15 @@ export function Sidebar({ view, onNavigate, modules, isOpen, onClose }: Props) {
 
         <div className="flex-1" />
 
-        <NavButton active={view === "settings"} label="Réglages &amp; Paramètres" onClick={() => naviguer("settings")}>
+        <NavButton active={view === "bugs"} label="Journal des Bugs" onClick={() => naviguer("bugs")}>
+          <Bug size={19} strokeWidth={2} />
+        </NavButton>
+
+        <NavButton active={view === "settings"} label="Réglages & Paramètres" onClick={() => naviguer("settings")}>
           <Settings size={19} strokeWidth={2} />
         </NavButton>
         <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#3a4d5a] to-[#22323c] text-sm font-bold text-[#cfe]">
-          DP
+          GS+
         </div>
       </aside>
     </>

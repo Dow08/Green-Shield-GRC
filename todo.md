@@ -14,7 +14,7 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 
 ## Frictions non résolues de l'audit critique (§6bis)
 
-- [x] **F14 — Export/Import d'une mission** livré le 29/07/2026 : archive ZIP chiffrée AES-256 (`api/modules/archive.py`), routes `POST /api/projects/{id}/archive` et `POST /api/projects/import-archive`, panneau `ArchivePanel.tsx`. Couvre aussi le reste de **F15** (chiffrement du vecteur le plus exposé). Import durci contre le Zip Slip, la bombe de décompression et les archives malformées.
+- [x] **F14 — Export/Import d'une mission** livré le 29/07/2026 : archive ZIP chiffrée AES-256 (`api/modules/archive.py`), routes `POST /api/projects/{id}/archive` et `POST /api/projects/import-archive`, panneau `ArchivePanel.tsx`. Couvre aussi le reste de **F15** (chiffrement du vecteur le plus exposé). Import durci contre le Zip Slip, la bombe de décompression et archives malformées.
 - [x] **F15 — Chiffrement au repos documenté** le 29/07/2026 : section « Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md), avec les commandes de vérification (`manage-bde -status` / `lsblk -f`). Reste à faire une fois F14 livré : **chiffrer l'archive d'export**, qui est le vecteur le plus exposé.
 - [x] **F16 — Jeu de démonstration** livré le 29/07/2026 : bouton « Mission de démo » dans le registre, `POST /api/projects/demo`. Mission entièrement fictive (« Cabinet Fictif SAS »), marquée `is_demo`, garnie de temps consommé et d'une configuration SSH volontairement vulnérable pour que le scan technique ait de quoi montrer.
 - [x] **F17 — Conservation et purge des données personnelles** livré le 29/07/2026 : `schema_version` 4 (`socle.rgpd_consultant`), `api/modules/retention.py`, routes de politique / purge / échéances, panneau `RgpdPanel.tsx`. Le délai court depuis la **fin** de mission. La purge efface les personnes interrogées mais **jamais les constats d'audit** (minimisation, pas destruction) et prend un instantané de secours avant.
@@ -56,11 +56,24 @@ Non entamé — évolutions fonctionnelles majeures, pas des correctifs :
   - **Déjà couvert** (pas de nouveau code nécessaire) : EU AI Act sélectionnable comme référentiel générique (comme NIST CSF), Copilote LLM déjà contraint (F11) et déjà disponible par mission ET transverse, registre des violations (Lot C), alertes d'échéances, catalogue de mesures.
   - **Explicitement hors scope** (décision du spec lui-même) : approfondissement du contenu NIS2/DORA (track contenu, pas une tâche de code), connecteurs SIEM/EDR/cloud **live** (v2, explicitement différé par le spec).
   - **[x] Lot D — Multi-référentiel par mission GRC**, livré le 31/07/2026 : une mission peut porter plusieurs référentiels actifs (`schema_version` 12, `manual_controls[].referentiel_id`, sélection multiple à la création, regroupement par référentiel en Phase 5, colonne « Référentiel » dans les 3 exports). Nécessaire car le Lot E ci-dessous supposait à tort que le multi-référentiel existait déjà. 610 tests backend / 150 frontend.
-  - **[ ] Lot E — Bibliothèque de preuves multi-référentiels** (prochain) : `steps.evaluation.preuves`, nouveau module `api/modules/preuves.py`, `PreuveLibraryPanel.tsx` en Phase 5, colonne « Preuve(s) associée(s) » dans les exports. Détail complet dans le fichier de plan cité ci-dessus.
-  - **[ ] Lot F — Vérification croisée des référentiels** (dépend du Lot E) : bouton « Vérifier les référentiels », suggestions de réutilisation de preuve par similarité de titre (`difflib`), jamais de rattachement automatique.
-  - **[ ] Lot G — Ingestion SIEM/EDR par dépôt de fichier v1** : brancher le dossier `targets/` déjà créé par mission (jusqu'ici jamais lu), parseur CSV/JSON générique, bouton « Rafraîchir » en Phase 2.
-  - **[ ] Lot H — Frise 3 horizons au dashboard** : agrégation court/moyen/long terme tous projets confondus sur `Home.tsx`.
+  - **[x] Lot E — Bibliothèque de preuves multi-référentiels** (prochain) : `steps.evaluation.preuves`, nouveau module `api/modules/preuves.py`, `PreuveLibraryPanel.tsx` en Phase 5, colonne « Preuve(s) associée(s) » dans les exports. Détail complet dans le fichier de plan cité ci-dessus.
+  - **[x] Lot F — Vérification croisée des référentiels** (dépend du Lot E) : bouton « Vérifier les référentiels », suggestions de réutilisation de preuve par similarité de titre (`difflib`), jamais de rattachement automatique.
+  - **[x] Lot G — Ingestion SIEM/EDR par dépôt de fichier v1** : brancher le dossier `targets/` déjà créé par mission (jusqu'ici jamais lu), parseur CSV/JSON générique, bouton « Rafraîchir » en Phase 2.
+  - **[x] Lot H — Frise 3 horizons au dashboard** : agrégation court/moyen/long terme tous projets confondus sur `Home.tsx` (plutôt `Projects.tsx`).
   - Séquence de dépendance : D (fait) → E → F → G → H. Après chaque lot : `py -3 -m pytest api/tests -q` + `npx vitest run && npx tsc --noEmit`, vérification navigateur, régénération de `docs/exemples/` si le rendu change, entrée `TRACKING.md`, commit + push.
+
+## Audit SecOps & Qualité Logicielle (31/07/2026)
+
+Issues identifiées lors de l'audit complet du 31/07/2026.
+
+- [x] **SEC-01 (CRITIQUE) — Sécuriser l'API FastAPI par Token Authentifié** : Fait. Middleware `auth.py` (Bearer Token) injecté globalement, intercepté par le frontend.
+- [x] **DEV-01 (MAJEUR) — Refactoriser le contrôleur monolithique `projects.py`** : Scinder les routes en sous-modules (`crud`, `export`, etc.) pour réduire la complexité cyclomatique.
+- [x] **DEV-02 (MAJEUR) — Asynchroniser la génération de rapports lourds** : Encapsuler `report_docx.py` / `report_html.py` dans un worker `BackgroundTasks` ou `asyncio.to_thread`.
+- [ ] **SEC-02 (MAJEUR) — Stockage en clair des données** : Ajouter une couche de chiffrement symétrique (AES) optionnelle au repos sur les fichiers `project.json`.
+- [x] **SEC-03 (MINEUR) — Stockage de la clé API LLM** : Basculer la clé API Gemini de `localStorage` vers `sessionStorage` ou la chiffrer.
+- [x] **SEC-04 (MINEUR) — Rate Limiting / Anti-DoS** : Appliquer `slowapi` sur `/api/copilot/ask` et les exports pour brider le débit.
+- [x] **DEV-03 (MINEUR) — Dualité génération ID** : Centraliser la méthode de génération d'ID (`_next_bs_id`) des assets/constats.
+- [x] **DEV-04 (MINEUR) — CI/CD** : Fait. `.github/workflows/ci.yml` est déjà configuré et teste le backend/frontend.
 
 ## Notes
 

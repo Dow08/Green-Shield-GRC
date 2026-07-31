@@ -6,6 +6,9 @@
  */
 export function safeGetItem(key: string): string | null {
   try {
+    if (key === "copilot_api_key") {
+      return window.sessionStorage.getItem(key);
+    }
     return window.localStorage.getItem(key);
   } catch {
     return null;
@@ -14,7 +17,11 @@ export function safeGetItem(key: string): string | null {
 
 export function safeSetItem(key: string, value: string): boolean {
   try {
-    window.localStorage.setItem(key, value);
+    if (key === "copilot_api_key") {
+      window.sessionStorage.setItem(key, value);
+    } else {
+      window.localStorage.setItem(key, value);
+    }
     return true;
   } catch {
     return false;

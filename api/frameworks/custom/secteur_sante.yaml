@@ -1,0 +1,6 @@
+description: ''
+id: secteur_sante
+name: Exigences secteur santé
+requirements:
+- id: SANTE-01
+  title: HDS
