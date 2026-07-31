@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ANALYSE DE RISQUES EBIOS RM** — Vernier Composites SAS
-> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 11:10 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
 **Client :** Vernier Composites SAS  
-**Date d'édition :** 31/07/2026 10:37  
+**Date d'édition :** 31/07/2026 11:10  
 **Consultant :** Consultant, Cabinet non renseigné  
 **Classification :** CONFIDENTIEL  
 
@@ -139,6 +139,6 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `3f8c7353af2c4f522229844da36ed26930d954c9c089d7d0acb546d16be17ec5`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3f13820ef901ac4680d862d6e113c1c9e43cdc87a055423bf6e3d5c0c1e27177`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **AIPD / PIA (RGPD)** — Vernier Composites SAS
-> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 11:10 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
 **Client :** Vernier Composites SAS  
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
-**Date :** 31/07/2026 10:37  
+**Date :** 31/07/2026 11:10  
 **Délégué à la Protection des Données (DPO) :** Enregistré au registre  
 
 ---
@@ -66,6 +66,6 @@ Segmentation du NVR sur un VLAN dédié, authentification nominative des deux ha
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `3f8c7353af2c4f522229844da36ed26930d954c9c089d7d0acb546d16be17ec5`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3f13820ef901ac4680d862d6e113c1c9e43cdc87a055423bf6e3d5c0c1e27177`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

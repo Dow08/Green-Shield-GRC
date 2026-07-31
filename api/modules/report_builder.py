@@ -793,8 +793,8 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
         controls = steps.get("evaluation", {}).get("manual_controls", [])
         manual_md = _tableau(
-            ("ID", "Exigence Organisationnelle", "Statut de Conformité", "Notes du Consultant"),
-            [(c.get("id"), c.get("title"),
+            ("ID", "Référentiel", "Exigence Organisationnelle", "Statut de Conformité", "Notes du Consultant"),
+            [(c.get("id"), c.get("referentiel_name") or c.get("referentiel_id"), c.get("title"),
               # STATUS_LABELS existait déjà mais n'était branché que sur le DOCX :
               # le Markdown affichait « NON_CONFORME » brut au client.
               docx_export.STATUS_LABELS.get(c.get("status"), c.get("status")),

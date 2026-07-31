@@ -209,7 +209,7 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
 
 
 def create_empty_state(project_id: str, name: str, client: str, project_type: str,
-                       framework_id: str = "iso27001") -> dict:
+                       framework_id: str = "iso27001", framework_ids: list[str] | None = None) -> dict:
     """Mission neuve : la structure complète, **aucune donnée d'exemple**.
 
     Les missions étaient jusqu'ici pré-remplies d'actifs, de tiers, d'événements
@@ -265,28 +265,43 @@ def create_empty_state(project_id: str, name: str, client: str, project_type: st
     }
 
     if project_type == "grc":
-        fw = get_framework_by_id(framework_id) or {}
-        state["steps"]["cadrage"]["framework_id"] = framework_id
-        state["steps"]["cadrage"]["framework_name"] = fw.get("name", framework_id)
-        state["steps"]["evaluation"] = {
-            "manual_controls": [
+        # `framework_ids` (pluriel) porte la liste complète des référentiels
+        # actifs — un client réel peut être soumis à ISO 27001 *et* DORA *et*
+        # NIS2 à la fois (31/07/2026). Le premier élément reste le référentiel
+        # « pivot » (framework_id/name singuliers, compat avec le workflow
+        # guidé ISO 27001 et l'affichage existants).
+        ids = framework_ids or [framework_id]
+        fw = get_framework_by_id(ids[0]) or {}
+        state["steps"]["cadrage"]["framework_id"] = ids[0]
+        state["steps"]["cadrage"]["framework_name"] = fw.get("name", ids[0])
+        state["steps"]["cadrage"]["framework_ids"] = ids
+
+        manual_controls = []
+        for fw_id in ids:
+            referentiel = get_framework_by_id(fw_id) or {}
+            manual_controls += [
                 {"id": req.get("id"), "title": req.get("title"),
                  "description": req.get("description", ""),
-                 "status": "A_VERIFIER", "notes": ""}
-                for req in fw.get("requirements", [])
-            ],
+                 "status": "A_VERIFIER", "notes": "",
+                 "referentiel_id": fw_id, "referentiel_name": referentiel.get("name", fw_id)}
+                for req in referentiel.get("requirements", [])
+            ]
+        state["steps"]["evaluation"] = {
+            "manual_controls": manual_controls,
             "technical_results": None,
         }
-        # Déclaration d'Applicabilité (SoA) : uniquement pour ISO 27001, dont
-        # c'est une exigence de certification (clause 6.1.3 d) — une mission
-        # DORA ou NIS2 n'a pas à porter 93 contrôles hors sujet.
-        if framework_id == "iso27001":
+        # Déclaration d'Applicabilité (SoA) : uniquement si ISO 27001 fait
+        # partie des référentiels actifs, dont c'est une exigence de
+        # certification (clause 6.1.3 d) — une mission DORA/NIS2 seule n'a
+        # pas à porter 93 contrôles hors sujet.
+        if "iso27001" in ids:
             state["steps"]["evaluation"]["soa"] = soa.entrees_par_defaut()
 
     return state
 
 
-def create_default_state(project_id: str, name: str, client: str, project_type: str, framework_id: str = "iso27001") -> dict:
+def create_default_state(project_id: str, name: str, client: str, project_type: str,
+                         framework_id: str = "iso27001", framework_ids: list[str] | None = None) -> dict:
     """État **garni de données d'exemple** — réservé à la mission de démonstration.
 
     Ne pas appeler pour une mission réelle : voir `create_empty_state`.
@@ -424,17 +439,23 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
             }
         }
     else:  # GRC
-        fw = get_framework_by_id(framework_id) or {"name": "Referentiel", "requirements": []}
-        manual_controls = [
-            {
-                "id": req["id"],
-                "title": req["title"],
-                "description": req["description"],
-                "status": "A_VERIFIER",
-                "notes": ""
-            }
-            for req in fw.get("requirements", [])
-        ]
+        ids = framework_ids or [framework_id]
+        fw = get_framework_by_id(ids[0]) or {"name": "Referentiel", "requirements": []}
+        manual_controls = []
+        for fw_id in ids:
+            referentiel = get_framework_by_id(fw_id) or {"name": fw_id, "requirements": []}
+            manual_controls += [
+                {
+                    "id": req["id"],
+                    "title": req["title"],
+                    "description": req["description"],
+                    "status": "A_VERIFIER",
+                    "notes": "",
+                    "referentiel_id": fw_id,
+                    "referentiel_name": referentiel.get("name", fw_id),
+                }
+                for req in referentiel.get("requirements", [])
+            ]
         state["steps"] = {
             "cadrage": {
                 "scope": "Ensemble des serveurs de production critiques de la DSI.",
@@ -448,8 +469,9 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                     {"id": "BS-01", "name": "Serveur API GREEN SHIELD", "type": "Logiciel", "description": "Contrôle continu local des politiques.", "owner": "RSSI"},
                     {"id": "BS-02", "name": "Fichiers de configurations cibles (/targets)", "type": "Logiciel", "description": "sshd_config et nginx.conf importés.", "owner": "Auditeur"}
                 ],
-                "framework_id": framework_id,
-                "framework_name": fw.get("name", framework_id),
+                "framework_id": ids[0],
+                "framework_name": fw.get("name", ids[0]),
+                "framework_ids": ids,
             },
             "diagnostic": {
                 "pssi_active": False,
@@ -514,9 +536,10 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
             "evaluation": {
                 "manual_controls": manual_controls,
                 "technical_results": None,
-                # SoA (93 contrôles) uniquement pour ISO 27001 — non statuée,
-                # au même titre qu'une mission réelle (zéro invention).
-                "soa": soa.entrees_par_defaut() if framework_id == "iso27001" else [],
+                # SoA (93 contrôles) uniquement si ISO 27001 fait partie des
+                # référentiels actifs — non statuée, au même titre qu'une
+                # mission réelle (zéro invention).
+                "soa": soa.entrees_par_defaut() if "iso27001" in ids else [],
             },
             "restitution": {
                 "exec_summary": f"Audit de conformité par rapport au référentiel {fw.get('name')}.",
@@ -561,8 +584,11 @@ def create_project(data: dict) -> dict:
     name = data.get("name")
     client = data.get("client", "Client Anonyme")
     project_type = data.get("type", "consulting")
-    framework_id = data.get("framework_id", "iso27001")
-    
+    # `framework_ids` (pluriel, plusieurs référentiels actifs) prime sur
+    # l'ancien `framework_id` singulier, conservé pour compatibilité.
+    framework_ids = data.get("framework_ids") or [data.get("framework_id", "iso27001")]
+    framework_id = framework_ids[0]
+
     if not name:
         raise HTTPException(status_code=400, detail="Le nom du projet est obligatoire")
         
@@ -578,7 +604,7 @@ def create_project(data: dict) -> dict:
     (p_dir / "targets").mkdir(exist_ok=True)
     (p_dir / "reports").mkdir(exist_ok=True)
     
-    state = create_empty_state(project_id, name, client, project_type, framework_id)
+    state = create_empty_state(project_id, name, client, project_type, framework_id, framework_ids)
     # Un projet neuf traverse la même chaîne de migration qu'un projet ancien :
     # une seule logique construit le socle/grc/consulting, jamais deux.
     state = schema_migration.migrate(state)

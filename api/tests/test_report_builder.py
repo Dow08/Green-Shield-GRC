@@ -111,6 +111,23 @@ def test_le_rapport_d_audit_reprend_les_controles_manuels():
     assert "CONFORME" not in contenu
 
 
+def test_le_tableau_des_controles_manuels_porte_le_referentiel_d_origine():
+    """Multi-référentiel : une fois plusieurs listes de contrôles fusionnées,
+    la colonne « Référentiel » est la seule façon de savoir de quel
+    référentiel chaque contrôle vient."""
+    etat = mission()
+    etat["steps"]["evaluation"]["manual_controls"] = [
+        {"id": "ISO-A.5", "title": "Politiques", "status": "CONFORME", "notes": "ok",
+         "referentiel_id": "iso27001", "referentiel_name": "ISO/IEC 27001:2022"},
+        {"id": "DORA-01", "title": "Gestion des risques TIC", "status": "A_VERIFIER", "notes": "",
+         "referentiel_id": "dora", "referentiel_name": "DORA"},
+    ]
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert "Référentiel" in contenu
+    assert "ISO/IEC 27001:2022" in contenu
+    assert "DORA" in contenu
+
+
 def test_le_rapport_d_audit_indique_l_absence_de_scan_technique():
     _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
     assert "Aucun scan technique" in contenu

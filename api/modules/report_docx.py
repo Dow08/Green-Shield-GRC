@@ -530,11 +530,12 @@ def _ch_resilience(doc: Document, state: dict, steps: dict) -> None:
 
 def _ch_evaluation(doc: Document, state: dict, steps: dict) -> None:
     controles = (steps.get("evaluation") or {}).get("manual_controls") or []
-    _table(doc, ("ID", "Exigence organisationnelle", "Statut", "Constat et preuve"),
-          [(c.get("id"), c.get("title"), c.get("status"), c.get("notes")) for c in controles],
+    _table(doc, ("ID", "Référentiel", "Exigence organisationnelle", "Statut", "Constat et preuve"),
+          [(c.get("id"), c.get("referentiel_name") or c.get("referentiel_id"), c.get("title"),
+            c.get("status"), c.get("notes")) for c in controles],
           "Aucune check-list de conformité n'est rattachée à cette mission : "
           "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 5.",
-          colonnes_sev=(2,), largeurs=(0.7, 2, 1, 2.8))
+          colonnes_sev=(3,), largeurs=(0.6, 1, 1.7, 0.9, 2.4))
 
     soa_donnees = (steps.get("evaluation") or {}).get("soa") or []
     if soa_donnees:

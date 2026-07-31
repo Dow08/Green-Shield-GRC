@@ -166,11 +166,12 @@ def _patrimoine(steps: dict, prefixe: str = "3") -> str:
 def _evaluation(steps: dict) -> str:
     controles = (steps.get("evaluation") or {}).get("manual_controls") or []
     tableau = _table(
-        ("ID", "Exigence organisationnelle", "Statut", "Constat et preuve"),
-        [(c.get("id"), c.get("title"), c.get("status"), c.get("notes")) for c in controles],
+        ("ID", "Référentiel", "Exigence organisationnelle", "Statut", "Constat et preuve"),
+        [(c.get("id"), c.get("referentiel_name") or c.get("referentiel_id"), c.get("title"),
+          c.get("status"), c.get("notes")) for c in controles],
         "Aucune check-list de conformité n'est rattachée à cette mission : "
         "l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 5.",
-        colonnes_sev=(2,),
+        colonnes_sev=(3,),
     )
     soa_donnees = (steps.get("evaluation") or {}).get("soa") or []
     if not soa_donnees:

@@ -29,7 +29,10 @@ export function Projects() {
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectClient, setNewProjectClient] = useState("");
   const [newProjectType, setNewProjectType] = useState<"grc" | "consulting">("consulting");
-  const [selectedFramework, setSelectedFramework] = useState("iso27001");
+  // Une mission GRC peut porter plusieurs référentiels actifs à la fois
+  // (ex. ISO 27001 + DORA pour un établissement financier) — le premier
+  // coché reste le référentiel « pivot » (workflow guidé ISO 27001, etc.).
+  const [selectedFrameworks, setSelectedFrameworks] = useState<string[]>(["iso27001"]);
   
   // Stepper state
   const [currentStep, setCurrentStep] = useState(1);
@@ -79,12 +82,13 @@ export function Projects() {
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
-    
+    if (newProjectType === "grc" && selectedFrameworks.length === 0) return;
+
     api.projects.create({
       name: newProjectName,
       client: newProjectClient || "Client",
       type: newProjectType,
-      framework_id: newProjectType === "grc" ? selectedFramework : undefined
+      framework_ids: newProjectType === "grc" ? selectedFrameworks : undefined
     })
     .then((created) => {
       setShowCreate(false);
@@ -532,7 +536,7 @@ export function Projects() {
                       type="button"
                       onClick={() => {
                         setNewProjectType("grc");
-                        setSelectedFramework("iso27001");
+                        setSelectedFrameworks(["iso27001"]);
                       }}
                       className={`flex-1 py-2 rounded-xl border text-xs font-bold transition ${newProjectType === "grc" ? "bg-[rgba(46,230,160,0.12)] border-[var(--g1)] text-[var(--g1)]" : "border-[var(--stroke)] text-[var(--soft)] bg-white/[0.02]"}`}
                     >
@@ -543,16 +547,31 @@ export function Projects() {
 
                 {newProjectType === "grc" && (
                   <div>
-                    <label className="block text-xs font-bold text-[var(--soft)] mb-1">Référentiel GRC principal</label>
-                    <select
-                      value={selectedFramework}
-                      onChange={(e) => setSelectedFramework(e.target.value)}
-                      className="w-full bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
-                    >
+                    <label className="block text-xs font-bold text-[var(--soft)] mb-1">
+                      Référentiel(s) GRC actif(s) — le premier coché est le référentiel pivot
+                    </label>
+                    <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-[var(--stroke)] rounded-xl p-2 bg-[var(--bg2)]">
                       {frameworks.map((f) => (
-                        <option key={f.id} value={f.id}>{f.name}</option>
+                        <label key={f.id} className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selectedFrameworks.includes(f.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedFrameworks([...selectedFrameworks, f.id]);
+                              } else {
+                                setSelectedFrameworks(selectedFrameworks.filter((id) => id !== f.id));
+                              }
+                            }}
+                            className="rounded border-[var(--stroke)] bg-transparent text-[var(--g1)] focus:ring-0"
+                          />
+                          {f.name}
+                        </label>
                       ))}
-                    </select>
+                    </div>
+                    {selectedFrameworks.length === 0 && (
+                      <p className="text-[10px] text-[var(--rose)] mt-1">Sélectionnez au moins un référentiel.</p>
+                    )}
                   </div>
                 )}
               </div>

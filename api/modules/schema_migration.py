@@ -18,7 +18,7 @@ from . import aipd as aipd_module
 from . import soa as soa_module
 from . import tprm
 
-CURRENT_SCHEMA_VERSION = 10
+CURRENT_SCHEMA_VERSION = 12
 
 
 def _to_v2(state: dict) -> dict:
@@ -54,8 +54,11 @@ def _to_v2(state: dict) -> dict:
 
     grc = state.setdefault("grc", {})
     grc.setdefault("active", state.get("type") == "grc")
-    fw = (state.get("steps", {}).get("cadrage", {}) or {}).get("framework_id")
-    grc.setdefault("referentiels_actifs", [fw] if fw else [])
+    cadrage = state.get("steps", {}).get("cadrage", {}) or {}
+    fw = cadrage.get("framework_id")
+    # `framework_ids` (pluriel, missions multi-référentiel depuis le
+    # 31/07/2026) prime sur le singulier historique quand il est présent.
+    grc.setdefault("referentiels_actifs", cadrage.get("framework_ids") or ([fw] if fw else []))
     # Avancement des parcours référentiels : {referentiel: {etape_id: {...}}}
     grc.setdefault("parcours", {})
 
@@ -219,6 +222,39 @@ def _to_v10(state: dict) -> dict:
     return state
 
 
+def _to_v11(state: dict) -> dict:
+    """v10 → v11 : bibliothèque de preuves multi-référentiels (G3bis).
+
+    Une preuve de conformité écrite une fois (ex. une politique de sécurité)
+    sert souvent plusieurs référentiels sur une même mission (ISO 27001 +
+    DORA + NIS2), mais `manual_controls` ne portait qu'un champ `notes` libre
+    par contrôle, sans lien vers les autres. Liste vide par défaut — aucune
+    preuve n'est présumée exister.
+    """
+    evaluation = state.setdefault("steps", {}).setdefault("evaluation", {})
+    evaluation.setdefault("preuves", [])
+    return state
+
+
+def _to_v12(state: dict) -> dict:
+    """v11 → v12 : une mission GRC peut porter plusieurs référentiels actifs.
+
+    Jusqu'ici une mission n'avait qu'un `framework_id` singulier, et
+    `manual_controls` n'était jamais tagué de son référentiel d'origine —
+    inutile tant qu'il n'y en avait qu'un. Les missions déjà existantes
+    reçoivent ce tag rétroactivement (valeur = leur unique référentiel déjà
+    connu), sans toucher au statut ni aux notes déjà saisis.
+    """
+    cadrage = state.get("steps", {}).get("cadrage", {}) or {}
+    fw_id = cadrage.get("framework_id")
+    fw_name = cadrage.get("framework_name")
+    evaluation = state.get("steps", {}).get("evaluation", {}) or {}
+    for controle in evaluation.get("manual_controls") or []:
+        controle.setdefault("referentiel_id", fw_id)
+        controle.setdefault("referentiel_name", fw_name)
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
@@ -230,6 +266,8 @@ _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (8, _to_v8),
     (9, _to_v9),
     (10, _to_v10),
+    (11, _to_v11),
+    (12, _to_v12),
 ]
 
 

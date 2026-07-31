@@ -4,6 +4,20 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [31/07/2026] — Lot D : une mission GRC peut porter plusieurs référentiels actifs
+
+Premier des quatre lots restants de la revue GRC senior (Jalons 3-5). Le Lot E prévu à l'origine (vérification croisée des référentiels) supposait qu'une mission puisse porter plusieurs référentiels actifs — vérifié faux en explorant le code : `grc.referentiels_actifs` est un tableau dans le modèle mais ne contenait jamais qu'un seul élément en pratique, la création de mission n'ayant qu'un `<select>` mono-choix. La mission vitrine « ISO 27001 & DORA » ne l'était que par son nom. Décision validée avec l'utilisateur : construire le multi-référentiel d'abord, plutôt que de bâtir une vérification croisée sur un cas qui n'existait dans aucune donnée réelle.
+
+`schema_version` **12** : chaque contrôle de `manual_controls` gagne `referentiel_id`/`referentiel_name` — indispensable dès que les listes de plusieurs référentiels sont fusionnées, sinon impossible de savoir d'où vient un contrôle. `_to_v12` rétro-tague les missions existantes avec leur unique référentiel déjà connu, sans toucher au statut ni aux notes déjà saisis. `cadrage.framework_ids` (liste) s'ajoute au `framework_id` singulier existant, qui reste le référentiel « pivot » (compat avec le workflow guidé ISO 27001).
+
+Création de mission (`Projects.tsx`) : le sélecteur mono-choix devient une liste à cases à cocher. `PhaseResilience.tsx` : la check-list d'audit organisationnel, jusqu'ici une seule liste plate, se regroupe désormais par référentiel — une sous-section par référentiel actif. Les 3 formats d'export gagnent une colonne « Référentiel » sur le tableau des contrôles manuels. La SoA reste gatée sur l'appartenance d'ISO 27001 à la liste des référentiels actifs (`"iso27001" in framework_ids`), plus seulement sur `framework_id == "iso27001"`.
+
+Mission vitrine GRC recréée réellement multi-référentiel (ISO 27001 + DORA actifs tous les deux, 4 contrôles DORA ajoutés avec statuts illustratifs) — nécessaire pour tester les prochains lots (bibliothèque de preuves, vérification croisée) sur un cas réel plutôt que spéculatif.
+
+**8 tests ajoutés** (`test_multi_referentiel.py` nouveau, `test_report_builder.py`). Vérifié en direct dans le navigateur : création d'une mission ISO 27001 + DORA, regroupement par référentiel affiché correctement en Phase 5, bascule de statut sur un contrôle de chaque groupe persistée sans collision d'index, suppression propre. Vitrine régénérée — le rapport GRC affiche désormais la colonne Référentiel avec les deux référentiels. **610 tests backend, 150 tests frontend.**
+
+---
+
 ## [31/07/2026] — Le rapport Markdown gagne son chapitre RGPD, deux bugs signalés lors du Lot C corrigés
 
 Deux lacunes préexistantes, découvertes en cours de route pendant le Lot C et volontairement laissées de côté à l'époque (signalées via tâches séparées plutôt que traitées dans l'urgence), traitées maintenant dans l'ordre annoncé à l'utilisateur.

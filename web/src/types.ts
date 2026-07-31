@@ -382,6 +382,11 @@ export interface ManualControl {
   description: string;
   status: "CONFORME" | "NON_CONFORME" | "A_VERIFIER";
   notes: string;
+  // Référentiel d'origine du contrôle — absent sur les missions migrées
+  // avant le multi-référentiel (31/07/2026), toujours présent sur les
+  // missions créées depuis.
+  referentiel_id?: string;
+  referentiel_name?: string;
 }
 
 // Déclaration d'Applicabilité (SoA) — ISO/IEC 27001:2022 Annexe A, clause
@@ -499,6 +504,10 @@ export interface ProjectState {
       assets_support: AssetSupport[];
       framework_id?: string;
       framework_name?: string;
+      // Référentiels actifs de la mission (31/07/2026) — framework_id/name
+      // restent le référentiel « pivot » (premier choisi), framework_ids
+      // porte la liste complète pour les missions multi-référentiel.
+      framework_ids?: string[];
       validated?: boolean; // Étape validée par le consultant
     };
     // Phase 2 : Diagnostic & RGPD

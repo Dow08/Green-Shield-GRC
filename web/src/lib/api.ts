@@ -113,7 +113,7 @@ export const api = {
   
   projects: {
     list: () => get<ProjectState[]>("/api/projects"),
-    create: (data: { name: string; client: string; type: "grc" | "consulting"; framework_id?: string }) => 
+    create: (data: { name: string; client: string; type: "grc" | "consulting"; framework_id?: string; framework_ids?: string[] }) =>
       post<ProjectState>("/api/projects", data),
     get: (id: string) => get<ProjectState>(`/api/projects/${id}`),
     update: (id: string, state: ProjectState) => put<ProjectState>(`/api/projects/${id}`, state),

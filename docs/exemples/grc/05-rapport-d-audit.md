@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE CONFORMITÉ & GRC** — Banque Aurore SA
-> Édité le 31/07/2026 10:38 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 11:10 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE CONFORMITÉ & GRC
@@ -12,7 +12,7 @@
 | **Client** | Banque Aurore SA |
 | **Référentiel principal** | ISO/IEC 27001:2022 |
 | **Périmètre de l'audit** | Système d'information de la banque de détail et des services de paiement, incluant les fonctions critiques ou importantes au sens DORA. Hors périmètre : salle de marché (entité juridique distincte) et réseau d'agences physiques. |
-| **Date d'édition** | 31/07/2026 10:38 |
+| **Date d'édition** | 31/07/2026 11:10 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -167,12 +167,16 @@ _Le volet stratégique (arbitrage Direction) n'a pas été documenté._
 ---
 
 ## 8. Évaluation organisationnelle
-| ID | Exigence Organisationnelle | Statut de Conformité | Notes du Consultant |
-| :--- | :--- | :--- | :--- |
-| ISO-A.5 | Politiques de sécurité de l'information | Conforme | PSSI validée par le comité exécutif le 14/02/2026, revue annuelle planifiée. |
-| ISO-A.6 | Organisation et rôles de sécurité | Conforme | RSSI rattaché au Directeur des Risques, séparation effective d'avec la DSI. |
-| ISO-A.7 | Sécurité des ressources humaines | Non conforme | Aucune procédure formalisée de retrait des accès au départ : 14 comptes actifs de personnes sorties des effectifs, dont 3 à privilèges. Écart majeur. |
-| ISO-A.8 | Gestion des actifs | Non conforme | Inventaire des actifs tenu mais non rapproché du parc réel depuis 19 mois ; 37 serveurs découverts au scan ne figurent pas à l'inventaire. |
+| ID | Référentiel | Exigence Organisationnelle | Statut de Conformité | Notes du Consultant |
+| :--- | :--- | :--- | :--- | :--- |
+| ISO-A.5 | ISO/IEC 27001:2022 | Politiques de sécurité de l'information | Conforme | PSSI validée par le comité exécutif le 14/02/2026, revue annuelle planifiée. |
+| ISO-A.6 | ISO/IEC 27001:2022 | Organisation et rôles de sécurité | Conforme | RSSI rattaché au Directeur des Risques, séparation effective d'avec la DSI. |
+| ISO-A.7 | ISO/IEC 27001:2022 | Sécurité des ressources humaines | Non conforme | Aucune procédure formalisée de retrait des accès au départ : 14 comptes actifs de personnes sorties des effectifs, dont 3 à privilèges. Écart majeur. |
+| ISO-A.8 | ISO/IEC 27001:2022 | Gestion des actifs | Non conforme | Inventaire des actifs tenu mais non rapproché du parc réel depuis 19 mois ; 37 serveurs découverts au scan ne figurent pas à l'inventaire. |
+| DORA-ICT | Reglement DORA | Cadre de gestion des risques TIC | Conforme | Cadre formalisé, revu annuellement par le comité des risques TIC. |
+| DORA-INC | Reglement DORA | Notification des incidents majeurs | Non conforme | Processus de classification existant, mais délai de notification à l'ACPR non testé en conditions réelles. |
+| DORA-TEST | Reglement DORA | Tests de resilience operationnelle | À vérifier | Dernier test de pénétration remonte à 14 mois — cadence annuelle à confirmer pour 2027. |
+| DORA-3P | Reglement DORA | Gestion du risque tiers | Conforme | Registre des prestataires critiques tenu à jour (cf. Phase 3, Risques Tiers). |
 
 
 ### Déclaration d'Applicabilité (SoA) — synthèse par thème
@@ -256,7 +260,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 ---
 
 ## 13. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 31/07/2026 10:38, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 31/07/2026 11:10, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
@@ -266,12 +270,12 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
 | **Consultant** | **DSI / Responsable de la sécurité** |
-| Signature cryptographique locale : `SHA256:870d095ccce86180b4371c414e51921b436ce7160191eb6b8b033d69f8406603` | Signature : |
+| Signature cryptographique locale : `SHA256:87bdb9f2e3587ab6a25c45da3d56f8f35ba86205e49b6718241a85d4c4bee970` | Signature : |
 
 ---
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `870d095ccce86180b4371c414e51921b436ce7160191eb6b8b033d69f8406603`
+Empreinte SHA-256 de l'état de la mission à l'édition : `87bdb9f2e3587ab6a25c45da3d56f8f35ba86205e49b6718241a85d4c4bee970`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*
