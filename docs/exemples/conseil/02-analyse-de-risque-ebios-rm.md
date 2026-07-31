@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ANALYSE DE RISQUES EBIOS RM** — Vernier Composites SAS
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
 **Client :** Vernier Composites SAS  
-**Date d'édition :** 31/07/2026 10:28  
+**Date d'édition :** 31/07/2026 10:37  
 **Consultant :** Consultant, Cabinet non renseigné  
 **Classification :** CONFIDENTIEL  
 

@@ -226,6 +226,19 @@ def test_une_violation_ancienne_sans_notification_ni_justification_est_bloquante
     assert manque["gravite"] == "bloquant"
 
 
+def test_le_plan_de_traitement_vide_est_signale_comme_chapitre_11(monkeypatch):
+    """Non-régression (31/07/2026) : le chapitre « Plan de traitement » du
+    rapport Markdown est passé de 10 à 11 quand le chapitre RGPD a été ajouté
+    — `_sections_vides` doit suivre le même numéro, sinon la revue perd de
+    vue ce chapitre alors qu'il sortirait vide."""
+    m = mission_complete()
+    m["steps"]["traitement"]["remediations"] = []
+    r = revue_export.revue(m)
+    manque = next((x for x in r["manques"] if "chapitre 11" in x["champ"]), None)
+    assert manque is not None
+    assert "Plan de traitement" in manque["champ"]
+
+
 def test_une_violation_tres_recente_sans_notification_n_est_pas_encore_signalee():
     """Le délai de 72h n'est pas encore dépassé — pas d'alerte prématurée."""
     from datetime import date, timedelta

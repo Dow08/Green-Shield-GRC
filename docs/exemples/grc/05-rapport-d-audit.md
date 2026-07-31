@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE CONFORMITÉ & GRC** — Banque Aurore SA
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 10:38 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE CONFORMITÉ & GRC
@@ -12,7 +12,7 @@
 | **Client** | Banque Aurore SA |
 | **Référentiel principal** | ISO/IEC 27001:2022 |
 | **Périmètre de l'audit** | Système d'information de la banque de détail et des services de paiement, incluant les fonctions critiques ou importantes au sens DORA. Hors périmètre : salle de marché (entité juridique distincte) et réseau d'agences physiques. |
-| **Date d'édition** | 31/07/2026 10:28 |
+| **Date d'édition** | 31/07/2026 10:38 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -75,24 +75,36 @@ La banque présente une maturité de sécurité supérieure à la moyenne de son
 
 ---
 
-## 4. Évaluation organisationnelle
-| ID | Exigence Organisationnelle | Statut de Conformité | Notes du Consultant |
-| :--- | :--- | :--- | :--- |
-| ISO-A.5 | Politiques de sécurité de l'information | Conforme | PSSI validée par le comité exécutif le 14/02/2026, revue annuelle planifiée. |
-| ISO-A.6 | Organisation et rôles de sécurité | Conforme | RSSI rattaché au Directeur des Risques, séparation effective d'avec la DSI. |
-| ISO-A.7 | Sécurité des ressources humaines | Non conforme | Aucune procédure formalisée de retrait des accès au départ : 14 comptes actifs de personnes sorties des effectifs, dont 3 à privilèges. Écart majeur. |
-| ISO-A.8 | Gestion des actifs | Non conforme | Inventaire des actifs tenu mais non rapproché du parc réel depuis 19 mois ; 37 serveurs découverts au scan ne figurent pas à l'inventaire. |
-
-
-### Déclaration d'Applicabilité (SoA) — synthèse par thème
-_Détail des 93 contrôles de l'Annexe A dans le livrable dédié « Déclaration d'Applicabilité »._
-
-| Thème | Total | Applicables | Exclus | Non statués |
+## 4. Protection des données personnelles
+### 4.1 Registre des traitements (RGPD Art. 30)
+| ID | Traitement | Finalité | Catégories de données | Conservation |
 | :--- | :--- | :--- | :--- | :--- |
-| Organisationnel | 37 | 3 | 0 | 34 |
-| Personnel | 8 | 0 | 0 | 8 |
-| Physique | 14 | 0 | 1 | 13 |
-| Technologique | 34 | 1 | 0 | 33 |
+| RGPD-01 | Gestion des comptes et opérations | Exécution du contrat de services bancaires. | Identité, coordonnées, données financières, historiques d'opérations | Durée de la relation + 5 ans (Code monétaire et financier) |
+| RGPD-02 | Lutte contre le blanchiment (LCB-FT) | Obligation légale de vigilance et de déclaration TRACFIN. | Identité, origine des fonds, alertes de profilage | 5 ans après la fin de la relation d'affaires |
+| RGPD-03 | Scoring d'octroi de crédit | Évaluation de la solvabilité — décision partiellement automatisée. | Revenus, charges, historique d'incidents, score calculé | Durée du crédit + 5 ans |
+
+### 4.1bis Registre des violations de données (RGPD Art. 33-34)
+_Aucune violation de données n'a été constatée sur cette mission._
+
+
+### 4.2 Analyse d'impact — les quatre volets
+| Volet d'analyse | Contenu |
+| :--- | :--- |
+| Description systématique du traitement | Scoring automatisé d'octroi de crédit appliqué à l'ensemble des demandes particuliers, combinant données déclaratives, historique interne et fichiers d'incidents Banque de France. Une décision de refus peut être prononcée sans intervention humaine en deçà d'un seuil de score, avec réexamen humain sur réclamation. |
+| Nécessité et proportionnalité | L'évaluation de solvabilité est une obligation prudentielle. L'automatisation est proportionnée au volume (2 800 demandes/mois), mais le refus automatique sans intervention humaine relève de l'Art. 22 RGPD : un droit d'obtenir une intervention humaine a été mis en place, et les variables du modèle ont été réduites de 47 à 31 après revue de pertinence. |
+| Risques pour les droits et libertés | Risque principal : discrimination indirecte par des variables corrélées à l'origine géographique (code postal). Gravité Élevée (effet juridique et économique durable sur la personne), vraisemblance Moyenne. Risque secondaire : opacité de la décision, la personne ne pouvant contester ce qu'elle ne comprend pas. |
+| Mesures d'atténuation | Retrait de la variable code postal et des 4 variables les plus corrélées, test de disparité annuel sur cohortes, motivation systématique du refus en langage clair, droit à l'intervention humaine sous 15 jours, journalisation des décisions pendant 5 ans. |
+
+
+### 4.3 Obligations organisationnelles
+| Obligation | Référence | État | Commentaire |
+| :--- | :--- | :--- | :--- |
+| Avis du délégué à la protection des données recueilli | RGPD Art. 35 §2 | Fait | DPO interne — avis réservé du 22/06/2026 : maintient une alerte sur le risque de discrimination indirecte résiduelle. |
+| Avis des personnes concernées recueilli (ou motif de non-consultation) | RGPD Art. 35 §9 | Fait | Panel de 12 clients consulté en juin 2026 ; incompréhension majoritaire des motifs de refus, à l'origine de la mesure de motivation en langage clair. |
+| Confrontation aux listes CNIL des traitements soumis / exemptés | RGPD Art. 35 §4-5 | Fait | Traitement figurant sur la liste CNIL (décision automatisée avec effet juridique) — AIPD obligatoire. |
+| Réexamen prévu à chaque évolution du niveau de risque | RGPD Art. 35 §11 | Fait | Réexamen à chaque réentraînement du modèle et au minimum annuellement. |
+| Consultation préalable de la CNIL avant mise en œuvre | RGPD Art. 36 §1 | Fait | Consultation préalable CNIL déposée le 08/07/2026 (accusé AR-2026-4471), réponse attendue sous 8 semaines. Mise en production suspendue dans l'intervalle. |
+
 
 ---
 
@@ -154,7 +166,28 @@ _Le volet stratégique (arbitrage Direction) n'a pas été documenté._
 
 ---
 
-## 8. Évaluation technique des configurations
+## 8. Évaluation organisationnelle
+| ID | Exigence Organisationnelle | Statut de Conformité | Notes du Consultant |
+| :--- | :--- | :--- | :--- |
+| ISO-A.5 | Politiques de sécurité de l'information | Conforme | PSSI validée par le comité exécutif le 14/02/2026, revue annuelle planifiée. |
+| ISO-A.6 | Organisation et rôles de sécurité | Conforme | RSSI rattaché au Directeur des Risques, séparation effective d'avec la DSI. |
+| ISO-A.7 | Sécurité des ressources humaines | Non conforme | Aucune procédure formalisée de retrait des accès au départ : 14 comptes actifs de personnes sorties des effectifs, dont 3 à privilèges. Écart majeur. |
+| ISO-A.8 | Gestion des actifs | Non conforme | Inventaire des actifs tenu mais non rapproché du parc réel depuis 19 mois ; 37 serveurs découverts au scan ne figurent pas à l'inventaire. |
+
+
+### Déclaration d'Applicabilité (SoA) — synthèse par thème
+_Détail des 93 contrôles de l'Annexe A dans le livrable dédié « Déclaration d'Applicabilité »._
+
+| Thème | Total | Applicables | Exclus | Non statués |
+| :--- | :--- | :--- | :--- | :--- |
+| Organisationnel | 37 | 3 | 0 | 34 |
+| Personnel | 8 | 0 | 0 | 8 |
+| Physique | 14 | 0 | 1 | 13 |
+| Technologique | 34 | 1 | 0 | 33 |
+
+---
+
+## 9. Évaluation technique des configurations
 
 > **Couverture technique de cet audit.** Aucun scan technique n'a été exécuté : à ce stade, l'ensemble des constats repose sur du déclaratif.
 
@@ -162,7 +195,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 9. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
+## 10. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
 | Pratique | Contrôles rattachés | État | Constaté en |
 | :--- | :--- | :--- | :--- |
 | Inventaire des biens supports tenu sur tout le cycle de vie | NIST CSF 2.0 ID.AM, CIS v8 CIS 1, CIS v8 CIS 2 | Couverte — 5 bien(s) support inventorié(s) en phase 1. | Phase 1 (Cadrage & Patrimoine) |
@@ -175,8 +208,8 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 10. Plan de traitement
-### 10.1 Mesures priorisées
+## 11. Plan de traitement
+### 11.1 Mesures priorisées
 | ID | Priorité | Axe | Mesure de traitement |
 | :--- | :--- | :--- | :--- |
 | REM-01 | Critique | Gouvernance | Formaliser la procédure de retrait des accès au départ et clôturer les 14 comptes actifs de sortants — écart ISO A.7. |
@@ -186,7 +219,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 | REM-05 | Moyen | Défense | Étendre la collecte SIEM aux journaux applicatifs du core banking, aujourd'hui absents des 380 sources. |
 
 
-### 10.1bis Pilotage (responsable, échéance, statut)
+### 11.1bis Pilotage (responsable, échéance, statut)
 | ID | Responsable | Échéance | Statut | Coût estimé |
 | :--- | :--- | :--- | :--- | :--- |
 | REM-01 | DSI | 2026-09-15 | En cours | Négligeable |
@@ -196,7 +229,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 | REM-05 | RSSI | 2026-10-15 | À faire | Moyen |
 
 
-### 10.2 Actions immédiates
+### 11.2 Actions immédiates
 1. Clôturer les 3 comptes à privilèges de personnes sorties
 2. Publier la liste des prestataires critiques au registre DORA
 3. Activer l'alerte SIEM sur création de compte à privilèges
@@ -206,7 +239,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 11. Charges consommées
+## 12. Charges consommées
 | Phase | Temps consommé |
 | :--- | ---: |
 | Cadrage & Patrimoine | 20 h |
@@ -222,12 +255,12 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 12. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 31/07/2026 10:28, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+## 13. Réserves et limites
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 31/07/2026 10:38, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
-## 13. Certifications et signatures d'audit
+## 14. Certifications et signatures d'audit
 L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 
 | Signature de l'Auditeur Cyber | Signature du Client Audité |

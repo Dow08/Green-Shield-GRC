@@ -420,6 +420,49 @@ def _obligations_aipd_md(aipd: dict) -> str:
     return lignes
 
 
+def _protection_donnees_md(steps: dict) -> str:
+    """Chapitre RGPD du rapport de mission (registre + violations + AIPD).
+
+    Absent du rapport Markdown jusqu'ici — seuls les rendus Word (`_ch_aipd`)
+    et HTML (`_aipd_section`) le portaient, décalant leur numérotation de
+    chapitres d'un cran par rapport au Markdown. Reproduit ici le même
+    contenu et la même numérotation (4.1/4.1bis/4.2/4.3) pour que les trois
+    formats restent alignés.
+    """
+    diagnostic = steps.get("diagnostic") or {}
+    rgpd_reg = diagnostic.get("rgpd_register") or []
+    registre_md = "| ID | Traitement | Finalité | Catégories de données | Conservation |\n| :--- | :--- | :--- | :--- | :--- |\n"
+    for r in rgpd_reg:
+        registre_md += f"| {r.get('id')} | {r.get('name')} | {r.get('purpose')} | {r.get('data_categories')} | {r.get('retention')} |\n"
+    if not rgpd_reg:
+        registre_md = "_Aucun traitement n'a été inscrit au registre._\n"
+
+    violations = diagnostic.get("violations") or []
+    violations_md = "| ID | Constatée le | Nature | CNIL | Personnes informées |\n| :--- | :--- | :--- | :--- | :--- |\n"
+    for v in violations:
+        cnil = f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée"
+        informees = "Oui" if v.get("personnes_informees") else "Non"
+        violations_md += f"| {v.get('id')} | {v.get('date_constat')} | {v.get('nature')} | {cnil} | {informees} |\n"
+    if not violations:
+        violations_md = "_Aucune violation de données n'a été constatée sur cette mission._\n"
+
+    contenu = (f"### 4.1 Registre des traitements (RGPD Art. 30)\n{registre_md}\n"
+               f"### 4.1bis Registre des violations de données (RGPD Art. 33-34)\n{violations_md}\n")
+
+    if not diagnostic.get("aipd_required"):
+        return contenu + "\n_Aucune analyse d'impact n'est requise sur ce périmètre._\n"
+
+    aipd = diagnostic.get("aipd") or {}
+    volets_md = ("| Volet d'analyse | Contenu |\n| :--- | :--- |\n"
+                 f"| Description systématique du traitement | {aipd.get('treatment_description') or 'N/A'} |\n"
+                 f"| Nécessité et proportionnalité | {aipd.get('necessity_eval') or 'N/A'} |\n"
+                 f"| Risques pour les droits et libertés | {aipd.get('risks_eval') or 'N/A'} |\n"
+                 f"| Mesures d'atténuation | {aipd.get('mitigation_measures') or 'N/A'} |\n")
+
+    return (contenu + f"\n### 4.2 Analyse d'impact — les quatre volets\n{volets_md}\n"
+            f"\n### 4.3 Obligations organisationnelles\n{_obligations_aipd_md(aipd)}")
+
+
 def _controles_techniques_md(state: dict) -> str:
     """Rattachement des pratiques relevées aux contrôles CIS / NIST (§14.2.4).
 
@@ -811,9 +854,9 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ---
 
-## 4. Évaluation organisationnelle
-{manual_md}
-{soa_md}
+## 4. Protection des données personnelles
+{_protection_donnees_md(steps)}
+
 ---
 
 ## 5. Analyse de risque
@@ -844,7 +887,12 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ---
 
-## 8. Évaluation technique des configurations
+## 8. Évaluation organisationnelle
+{manual_md}
+{soa_md}
+---
+
+## 9. Évaluation technique des configurations
 
 > **Couverture technique de cet audit.** {couverture_md}
 
@@ -852,34 +900,34 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ---
 
-## 9. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
+## 10. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
 {_controles_techniques_md(state)}
 
 ---
 
-## 10. Plan de traitement
-### 10.1 Mesures priorisées
+## 11. Plan de traitement
+### 11.1 Mesures priorisées
 {_remediations_md(steps)}
 
-### 10.1bis Pilotage (responsable, échéance, statut)
+### 11.1bis Pilotage (responsable, échéance, statut)
 {_pilotage_remediations_md(steps)}
 
-### 10.2 Actions immédiates
+### 11.2 Actions immédiates
 {_quick_wins_md(steps)}
 
 ---
 
-## 11. Charges consommées
+## 12. Charges consommées
 {charges_md}
 
 ---
 
-## 12. Réserves et limites
+## 13. Réserves et limites
 {_reserve_md(state, now)}
 
 ---
 
-## 13. Certifications et signatures d'audit
+## 14. Certifications et signatures d'audit
 L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 
 | Signature de l'Auditeur Cyber | Signature du Client Audité |

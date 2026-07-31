@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ANALYSE DE RISQUES EBIOS RM** — Banque Aurore SA
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 10:38 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
 **Projet :** Audit de conformité ISO 27001 & DORA  
 **Client :** Banque Aurore SA  
-**Date d'édition :** 31/07/2026 10:28  
+**Date d'édition :** 31/07/2026 10:38  
 **Consultant :** Consultant, Cabinet non renseigné  
 **Classification :** CONFIDENTIEL  
 

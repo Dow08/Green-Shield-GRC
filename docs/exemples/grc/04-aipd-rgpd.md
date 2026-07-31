@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **AIPD / PIA (RGPD)** — Banque Aurore SA
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 10:38 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
 **Client :** Banque Aurore SA  
 **Projet :** Audit de conformité ISO 27001 & DORA  
-**Date :** 31/07/2026 10:28  
+**Date :** 31/07/2026 10:38  
 **Délégué à la Protection des Données (DPO) :** Enregistré au registre  
 
 ---

@@ -4,6 +4,18 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [31/07/2026] — Le rapport Markdown gagne son chapitre RGPD, deux bugs signalés lors du Lot C corrigés
+
+Deux lacunes préexistantes, découvertes en cours de route pendant le Lot C et volontairement laissées de côté à l'époque (signalées via tâches séparées plutôt que traitées dans l'urgence), traitées maintenant dans l'ordre annoncé à l'utilisateur.
+
+**Le rapport de mission en Markdown (`report_builder.py`, `doc_type="audit_report"`) n'avait aucun chapitre RGPD/AIPD**, contrairement aux rendus Word (`_ch_aipd`) et HTML (`_aipd_section`) qui en portent un depuis longtemps. Conséquence directe : le registre des violations ajouté au Lot C n'avait nulle part où s'afficher dans ce format, et la numérotation des chapitres suivants divergeait entre Markdown (chapitre « Plan de traitement » = 10) et Word/HTML (= 11).
+
+Nouvelle fonction `_protection_donnees_md(steps)`, reproduisant exactement le contenu et la numérotation interne (4.1 registre RGPD, 4.1bis registre des violations, 4.2 les quatre volets d'analyse, 4.3 obligations organisationnelles) déjà utilisés par `_ch_aipd`/`_aipd_section` — les trois formats affichent maintenant le même chapitre 4, et tout ce qui suit est renuméroté en conséquence (Évaluation organisationnelle 4→8, Plan de traitement 10→11, jusqu'à Certifications 13→14). `revue_export.py::_SECTIONS_RAPPORT` mis à jour en miroir (chapitre 10→11 pour « Plan de traitement »), sans quoi la revue de complétude aurait cessé de détecter un plan de traitement vide.
+
+**5 tests ajoutés** (`test_report_builder.py` : chapitre RGPD présent, registre des violations repris, message d'absence explicite, numérotation complète des 14 chapitres vérifiée un par un ; `test_revue_export.py` : non-régression sur le numéro de chapitre utilisé par `_sections_vides`). Vitrine `docs/exemples` régénérée — le rapport GRC de démonstration confirme visuellement le nouveau chapitre 4 et la numérotation jusqu'à 14. **602 tests backend, 150 tests frontend.**
+
+---
+
 ## [30/07/2026] — Lot C : registre des violations de données (RGPD Art. 33-34)
 
 Dernier des trois lots de la revue GRC senior. Un DPO documente toute violation constatée — même celles jugées non notifiables — car la CNIL peut demander cette trace a posteriori ; sans registre, l'application ne portait aucune preuve de cette obligation de l'article 33 §5.

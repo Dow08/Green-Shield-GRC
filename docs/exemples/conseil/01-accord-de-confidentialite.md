@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ACCORD DE CONFIDENTIALITÉ** — Vernier Composites SAS
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # ACCORD DE CONFIDENTIALITÉ & PROTECTION DES DONNÉES (NDA)
 
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
 **Client :** Vernier Composites SAS  
-**Date d'édition :** 31/07/2026 10:28  
+**Date d'édition :** 31/07/2026 10:37  
 **Classification :** **CONFIDENTIEL AFFAIRES**  
 
 ---
@@ -34,7 +34,7 @@ En foi de quoi, les parties s'engagent et signent électroniquement ou de maniè
 | :--- | :--- |
 | **Consultant, Consultant Cyber** | **Mandataire habilité** |
 | Signature cryptographique locale : `SHA256:3f8c7353af2c4f522229844da36ed26930d954c9c089d7d0acb546d16be17ec5` | Signature : |
-| Date : 31/07/2026 10:28 | Date : |
+| Date : 31/07/2026 10:37 | Date : |
 
 ---
 

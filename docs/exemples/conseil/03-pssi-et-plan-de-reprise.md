@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **PSSI & PLAN DE REPRISE** — Vernier Composites SAS
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # POLITIQUE DE SÉCURITÉ DE L'INFORMATION (PSSI) & PLAN DE REPRISE (PRI)
 
 **Client :** Vernier Composites SAS  
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
-**Date :** 31/07/2026 10:28  
+**Date :** 31/07/2026 10:37  
 **Auteur :** Consultant, Cabinet non renseigné  
 
 ---

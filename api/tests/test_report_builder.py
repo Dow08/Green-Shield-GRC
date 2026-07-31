@@ -181,3 +181,58 @@ def test_le_budget_est_omis_quand_il_n_est_pas_renseigne():
 @pytest.mark.parametrize("minutes,attendu", [(45, "45 min"), (120, "2 h"), (125, "2 h 05")])
 def test_les_durees_du_rapport_suivent_le_meme_format_que_l_interface(minutes, attendu):
     assert report_builder._duree_lisible(minutes) == attendu
+
+
+# --- Chapitre RGPD/AIPD du rapport Markdown (31/07/2026) --------------------
+#
+# Absent jusqu'ici : le rapport Markdown n'avait aucun chapitre RGPD, alors
+# que les rendus Word et HTML en portent un (`_ch_aipd`/`_aipd_section`),
+# décalant sa numérotation de chapitres par rapport aux deux autres formats.
+
+def test_le_rapport_d_audit_porte_desormais_un_chapitre_rgpd():
+    etat = mission()
+    etat["steps"]["diagnostic"]["aipd_required"] = True
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert "## 4. Protection des données personnelles" in contenu
+    assert "TRAITEMENT DECRIT" in contenu
+    assert "RGPD-01" in contenu
+
+
+def test_le_rapport_d_audit_porte_le_registre_des_violations():
+    etat = mission()
+    etat["steps"]["diagnostic"]["violations"] = [
+        {"id": "VIO-01", "date_constat": "2026-01-01", "nature": "Fuite de base",
+         "notifiee_cnil": True, "date_notification_cnil": "2026-01-02", "personnes_informees": True},
+    ]
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert "4.1bis" in contenu
+    assert "VIO-01" in contenu
+
+
+def test_le_rapport_d_audit_sans_violation_l_indique_explicitement():
+    _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
+    assert "Aucune violation de données n'a été constatée sur cette mission." in contenu
+
+
+def test_la_numerotation_des_chapitres_du_rapport_est_alignee_sur_word_et_html():
+    """Le chapitre AIPD (4) décale tout ce qui suit : Évaluation organisationnelle
+    passe en 8 (après Résilience), Plan de traitement en 11 — comme dans
+    `report_docx.CHAPITRES`/`report_html.CHAPITRES`."""
+    _, contenu = report_builder.build_document(mission(), "acme", "audit_report")
+    for titre in (
+        "## 1. Synthèse à destination de la direction",
+        "## 2. Cadrage de la mission",
+        "## 3. Patrimoine évalué",
+        "## 4. Protection des données personnelles",
+        "## 5. Analyse de risque",
+        "## 6. Écosystème et risques tiers",
+        "## 7. Résilience et continuité",
+        "## 8. Évaluation organisationnelle",
+        "## 9. Évaluation technique des configurations",
+        "## 10. Rattachement aux référentiels de contrôles",
+        "## 11. Plan de traitement",
+        "## 12. Charges consommées",
+        "## 13. Réserves et limites",
+        "## 14. Certifications et signatures d'audit",
+    ):
+        assert titre in contenu, f"chapitre manquant ou mal numéroté : {titre}"

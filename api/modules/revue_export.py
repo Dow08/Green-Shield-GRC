@@ -178,7 +178,7 @@ _SECTIONS_RAPPORT = (
     (5, 4, "Analyse de risque"),
     (6, 3, "Écosystème et risques tiers"),
     (7, 5, "Résilience et continuité"),
-    (10, 6, "Plan de traitement"),
+    (11, 6, "Plan de traitement"),
 )
 
 
@@ -204,7 +204,7 @@ def _sections_vides(state: dict) -> list[dict]:
         5: report_builder._redoutes_md(steps) + report_builder._scenarios_md(steps),
         6: report_builder._tprm_md(state),
         7: report_builder._continuite_md(steps),
-        10: report_builder._remediations_md(steps),
+        11: report_builder._remediations_md(steps),
     }
 
     manques = []

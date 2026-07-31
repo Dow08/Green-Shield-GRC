@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **AIPD / PIA (RGPD)** — Vernier Composites SAS
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
 **Client :** Vernier Composites SAS  
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
-**Date :** 31/07/2026 10:28  
+**Date :** 31/07/2026 10:37  
 **Délégué à la Protection des Données (DPO) :** Enregistré au registre  
 
 ---

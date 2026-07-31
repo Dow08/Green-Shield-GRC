@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE SÉCURITÉ & D'ANALYSE DE RISQUE** — Vernier Composites SAS
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:37 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE SÉCURITÉ & D'ANALYSE DE RISQUE
@@ -11,7 +11,7 @@
 | **Projet** | Audit de sécurité & analyse de risque EBIOS RM |
 | **Client** | Vernier Composites SAS |
 | **Périmètre de l'audit** | SI de production et de R&D du site de Saint-Étienne (2 ateliers, 1 laboratoire), hors filiale allemande et hors SI commercial hébergé chez l'éditeur. |
-| **Date d'édition** | 31/07/2026 10:28 |
+| **Date d'édition** | 31/07/2026 10:37 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -75,8 +75,36 @@ Vernier Composites présente une exposition élevée sur deux actifs non substit
 
 ---
 
-## 4. Évaluation organisationnelle
-_Aucune check-list de conformité n'est rattachée à cette mission : l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 2._
+## 4. Protection des données personnelles
+### 4.1 Registre des traitements (RGPD Art. 30)
+| ID | Traitement | Finalité | Catégories de données | Conservation |
+| :--- | :--- | :--- | :--- | :--- |
+| RGPD-01 | Gestion administrative du personnel | Exécution du contrat de travail, paie, obligations sociales. | Identité, coordonnées, RIB, situation familiale, arrêts de travail | Durée du contrat + 5 ans (prescription prud'homale) |
+| RGPD-02 | Vidéoprotection des accès ateliers | Sécurité des personnes et protection du secret industriel. | Images des salariés et visiteurs aux 6 points d'accès | 30 jours |
+| RGPD-03 | Suivi de la santé au travail | Suivi des expositions aux résines époxy (obligation employeur). | Données de santé, résultats d'examens médicaux | 40 ans après la fin d'exposition (Code du travail) |
+
+### 4.1bis Registre des violations de données (RGPD Art. 33-34)
+_Aucune violation de données n'a été constatée sur cette mission._
+
+
+### 4.2 Analyse d'impact — les quatre volets
+| Volet d'analyse | Contenu |
+| :--- | :--- |
+| Description systématique du traitement | Vidéoprotection continue des 6 accès aux ateliers et au laboratoire R&D, avec conservation 30 jours et consultation restreinte à deux personnes habilitées. Finalité double : sécurité des personnes (machines dangereuses) et protection du secret industriel. |
+| Nécessité et proportionnalité | La protection du secret industriel justifie un contrôle des accès au laboratoire, mais la vidéoprotection continue des postes de travail en atelier excède ce qui est nécessaire : le champ des caméras 3 et 4 a été réduit aux seules zones de passage, et l'enregistrement audio désactivé. |
+| Risques pour les droits et libertés | Origine : accès illégitime d'un tiers au NVR, exposé sur le même VLAN que la bureautique. Risque : surveillance permanente de salariés identifiables (gravité Élevée, vraisemblance Moyenne au vu de l'absence de segmentation). Impact sur les personnes : sentiment de surveillance constante, détournement possible à des fins disciplinaires. |
+| Mesures d'atténuation | Segmentation du NVR sur un VLAN dédié, authentification nominative des deux habilités avec journalisation des consultations, réduction du champ des caméras 3 et 4, affichage et information des salariés, consultation du CSE actée en séance du 12/06/2026. |
+
+
+### 4.3 Obligations organisationnelles
+| Obligation | Référence | État | Commentaire |
+| :--- | :--- | :--- | :--- |
+| Avis du délégué à la protection des données recueilli | RGPD Art. 35 §2 | Fait | DPO externe mutualisé — avis favorable rendu le 18/06/2026 sous réserve de la réduction du champ des caméras. |
+| Avis des personnes concernées recueilli (ou motif de non-consultation) | RGPD Art. 35 §9 | Fait | CSE consulté le 12/06/2026, avis favorable ; note d'information remise aux 204 salariés. |
+| Confrontation aux listes CNIL des traitements soumis / exemptés | RGPD Art. 35 §4-5 | Fait | Traitement figurant sur la liste CNIL des traitements soumis à AIPD (surveillance systématique de personnes sur un lieu de travail). |
+| Réexamen prévu à chaque évolution du niveau de risque | RGPD Art. 35 §11 | Fait | Réexamen déclenché par tout ajout de caméra, toute extension de durée de conservation, ou au plus tard le 30/06/2028. |
+| Consultation préalable de la CNIL avant mise en œuvre | RGPD Art. 36 §1 | Non applicable (risque résiduel non élevé) | |
+
 
 ---
 
@@ -144,7 +172,12 @@ _Le volet stratégique (arbitrage Direction) n'a pas été documenté._
 
 ---
 
-## 8. Évaluation technique des configurations
+## 8. Évaluation organisationnelle
+_Aucune check-list de conformité n'est rattachée à cette mission : l'évaluation organisationnelle relève ici de l'analyse de risque du chapitre 2._
+
+---
+
+## 9. Évaluation technique des configurations
 
 > **Couverture technique de cet audit.** Aucun scan technique n'a été exécuté : à ce stade, l'ensemble des constats repose sur du déclaratif.
 
@@ -152,7 +185,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 9. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
+## 10. Rattachement aux référentiels de contrôles (CIS v8 / NIST CSF 2.0)
 | Pratique | Contrôles rattachés | État | Constaté en |
 | :--- | :--- | :--- | :--- |
 | Inventaire des biens supports tenu sur tout le cycle de vie | NIST CSF 2.0 ID.AM, CIS v8 CIS 1, CIS v8 CIS 2 | Couverte — 6 bien(s) support inventorié(s) en phase 1. | Phase 1 (Cadrage & Patrimoine) |
@@ -165,8 +198,8 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 10. Plan de traitement
-### 10.1 Mesures priorisées
+## 11. Plan de traitement
+### 11.1 Mesures priorisées
 | ID | Priorité | Axe | Mesure de traitement |
 | :--- | :--- | :--- | :--- |
 | REM-01 | Critique | Protection | Segmenter le réseau OT du réseau bureautique (pare-feu industriel, flux autorisés en liste blanche) — traite SO-01 et SO-02. |
@@ -179,7 +212,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 | REM-08 | Moyen | Gouvernance | Mettre en place une revue trimestrielle des accès et un processus de départ salarié — traite SO-03. |
 
 
-### 10.1bis Pilotage (responsable, échéance, statut)
+### 11.1bis Pilotage (responsable, échéance, statut)
 | ID | Responsable | Échéance | Statut | Coût estimé |
 | :--- | :--- | :--- | :--- | :--- |
 | REM-01 | DSI | 2026-09-30 | En cours | Moyen |
@@ -192,7 +225,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 | REM-08 | RSSI | 2026-10-01 | À faire | Négligeable |
 
 
-### 10.2 Actions immédiates
+### 11.2 Actions immédiates
 1. Activer le MFA sur la messagerie et le VPN
 2. Changer les mots de passe d'administration par défaut des automates
 3. Sortir une copie de sauvegarde du VLAN de production
@@ -202,7 +235,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 11. Charges consommées
+## 12. Charges consommées
 | Phase | Temps consommé |
 | :--- | ---: |
 | Cadrage & Patrimoine | 13 h |
@@ -218,12 +251,12 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 
 ---
 
-## 12. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Vernier Composites SAS et sur les preuves collectées à la date du 31/07/2026 10:28, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+## 13. Réserves et limites
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Vernier Composites SAS et sur les preuves collectées à la date du 31/07/2026 10:37, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
-## 13. Certifications et signatures d'audit
+## 14. Certifications et signatures d'audit
 L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 
 | Signature de l'Auditeur Cyber | Signature du Client Audité |

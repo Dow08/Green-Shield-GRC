@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **ACCORD DE CONFIDENTIALITÉ** — Banque Aurore SA
-> Édité le 31/07/2026 10:28 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 10:38 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # ACCORD DE CONFIDENTIALITÉ & PROTECTION DES DONNÉES (NDA)
 
 **Projet :** Audit de conformité ISO 27001 & DORA  
 **Client :** Banque Aurore SA  
-**Date d'édition :** 31/07/2026 10:28  
+**Date d'édition :** 31/07/2026 10:38  
 **Classification :** **CONFIDENTIEL AFFAIRES**  
 
 ---
@@ -34,7 +34,7 @@ En foi de quoi, les parties s'engagent et signent électroniquement ou de maniè
 | :--- | :--- |
 | **Consultant, Consultant Cyber** | **Mandataire habilité** |
 | Signature cryptographique locale : `SHA256:870d095ccce86180b4371c414e51921b436ce7160191eb6b8b033d69f8406603` | Signature : |
-| Date : 31/07/2026 10:28 | Date : |
+| Date : 31/07/2026 10:38 | Date : |
 
 ---
 
