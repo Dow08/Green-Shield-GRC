@@ -397,6 +397,15 @@ def _ch_aipd(doc: Document, state: dict, steps: dict) -> None:
           "Aucun traitement n'a été inscrit au registre.",
           largeurs=(0.7, 1.6, 2, 1.8, 1.3))
 
+    _sous_titre(doc, "4.1bis Registre des violations de données (RGPD Art. 33-34)")
+    _table(doc, ("ID", "Constatée le", "Nature", "CNIL", "Personnes informées"),
+          [(v.get("id"), v.get("date_constat"), v.get("nature"),
+            f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée",
+            "Oui" if v.get("personnes_informees") else "Non")
+           for v in diagnostic.get("violations") or []],
+          "Aucune violation de données n'a été constatée sur cette mission.",
+          largeurs=(0.7, 1, 1.6, 1.4, 1.1))
+
     if not diagnostic.get("aipd_required"):
         _vide(doc, "Aucune analyse d'impact n'est requise sur ce périmètre.")
         return
@@ -1043,6 +1052,15 @@ def build_aipd_docx(state: dict, p_id: str, auditeur: str = "", cabinet: str = "
           [(r.get("id"), r.get("name"), r.get("purpose"), r.get("data_categories"),
             r.get("retention")) for r in registre],
           "Aucun traitement n'a été inscrit au registre.", largeurs=(0.7, 1.6, 2, 1.8, 1.3))
+
+    _sous_titre(doc, "1.bis Registre des violations de données (Art. 33-34)")
+    _table(doc, ("ID", "Constatée le", "Nature", "CNIL", "Personnes informées"),
+          [(v.get("id"), v.get("date_constat"), v.get("nature"),
+            f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée",
+            "Oui" if v.get("personnes_informees") else "Non")
+           for v in diagnostic.get("violations") or []],
+          "Aucune violation de données n'a été constatée sur cette mission.",
+          largeurs=(0.7, 1, 1.6, 1.4, 1.1))
 
     _chapitre_titre(doc, 2, titres[1])
     for numero_volet, (sous, cle) in enumerate((

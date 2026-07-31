@@ -5,6 +5,7 @@ import { nextId } from "../../lib/ids";
 import { useDismissOnOutsideOrEscape } from "../../lib/useDismissOnOutsideOrEscape";
 import type { AIPDData, ProjectState, RGPDRegister } from "../../types";
 import { ObligationsAIPD } from "../ObligationsAIPD";
+import { ViolationsPanel } from "../ViolationsPanel";
 import { BadgesControles } from "../BadgesControles";
 import { AnimatePresence } from "framer-motion";
 import { SUGGESTED_RGPD } from "../../lib/gabarits";
@@ -373,6 +374,13 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                       />
                     </motion.div>
                   )}
+                </div>
+
+                <div className="mt-2 border-t border-white/[0.04] pt-3">
+                  <ViolationsPanel
+                    violations={activeProject.steps.diagnostic?.violations || []}
+                    onChange={(violations) => updateStepData("diagnostic", "violations", violations)}
+                  />
                 </div>
 
                 {/* STEP EXPLICIT CONFIRMATION BUTTON */}

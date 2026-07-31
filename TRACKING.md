@@ -4,6 +4,22 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [30/07/2026] — Lot C : registre des violations de données (RGPD Art. 33-34)
+
+Dernier des trois lots de la revue GRC senior. Un DPO documente toute violation constatée — même celles jugées non notifiables — car la CNIL peut demander cette trace a posteriori ; sans registre, l'application ne portait aucune preuve de cette obligation de l'article 33 §5.
+
+`schema_version` **10** : `steps.diagnostic.violations` (nouveau, liste vide par défaut — aucune violation n'est présumée). Chaque entrée : nature, catégories de données, nombre de personnes affectées, conséquences, mesures prises, date de constat, notification CNIL (booléen + date), justification de non-notification, personnes informées.
+
+`ViolationsPanel.tsx` (Phase 2, sous l'AIPD) : CRUD complet, et un calcul de délai dépassé côté client (`delaiDepasse`) qui distingue trois cas — notifiée dans les 72h (silencieux), non notifiée mais justifiée (silencieux, la non-notification est un choix légitime si le risque est nul), non notifiée sans justification passé 72h (alerte visuelle rouge). Le même calcul est repris côté serveur dans `revue_export.py` : une violation non notifiée, sans justification, à plus de 3 jours du constat, remonte comme manque **bloquant** — c'est un manquement réglementaire potentiel, pas une simple lacune de livrable.
+
+Rendu dans les 3 formats (Word, HTML, Markdown) : nouvelle sous-section « Registre des violations » dans le rapport de mission (chapitre AIPD) et dans le document AIPD/RGPD standalone, avec message explicite (« Aucune violation de données n'a été constatée sur cette mission ») plutôt qu'un tableau vide si le registre est vide.
+
+**Deux lacunes préexistantes découvertes en cours de route, non corrigées ici (hors-scope, signalées via tâche séparée)** : le rapport d'audit principal en Markdown (`report_builder.py`, `doc_type="audit_report"`) numérote encore son chapitre de traitement « 10 » alors que la numérotation a été corrigée partout ailleurs en « 11 » ; et ce même rapport Markdown n'a tout simplement aucun chapitre RGPD/AIPD — contrairement aux versions Word et HTML qui en ont un via `_ch_aipd`/`_aipd_section` — donc le registre des violations n'y trouve pas sa place. Les deux sont documentées pour une session future.
+
+**8 tests ajoutés** (`test_schema_migration.py`, `test_report_docx.py`, `test_revue_export.py`). Vérifié en direct dans le navigateur : ajout d'une violation ancienne non notifiée sans justification sur la mission GRC de la vitrine, alerte « Délai de 72h dépassé » affichée correctement, suppression propre sans sauvegarde. Vitrine régénérée (le document AIPD des deux missions de démonstration confirme le message d'état vide). **597 tests backend, 150 tests frontend.**
+
+---
+
 ## [30/07/2026] — Lot B : Déclaration d'Applicabilité (SoA), 6ᵉ livrable
 
 Manque le plus grave identifié en revue GRC senior : sans SoA, une mission ISO 27001 ne peut pas passer un audit de certification — c'est le premier document qu'un auditeur externe demande (clause 6.1.3 d, justification d'inclusion **et** d'exclusion de chacun des 93 contrôles de l'Annexe A 2022).

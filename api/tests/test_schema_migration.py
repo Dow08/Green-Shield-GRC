@@ -157,3 +157,16 @@ def test_mission_hors_iso27001_ne_recoit_pas_de_soa():
     }
     migree = schema_migration.migrate(dict(v8))
     assert "soa" not in migree["steps"].get("evaluation", {})
+
+
+def test_mission_v9_gagne_le_registre_des_violations_vide():
+    """v9 → v10 : le registre des violations (RGPD Art. 33-34, G5) démarre
+    vide — aucune violation n'est présumée."""
+    v9 = {
+        "schema_version": 9, "socle": {}, "grc": {}, "consulting": {},
+        "steps": {"diagnostic": {"rgpd_register": [{"id": "RGPD-01"}]}},
+    }
+    migree = schema_migration.migrate(dict(v9))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+    assert migree["steps"]["diagnostic"]["violations"] == []
+    assert migree["steps"]["diagnostic"]["rgpd_register"] == [{"id": "RGPD-01"}]

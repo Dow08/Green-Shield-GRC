@@ -1,7 +1,7 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **RAPPORT D'AUDIT DE CONFORMITÉ & GRC** — Banque Aurore SA
-> Édité le 30/07/2026 22:05 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 10:28 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # RAPPORT D'AUDIT DE CONFORMITÉ & GRC
@@ -12,7 +12,7 @@
 | **Client** | Banque Aurore SA |
 | **Référentiel principal** | ISO/IEC 27001:2022 |
 | **Périmètre de l'audit** | Système d'information de la banque de détail et des services de paiement, incluant les fonctions critiques ou importantes au sens DORA. Hors périmètre : salle de marché (entité juridique distincte) et réseau d'agences physiques. |
-| **Date d'édition** | 30/07/2026 22:05 |
+| **Date d'édition** | 31/07/2026 10:28 |
 | **Auditeur** | Consultant, Cabinet non renseigné |
 
 
@@ -223,7 +223,7 @@ _Aucun scan technique d'audit de configuration n'a été exécuté pour ce proje
 ---
 
 ## 12. Réserves et limites
-Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 30/07/2026 22:05, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
+Les constats figurant dans le présent rapport reposent exclusivement sur les éléments communiqués par Banque Aurore SA et sur les preuves collectées à la date du 31/07/2026 10:28, dans le périmètre défini au chapitre 2. Les déclarations recueillies auprès des interlocuteurs n'ont fait l'objet d'une vérification technique que lorsque la colonne « Preuve » le mentionne explicitement. Le présent rapport constitue une évaluation à un instant donné et ne saurait valoir garantie d'absence de vulnérabilité ni de conformité future, le niveau de sécurité évoluant avec le système d'information et l'état de la menace.
 
 ---
 
@@ -233,12 +233,12 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
 | **Consultant** | **DSI / Responsable de la sécurité** |
-| Signature cryptographique locale : `SHA256:c6c4d45e568cff57cfe0161d28b9ae8c7b73842f56e0660190548ad3e4992b08` | Signature : |
+| Signature cryptographique locale : `SHA256:870d095ccce86180b4371c414e51921b436ce7160191eb6b8b033d69f8406603` | Signature : |
 
 ---
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `c6c4d45e568cff57cfe0161d28b9ae8c7b73842f56e0660190548ad3e4992b08`
+Empreinte SHA-256 de l'état de la mission à l'édition : `870d095ccce86180b4371c414e51921b436ce7160191eb6b8b033d69f8406603`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

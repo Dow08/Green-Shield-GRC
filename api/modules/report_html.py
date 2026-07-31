@@ -382,8 +382,16 @@ def _aipd_section(steps: dict) -> str:
           r.get("retention")) for r in diagnostic.get("rgpd_register") or []],
         "Aucun traitement n'a été inscrit au registre.",
     )
+    violations = ('<h3>4.1bis Registre des violations de données (Art. 33-34)</h3>' + _table(
+        ("ID", "Constatée le", "Nature", "CNIL", "Personnes informées"),
+        [(v.get("id"), v.get("date_constat"), v.get("nature"),
+          f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée",
+          "Oui" if v.get("personnes_informees") else "Non")
+         for v in diagnostic.get("violations") or []],
+        "Aucune violation de données n'a été constatée sur cette mission.",
+    ))
     if not diagnostic.get("aipd_required"):
-        return (registre + _vide("Aucune analyse d'impact n'est requise sur ce périmètre."))
+        return (registre + violations + _vide("Aucune analyse d'impact n'est requise sur ce périmètre."))
 
     donnees = diagnostic.get("aipd") or {}
     volets = _table(
@@ -413,6 +421,7 @@ def _aipd_section(steps: dict) -> str:
     alerte = aipd_module.alerte_bloquante(donnees)
     bandeau = f'<p class="alerte">{escape(alerte)}</p>' if alerte else ""
     return (f"<h3>4.1 Registre des traitements (RGPD Art. 30)</h3>{registre}"
+            f"{violations}"
             f"<h3>4.2 Analyse d'impact — les quatre volets</h3>{volets}"
             f"<h3>4.3 Obligations organisationnelles</h3>{bandeau}{obligations}")
 

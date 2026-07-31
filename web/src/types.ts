@@ -199,6 +199,24 @@ export interface RGPDRegister {
   retention: string;
 }
 
+// Registre interne des violations de données (RGPD Art. 33-34, G5).
+// « Toujours documenter toute violation, même non notifiable » — donc un
+// registre distinct du simple statut de notification, pas seulement une
+// case à cocher.
+export interface ViolationDonnees {
+  id: string;
+  date_constat: string; // AAAA-MM-JJ
+  date_notification_cnil: string; // AAAA-MM-JJ, vide si non notifiée
+  nature: string;
+  categories_donnees: string;
+  nb_personnes: string;
+  consequences: string;
+  mesures: string;
+  notifiee_cnil: boolean;
+  personnes_informees: boolean;
+  justification: string; // motif si non notifiée (Art. 33) ou personnes non informées (Art. 34)
+}
+
 /** Obligation de procédure de l'AIPD — distincte des quatre volets d'analyse
  *  (§14.2.1). Le libellé et la référence vivent côté serveur : ils décrivent le
  *  RGPD, pas l'état de la mission. */
@@ -491,6 +509,7 @@ export interface ProjectState {
       rgpd_register: RGPDRegister[];
       aipd_required: boolean;
       aipd: AIPDData;
+      violations?: ViolationDonnees[];
       validated?: boolean; // Étape validée
     };
     // Phase 3 : TPRM

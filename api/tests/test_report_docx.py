@@ -595,3 +595,36 @@ def test_le_rapport_de_mission_sans_soa_ne_mentionne_pas_la_declaration():
     _, contenu = report_docx.build_report_docx(_mission_complete(), "acme")
     texte = _all_text(Document(io.BytesIO(contenu)))
     assert "Déclaration d'Applicabilité" not in texte
+
+
+# --- Registre des violations de données (RGPD Art. 33-34, 30/07/2026) -------
+
+def _mission_avec_violation() -> dict:
+    mission = _mission_complete()
+    mission["steps"]["diagnostic"]["violations"] = [
+        {"id": "VIO-01", "date_constat": "2026-07-01", "date_notification_cnil": "2026-07-02",
+         "nature": "Accès non autorisé à la base clients", "categories_donnees": "Identité, email",
+         "nb_personnes": "1200", "consequences": "Risque de phishing ciblé",
+         "mesures": "Révocation des accès, rotation des secrets",
+         "notifiee_cnil": True, "personnes_informees": True, "justification": ""},
+    ]
+    return mission
+
+
+def test_le_rapport_de_mission_porte_le_registre_des_violations():
+    _, contenu = report_docx.build_report_docx(_mission_avec_violation(), "acme")
+    texte = _all_text(Document(io.BytesIO(contenu)))
+    assert "Accès non autorisé à la base clients" in texte
+    assert "Notifiée le 2026-07-02" in texte
+
+
+def test_le_rapport_de_mission_sans_violation_l_indique_explicitement():
+    _, contenu = report_docx.build_report_docx(_mission_complete(), "acme")
+    texte = _all_text(Document(io.BytesIO(contenu)))
+    assert "Aucune violation de données n'a été constatée sur cette mission." in texte
+
+
+def test_l_aipd_standalone_porte_aussi_le_registre_des_violations():
+    _, contenu = report_docx.build_aipd_docx(_mission_avec_violation(), "acme")
+    texte = _all_text(Document(io.BytesIO(contenu)))
+    assert "Accès non autorisé à la base clients" in texte

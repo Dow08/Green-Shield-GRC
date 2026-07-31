@@ -16,6 +16,8 @@ Deux niveaux :
 """
 from __future__ import annotations
 
+from datetime import date
+
 from . import aipd as aipd_module
 from . import soa as soa_module
 
@@ -81,6 +83,25 @@ def revue(state: dict) -> dict:
             manques.append({"phase": 2, "phase_libelle": PHASES[2],
                             "champ": "AIPD — risque résiduel après mesures non qualifié",
                             "gravite": "bloquant"})
+
+    # Registre des violations (Art. 33-34) : une violation non notifiée à la
+    # CNIL au-delà de 72h sans justification est un manquement réglementaire,
+    # pas une simple lacune du livrable.
+    for v in diagnostic.get("violations") or []:
+        vid = v.get("id") or "?"
+        if not v.get("date_constat"):
+            continue
+        try:
+            constat = date.fromisoformat(v["date_constat"])
+        except ValueError:
+            continue
+        if v.get("notifiee_cnil"):
+            continue
+        jours_ecoules = (date.today() - constat).days
+        if jours_ecoules > 3 and not (v.get("justification") or "").strip():
+            manques.append({"phase": 2, "phase_libelle": PHASES[2],
+                            "champ": f"Violation {vid} — non notifiée à la CNIL 72h après constat, "
+                                     "sans justification", "gravite": "bloquant"})
 
     verifier(3, "Évaluation des tiers (TPRM)", (steps.get("tprm") or {}).get("tiers"), "recommande")
 

@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **AIPD / PIA (RGPD)** — Banque Aurore SA
-> Édité le 30/07/2026 22:05 · Réf. `audit_de_conformite_iso_27001_et_dora`
+> Édité le 31/07/2026 10:28 · Réf. `audit_de_conformite_iso_27001_et_dora`
 > **Document confidentiel — diffusion restreinte**
 
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
 **Client :** Banque Aurore SA  
 **Projet :** Audit de conformité ISO 27001 & DORA  
-**Date :** 30/07/2026 22:05  
+**Date :** 31/07/2026 10:28  
 **Délégué à la Protection des Données (DPO) :** Enregistré au registre  
 
 ---
@@ -19,6 +19,10 @@
 | RGPD-01 | Gestion des comptes et opérations | Exécution du contrat de services bancaires. | Identité, coordonnées, données financières, historiques d'opérations | Durée de la relation + 5 ans (Code monétaire et financier) |
 | RGPD-02 | Lutte contre le blanchiment (LCB-FT) | Obligation légale de vigilance et de déclaration TRACFIN. | Identité, origine des fonds, alertes de profilage | 5 ans après la fin de la relation d'affaires |
 | RGPD-03 | Scoring d'octroi de crédit | Évaluation de la solvabilité — décision partiellement automatisée. | Revenus, charges, historique d'incidents, score calculé | Durée du crédit + 5 ans |
+
+
+### 1.bis Registre des Violations de Données (RGPD Art. 33-34)
+_Aucune violation de données n'a été constatée sur cette mission._
 
 
 ---
@@ -62,6 +66,6 @@ Retrait de la variable code postal et des 4 variables les plus corrélées, test
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `c6c4d45e568cff57cfe0161d28b9ae8c7b73842f56e0660190548ad3e4992b08`
+Empreinte SHA-256 de l'état de la mission à l'édition : `870d095ccce86180b4371c414e51921b436ce7160191eb6b8b033d69f8406603`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

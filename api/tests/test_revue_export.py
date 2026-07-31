@@ -191,3 +191,47 @@ def test_une_valeur_renseignee_n_est_jamais_signalee():
     m = mission_complete()
     m["steps"]["cadrage"]["scope"] = "0"  # chaîne falsy mais renseignée
     assert "Périmètre technique de l'audit" not in champs(revue_export.revue(m))
+
+
+# --- Registre des violations (RGPD Art. 33-34, 30/07/2026) ------------------
+
+def test_une_violation_notifiee_sous_72h_n_est_pas_signalee():
+    m = mission_complete()
+    m["steps"]["diagnostic"]["violations"] = [
+        {"id": "VIO-01", "date_constat": "2020-01-01", "notifiee_cnil": True,
+         "date_notification_cnil": "2020-01-02", "justification": ""},
+    ]
+    assert revue_export.revue(m)["complet"] is True
+
+
+def test_une_violation_justifiee_sans_notification_n_est_pas_bloquante():
+    """Ne pas notifier est possible (violation jugée non risquée), mais la
+    raison doit être documentée."""
+    m = mission_complete()
+    m["steps"]["diagnostic"]["violations"] = [
+        {"id": "VIO-01", "date_constat": "2020-01-01", "notifiee_cnil": False,
+         "justification": "Risque nul : données déjà publiques."},
+    ]
+    assert revue_export.revue(m)["complet"] is True
+
+
+def test_une_violation_ancienne_sans_notification_ni_justification_est_bloquante():
+    m = mission_complete()
+    m["steps"]["diagnostic"]["violations"] = [
+        {"id": "VIO-01", "date_constat": "2020-01-01", "notifiee_cnil": False, "justification": ""},
+    ]
+    r = revue_export.revue(m)
+    assert r["complet"] is False
+    manque = next(x for x in r["manques"] if x["champ"].startswith("Violation VIO-01"))
+    assert manque["gravite"] == "bloquant"
+
+
+def test_une_violation_tres_recente_sans_notification_n_est_pas_encore_signalee():
+    """Le délai de 72h n'est pas encore dépassé — pas d'alerte prématurée."""
+    from datetime import date, timedelta
+    m = mission_complete()
+    hier = (date.today() - timedelta(days=1)).isoformat()
+    m["steps"]["diagnostic"]["violations"] = [
+        {"id": "VIO-01", "date_constat": hier, "notifiee_cnil": False, "justification": ""},
+    ]
+    assert revue_export.revue(m)["complet"] is True

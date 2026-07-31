@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **PSSI & PLAN DE REPRISE** — Vernier Composites SAS
-> Édité le 30/07/2026 22:05 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # POLITIQUE DE SÉCURITÉ DE L'INFORMATION (PSSI) & PLAN DE REPRISE (PRI)
 
 **Client :** Vernier Composites SAS  
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
-**Date :** 30/07/2026 22:05  
+**Date :** 31/07/2026 10:28  
 **Auteur :** Consultant, Cabinet non renseigné  
 
 ---
@@ -58,6 +58,6 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `143dfce57d167905bbe2b6cf363f1f64f3ee118732de9c36683e1622a5bb2e87`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3f8c7353af2c4f522229844da36ed26930d954c9c089d7d0acb546d16be17ec5`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

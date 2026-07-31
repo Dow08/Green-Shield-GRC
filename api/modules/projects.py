@@ -245,6 +245,7 @@ def create_empty_state(project_id: str, name: str, client: str, project_type: st
                 "aipd_required": False,
                 "aipd": {"treatment_description": "", "necessity_eval": "",
                          "risks_eval": "", "mitigation_measures": ""},
+                "violations": [],
             },
             "tprm": {"tiers": []},
             "ebios": {"redoute_events": [], "risk_sources": [],
@@ -463,7 +464,8 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
                     "necessity_eval": "Le traitement est indispensable pour répondre aux obligations légales d'audit.",
                     "risks_eval": "Risque négligeable sur les personnes concernées en raison du confinement 100% hors-ligne.",
                     "mitigation_measures": "Chiffrement AES du disque local et restrictions d'accès physique à la machine."
-                }
+                },
+                "violations": [],
             },
             "tprm": {
                 # Volet GRC : pas de score de risque (§14.1bis). Les curseurs

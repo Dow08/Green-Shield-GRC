@@ -1,14 +1,14 @@
 **GREEN SHIELD** · Cabinet non renseigné — Audit & Conseil Cybersécurité
 
 > **AIPD / PIA (RGPD)** — Vernier Composites SAS
-> Édité le 30/07/2026 22:05 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
+> Édité le 31/07/2026 10:28 · Réf. `audit_de_securite_et_analyse_de_risque_ebios_rm`
 > **Document confidentiel — diffusion restreinte**
 
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
 **Client :** Vernier Composites SAS  
 **Projet :** Audit de sécurité & analyse de risque EBIOS RM  
-**Date :** 30/07/2026 22:05  
+**Date :** 31/07/2026 10:28  
 **Délégué à la Protection des Données (DPO) :** Enregistré au registre  
 
 ---
@@ -19,6 +19,10 @@
 | RGPD-01 | Gestion administrative du personnel | Exécution du contrat de travail, paie, obligations sociales. | Identité, coordonnées, RIB, situation familiale, arrêts de travail | Durée du contrat + 5 ans (prescription prud'homale) |
 | RGPD-02 | Vidéoprotection des accès ateliers | Sécurité des personnes et protection du secret industriel. | Images des salariés et visiteurs aux 6 points d'accès | 30 jours |
 | RGPD-03 | Suivi de la santé au travail | Suivi des expositions aux résines époxy (obligation employeur). | Données de santé, résultats d'examens médicaux | 40 ans après la fin d'exposition (Code du travail) |
+
+
+### 1.bis Registre des Violations de Données (RGPD Art. 33-34)
+_Aucune violation de données n'a été constatée sur cette mission._
 
 
 ---
@@ -62,6 +66,6 @@ Segmentation du NVR sur un VLAN dédié, authentification nominative des deux ha
 
 GREEN SHIELD — Cabinet non renseigné · Document confidentiel, ne pas diffuser sans autorisation écrite.
 
-Empreinte SHA-256 de l'état de la mission à l'édition : `143dfce57d167905bbe2b6cf363f1f64f3ee118732de9c36683e1622a5bb2e87`
+Empreinte SHA-256 de l'état de la mission à l'édition : `3f8c7353af2c4f522229844da36ed26930d954c9c089d7d0acb546d16be17ec5`
 
 *Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.*

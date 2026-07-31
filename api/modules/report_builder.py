@@ -636,7 +636,16 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
         register_md = "| ID | Activité de Traitement | Finalité | Catégories de Données | Durée de conservation |\n| :--- | :--- | :--- | :--- | :--- |\n"
         for r in rgpd_reg:
             register_md += f"| {r.get('id')} | {r.get('name')} | {r.get('purpose')} | {r.get('data_categories')} | {r.get('retention')} |\n"
-            
+
+        violations = diagnostic.get("violations", [])
+        violations_md = "| ID | Constatée le | Nature | CNIL | Personnes informées |\n| :--- | :--- | :--- | :--- | :--- |\n"
+        for v in violations:
+            cnil = f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée"
+            informees = "Oui" if v.get("personnes_informees") else "Non"
+            violations_md += f"| {v.get('id')} | {v.get('date_constat')} | {v.get('nature')} | {cnil} | {informees} |\n"
+        if not violations:
+            violations_md = "_Aucune violation de données n'a été constatée sur cette mission._\n"
+
         markdown_content = f"""{charte.entete_markdown("AIPD / PIA (RGPD)", client, now, p_id, cabinet=cabinet)}
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
@@ -649,6 +658,9 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 
 ## 1. Registre des Activités de Traitement (Inventaire)
 {register_md}
+
+### 1.bis Registre des Violations de Données (RGPD Art. 33-34)
+{violations_md}
 
 ---
 
@@ -698,10 +710,10 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
         markdown_content = f"""{charte.entete_markdown("DÉCLARATION D'APPLICABILITÉ (SoA)", client, now, p_id, cabinet=cabinet)}
 # DÉCLARATION D'APPLICABILITÉ (SoA) — ISO/IEC 27001:2022 ANNEXE A
 
-**Client :** {client}
-**Projet :** {name}
-**Date d'édition :** {now}
-**Auteur :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}
+**Client :** {client}  
+**Projet :** {name}  
+**Date d'édition :** {now}  
+**Auteur :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}  
 
 **{resume['statues']}/{resume['total']} contrôle(s) statué(s) ({resume['taux']} %)** — {resume['applicables']} applicable(s), {resume['exclus']} exclu(s).
 

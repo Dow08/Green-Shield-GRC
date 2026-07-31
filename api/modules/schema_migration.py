@@ -18,7 +18,7 @@ from . import aipd as aipd_module
 from . import soa as soa_module
 from . import tprm
 
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 
 def _to_v2(state: dict) -> dict:
@@ -206,6 +206,19 @@ def _to_v9(state: dict) -> dict:
     return state
 
 
+def _to_v10(state: dict) -> dict:
+    """v9 → v10 : registre interne des violations de données (RGPD Art.
+    33-34, G5).
+
+    « Toujours documenter toute violation, même non notifiable, dans un
+    registre interne » — obligation distincte de la simple notification à la
+    CNIL : une violation jugée non notifiable reste une violation à tracer.
+    """
+    diagnostic = state.setdefault("steps", {}).setdefault("diagnostic", {})
+    diagnostic.setdefault("violations", [])
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
@@ -216,6 +229,7 @@ _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (7, _to_v7),
     (8, _to_v8),
     (9, _to_v9),
+    (10, _to_v10),
 ]
 
 
