@@ -20,7 +20,9 @@ from pathlib import Path
 
 import yaml
 
-_CATALOGUE_PATH = Path(__file__).resolve().parent.parent / "frameworks" / "soa_iso27001.yaml"
+from . import ressources
+
+_CATALOGUE_PATH = ressources.frameworks_dir() / "soa_iso27001.yaml"
 
 STATUTS = ("Implémenté", "Partiel", "Planifié")
 THEMES = ("Organisationnel", "Personnel", "Physique", "Technologique")

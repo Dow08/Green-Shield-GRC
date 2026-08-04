@@ -194,3 +194,134 @@ Ce projet est partagé en open source pour contribuer à la communauté cyber et
 ---
 
 *GREEN SHIELD — Un projet conçu à l'intersection de la cybersécurité et de l'ingénierie logicielle.*
+
+---
+---
+
+<div align="center">
+
+# 🟢 GREEN SHIELD — English version
+
+**A mission cockpit for cybersecurity consultants — fully local.**
+
+</div>
+
+## 📖 Why GREEN SHIELD?
+
+Starting a cybersecurity consulting internship, I needed to structure my approach. Information security is a field where **nothing should be left to chance**. To offset the inexperience that comes with any career start, I wanted a highly guided tool — one that anticipates omissions and catches mistakes.
+
+I drew inspiration from market leaders like **Vanta** and **CISO Assistant**, with a different goal: a **more directive, more pedagogical** consulting assistant that walks the auditor from scoping through to the executive debrief.
+
+### The rule that shapes the whole product: invent nothing
+
+An audit tool that "fills in the blanks" is a dangerous tool — it makes the consultant sign off on findings they never made. GREEN SHIELD enforces a strict rule, verifiable in the code:
+
+- a new engagement starts **empty** — no pre-filled assets, third parties or risks;
+- anything left blank appears as **missing** in the deliverable, never quietly filled;
+- an LLM **never** writes into a structured field: it produces free text on screen, which the consultant copies over only if they judge it sound.
+
+## 🛡️ Security and confidentiality — what is actually guaranteed
+
+| Guarantee | Detail |
+|---|---|
+| **Offline operation** | Runs entirely locally (`127.0.0.1`). Without an API key, the Copilot answers from a local engine built on the engagement's real data. Nothing leaves the machine. |
+| **Data outside the repository** | Engagements live in `%APPDATA%\GreenShield` (Windows) / `$XDG_DATA_HOME` (Linux), never in the git repo. An update or a `git clean` cannot destroy them. |
+| **Encrypted archives** | Exporting an engagement produces an **AES-256** archive (WinZip AES standard, readable by 7-Zip). Import is hardened against Zip Slip and decompression bombs. |
+| **Audit log** | Every sensitive action (creation, deletion, export, purge, Copilot call) is recorded in `logs/audit.log`. Engagement content never appears there. |
+| **GDPR retention** | Interviews hold personal data: a retention period is set per engagement, and the purge erases interviewees **without ever touching audit findings**. |
+| **Versioning** | A snapshot is taken at every phase validation and before any destructive operation. No action is a one-way door. |
+
+### Network egress: the only two cases, both explicit
+
+The application is offline **by default**. Two features — and only two — can generate traffic, always on a deliberate action:
+
+1. **Online Copilot** — only if you enter a Gemini API key. The key is held in `sessionStorage` (cleared when the tab closes), **never persisted server-side nor logged**; it passes through the backend, which relays it to the API without storing it. With no key, the local fallback applies and nothing leaves.
+2. **Voice dictation** — relies on the browser's speech recognition service, which sends audio to its vendor. The interface says so where you dictate. Use the keyboard for anything confidential.
+
+> ⚠️ **Operating prerequisite.** Engagements are stored as **unencrypted** JSON. Disk encryption (BitLocker / LUKS) is a **prerequisite**, not an option — that is what protects data at rest.
+
+> ℹ️ **Scope of automatic masking.** The anonymisation module currently covers **IP addresses, e-mails and domain names**. It does **not** detect personal or organisation names. Do not rely on it to redact a client name.
+
+## 🎯 What the tool does
+
+### Guided engagement — 6 phases
+
+| Phase | Content |
+|---|---|
+| **1. Scoping & Assets** | Perimeter, NDA, business values, supporting assets, engagement foundation (qualification, contracting, kick-off, interviews). |
+| **2. Diagnosis & GDPR** | Hygiene, records of processing (Art. 30), **DPIA** with its 5 procedural obligations, **personal data breach register** (Art. 33-34). |
+| **3. Third-Party Risk (TPRM)** | Consulting track: **ANSSI** ratio `(dependency × penetration) / (maturity × trust)`. GRC track: verifiable DORA/NIS2 requirements, **no scoring** — those frameworks do not claim EBIOS. |
+| **4. Threat analysis** | **EBIOS RM**: feared events, risk sources, operational scenarios, real-world cases. |
+| **5. Resilience & Compliance** | RTO/RPO, ANSSI **E3R** sequence, executive arbitration, audit checklist per framework, **Statement of Applicability**, evidence library. |
+| **6. Treatment & Deliverables** | Managed remediation plan, accepted risks, pre-export review, deliverable generation. |
+
+### Structural features
+
+- **🗂️ Multiple frameworks per engagement** — one engagement can carry **ISO 27001 + DORA + NIS2** at once. The checklist groups by framework, and deliverables state each control's origin. This is the real case of a financial institution pursuing certification.
+- **📋 Statement of Applicability (SoA)** — all **93 Annex A controls of ISO 27001:2022**, with justification for inclusion *and* exclusion. It is the first document a certification auditor asks for. Dedicated deliverable (Word + Markdown).
+- **🔗 Cross-framework evidence library** — evidence written once (a signed security policy, a contract) can cover controls across **several frameworks** at once. No more re-entry.
+- **⚖️ GDPR breach register** — every breach is documented, **even one judged non-notifiable** (Art. 33(5)). The **72-hour** rule is checked: a breach neither notified nor justified past that deadline becomes a **blocking** gap before export.
+- **🔁 Risk → treatment chain** — every scenario carries an owner, a residual risk, a strategy (Reduce / Accept / Transfer / Avoid) and a status. Without an owner and a decision, a scenario is merely an observation.
+- **✅ Pre-export review** — the tool lists what is missing **before** a deliverable reaches the client, separating blocking from advisory. It fills nothing in: it makes incompleteness visible.
+- **📄 Multi-format exports** — NDA, EBIOS RM, security policy / DR plan, DPIA, Statement of Applicability and engagement report, in **Word (`python-docx`), HTML and Markdown**, branded with your firm's identity (logo, name, details).
+- **⏱️ Effort tracking** — time spent per phase against the sold budget, carried into the report.
+- **🔬 AuditCraft-GRC** — offline analysis of configuration files (`sshd_config`, `nginx.conf`) mapped to **CIS v8 / NIST CSF 2.0**, with a **technical coverage rate** stated honestly: whatever rests on self-declaration is labelled as such.
+
+### 🚀 Demonstration engagement
+
+One click on **"Mission de démo"** generates a **fully fictional** engagement ("Néobanque Fictive SAS"), explicitly marked, that exercises every feature: two active frameworks, a partially decided SoA, evidence shared across frameworks, two GDPR breaches illustrating both branches of Article 33, a completed DPIA, four EBIOS scenarios and a managed treatment plan.
+
+It lets you demo the tool **without ever opening a real client engagement** — and verifies, after each change, that the whole chain still works.
+
+## 🛠️ Standards expertise applied
+
+- **Frameworks**: ISO/IEC 27001:2022 (including all 93 Annex A controls), DORA, NIS2, GDPR, NIST CSF 2.0, EU AI Act.
+- **Methods**: EBIOS RM (ANSSI), DPIA (CNIL), E3R remediation sequence (ANSSI), ANSSI third-party criticality ratio.
+- **Architecture**: React 19 + Vite + Tailwind v4 (strict TypeScript) / FastAPI + Python 3.12, flat JSON/YAML storage, Docker Compose packaging.
+- **Quality**: **624 backend tests (pytest) and 150 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain, atomic writes.
+
+> **Respect for standards copyright**: bundled frameworks contain only **identifiers and short reworded titles**. No ISO/AFNOR normative text is reproduced.
+
+## 🚀 Install & run
+
+```bash
+# Via Docker (recommended)
+make up          # builds and serves on http://localhost:8080
+```
+
+> Without `make` (Windows): `docker compose up --build -d`.
+
+**Windows users**: a standalone `GreenShield.exe` is published under [Releases](../../releases) — no Python, Node or Docker required. Double-click, and your browser opens on the application.
+
+### Development
+
+```bash
+cd api && py -3 -m uvicorn main:app --reload --port 8000   # backend
+cd web && npm install && npm run dev                        # frontend
+```
+
+### Tests
+
+```bash
+py -3 -m pytest api/tests -q      # 624 backend tests
+cd web && npx vitest run          # 150 frontend tests
+cd web && npx tsc --noEmit        # strict typing
+```
+
+### Recommended configuration
+
+| Variable | Purpose |
+|---|---|
+| `GREENSHIELD_API_SECRET` | Session token signing secret. **Set it in deployment**: otherwise a secret is generated and kept locally on first start. |
+| `GREENSHIELD_DATA_DIR` | Engagement directory. Defaults to `%APPDATA%\GreenShield\projects`. |
+
+## ⚖️ Licence & usage
+
+[PolyForm Noncommercial 1.0.0](LICENSE.md). Shared open source to contribute to the cyber community and to show how I approach the work.
+
+- ✅ Reading, study, modification, non-profit or educational use.
+- ❌ Resale, commercial integration or paid SaaS use.
+
+---
+
+*GREEN SHIELD — Built at the intersection of cybersecurity and software engineering.*

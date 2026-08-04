@@ -12,7 +12,9 @@ from pathlib import Path
 
 import yaml
 
-CATALOGUE_PATH = Path(__file__).resolve().parent.parent / "frameworks" / "mesures_catalogue.yaml"
+from . import ressources
+
+CATALOGUE_PATH = ressources.frameworks_dir() / "mesures_catalogue.yaml"
 
 AXES_VALIDES = {"Gouvernance", "Protection", "Défense", "Résilience"}
 

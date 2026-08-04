@@ -14,11 +14,13 @@ from __future__ import annotations
 from datetime import date, timedelta
 from pathlib import Path
 
+from . import ressources
+
 import yaml
 
 from . import path_safety
 
-FRAMEWORKS_DIR = Path(__file__).resolve().parent.parent / "frameworks"
+FRAMEWORKS_DIR = ressources.frameworks_dir()
 
 
 def list_workflow_ids() -> list[str]:

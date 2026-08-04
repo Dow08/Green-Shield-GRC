@@ -1,0 +1,114 @@
+name: Exécutable Windows
+
+# Construit un GreenShield.exe autonome : frontend compilé + API + référentiels
+# dans un seul fichier. L'utilisateur final n'installe ni Python, ni Node, ni
+# Docker — il double-clique, son navigateur s'ouvre sur l'application.
+#
+# Déclenchement :
+#   * manuel (`workflow_dispatch`), pour produire un binaire de test ;
+#   * sur un tag `v*`, qui publie en plus une Release GitHub.
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # nécessaire pour créer la Release sur un tag
+
+jobs:
+  build:
+    name: Construire GreenShield.exe
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # --- Frontend ------------------------------------------------------
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Compiler le frontend
+        working-directory: web
+        run: |
+          npm ci
+          npm run build
+
+      # Le binaire sert le frontend depuis `web/` (cf. modules/ressources.py) :
+      # on place le résultat du build à cet emplacement avant l'empaquetage.
+      - name: Préparer le frontend pour l'empaquetage
+        run: |
+          New-Item -ItemType Directory -Force api/web | Out-Null
+          Copy-Item -Recurse -Force web/dist/* api/web/
+
+      # --- Backend -------------------------------------------------------
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: api/requirements.txt
+
+      - name: Installer les dépendances
+        run: |
+          pip install -r api/requirements.txt
+          pip install pyinstaller==6.11.1
+
+      - name: Empaqueter
+        working-directory: api
+        # `--collect-all` sur les paquets qui chargent des données ou des
+        # sous-modules dynamiquement : PyInstaller ne les détecte pas en
+        # analysant statiquement les imports, et le binaire échouerait au
+        # premier appel plutôt qu'à la compilation.
+        run: |
+          pyinstaller --onefile --name GreenShield `
+            --add-data "frameworks;frameworks" `
+            --add-data "web;web" `
+            --collect-all uvicorn `
+            --collect-all fastapi `
+            --collect-all passlib `
+            --hidden-import bcrypt `
+            --hidden-import email_validator `
+            desktop.py
+
+      # --- Vérification --------------------------------------------------
+      # Un binaire qui compile mais ne démarre pas est un faux positif : on
+      # lance réellement l'exécutable et on interroge /health.
+      - name: Vérifier que le binaire démarre
+        working-directory: api
+        run: |
+          $proc = Start-Process -FilePath "dist/GreenShield.exe" -PassThru
+          $ok = $false
+          foreach ($i in 1..30) {
+            Start-Sleep -Seconds 2
+            try {
+              $r = Invoke-WebRequest -Uri "http://127.0.0.1:8000/health" -UseBasicParsing -TimeoutSec 3
+              if ($r.StatusCode -eq 200) { $ok = $true; break }
+            } catch { }
+          }
+          Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          if (-not $ok) { throw "L'exécutable n'a pas répondu sur /health." }
+          Write-Host "Démarrage vérifié."
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GreenShield-windows
+          path: api/dist/GreenShield.exe
+          retention-days: 30
+
+      - name: Publier la Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: api/dist/GreenShield.exe
+          body: |
+            **GreenShield.exe** — application de bureau autonome pour Windows.
+
+            Aucune installation requise : téléchargez, double-cliquez, votre
+            navigateur s'ouvre sur l'application. Tout reste local (`127.0.0.1`).
+
+            > Les missions sont stockées en clair dans `%APPDATA%\GreenShield`.
+            > Le chiffrement du disque (BitLocker) reste un prérequis
+            > d'exploitation — voir le README.

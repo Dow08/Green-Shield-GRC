@@ -7,12 +7,13 @@ from cryptography.fernet import Fernet
 
 import yaml
 from .. import data_paths
+from .. import ressources
 from .. import schema_migration
 from .. import audit_log
 from .. import tprm
 
 PROJECTS_DIR = data_paths.resolve_projects_dir()
-FRAMEWORKS_DIR = Path(__file__).resolve().parent.parent.parent / "frameworks"
+FRAMEWORKS_DIR = ressources.frameworks_dir()
 _LEGACY_PROJECTS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "projects"
 
 _STORAGE_KEY = os.environ.get("GREENSHIELD_STORAGE_KEY")

@@ -9,7 +9,9 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.responses import FileResponse
 from modules.auth import get_current_user, limiter
+from modules import ressources
 from fastapi.middleware.cors import CORSMiddleware
 
 from modules import auditcraft_grc
@@ -72,3 +74,26 @@ def auditcraft_run(_user=Depends(get_current_user)) -> dict:
         return auditcraft_grc.run(TARGET_DIR)
     except Exception as exc:  # cible/référentiel introuvable → 500 explicite
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+# --- Frontend embarqué (exécutable de bureau) --------------------------------
+# Monté en dernier, après toutes les routes d'API : le point de montage racine
+# capterait sinon `/api/...`. Absent en développement (Vite sert le frontend)
+# et en Docker (nginx s'en charge) — d'où la condition, plutôt qu'un chemin
+# supposé toujours présent.
+_FRONTEND = ressources.frontend_dir()
+if (_FRONTEND / "index.html").is_file():
+
+    @app.get("/{chemin:path}", include_in_schema=False)
+    def servir_spa(chemin: str) -> FileResponse:
+        """Sert le frontend, avec repli sur `index.html`.
+
+        L'application est une SPA : une URL profonde rafraîchie ne correspond à
+        aucun fichier et doit renvoyer la page d'entrée, c'est le routeur
+        client qui décide de l'écran.
+        """
+        demande = (_FRONTEND / chemin).resolve()
+        # `resolve()` neutralise les `..` : on refuse toute sortie du dossier.
+        if demande.is_file() and demande.is_relative_to(_FRONTEND.resolve()):
+            return FileResponse(demande)
+        return FileResponse(_FRONTEND / "index.html")
