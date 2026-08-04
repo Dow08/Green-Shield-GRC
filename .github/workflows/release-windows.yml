@@ -54,7 +54,7 @@ jobs:
       - name: Installer les dépendances
         run: |
           pip install -r api/requirements.txt
-          pip install pyinstaller==6.11.1
+          pip install "pyinstaller>=6.11,<7"
 
       - name: Empaqueter
         working-directory: api

@@ -56,3 +56,11 @@ append_routes.py
 rewrite_test.py
 out.txt
 old_projects.txt
+
+# --- Artefacts d'empaquetage (executable Windows) ---
+# Produits par PyInstaller et par la copie du frontend compile ; le workflow
+# les regenere a chaque build, ils n'ont rien a faire dans l'historique.
+api/build/
+api/dist/
+api/web/
+*.spec
