@@ -234,6 +234,42 @@ async function uploadFile<T>(path: string, file: File): Promise<T> {
 // Nom de fichier porté par l'en-tête `Content-Disposition` (RFC 5987) — en
 // POST + blob, le navigateur ne le déduit plus tout seul comme il le ferait
 // pour un simple lien <a href download>.
+/**
+ * Ouvre un livrable au format « impression » dans un nouvel onglet.
+ *
+ * Ces vues étaient jusqu'ici ouvertes par `window.open("/api/…/pdf/…")`. Une
+ * navigation d'URL ne porte aucun en-tête : depuis que les routes d'export
+ * exigent une authentification, l'onglet n'affichait plus qu'un
+ * « Jeton d'accès manquant ou invalide ». On récupère donc le document par
+ * `fetch` (qui, lui, joint le jeton) avant de l'écrire dans l'onglet.
+ *
+ * L'onglet est ouvert **avant** le premier `await` : un `window.open` différé
+ * n'est plus rattaché au clic de l'utilisateur et se fait bloquer.
+ */
+async function openPrintableReport(id: string, docType: string): Promise<void> {
+  const onglet = window.open("", "_blank");
+  try {
+    const params = new URLSearchParams({
+      auditeur: safeGetItem("consultant_name") ?? "",
+      cabinet: safeGetItem("consultant_company") ?? "",
+    });
+    const res = await fetch(`/api/projects/${id}/pdf/${docType}?${params}`, {
+      headers: getHeaders(),
+    });
+    await handleResponse(res);
+    const html = await res.text();
+    if (!onglet) {
+      throw new Error("Ouverture de l'onglet bloquée par le navigateur.");
+    }
+    onglet.document.open();
+    onglet.document.write(html);
+    onglet.document.close();
+  } catch (err) {
+    onglet?.close();
+    throw err;
+  }
+}
+
 function nomDepuisContentDisposition(res: Response, repli: string): string {
   const entete = res.headers.get("Content-Disposition") ?? "";
   const utf8 = entete.match(/filename\*=UTF-8''([^;]+)/);
@@ -350,6 +386,9 @@ export const api = {
     // Déclaration d'Applicabilité (SoA) : n'existe que sur une mission ISO
     // 27001 — l'API répond 404 sinon, remonté via l'erreur du fetch.
     downloadSoaDocx: (id: string) => downloadDocx(id, "soa"),
+    // Vue « impression » (PDF via le navigateur) — authentifiée, cf.
+    // `openPrintableReport`.
+    openPdf: (id: string, docType: string) => openPrintableReport(id, docType),
   },
   
   frameworks: {

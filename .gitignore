@@ -17,7 +17,13 @@ dist/
 # ~/.local/share/greenshield, cf. GREENSHIELD_DATA_DIR). Cette règle reste en
 # double sécurité pour l'ancien emplacement : les données d'audit client ne
 # doivent en aucun cas entrer dans l'historique git. Voir docs/audit-critique-plan.md (F13).
-projects/
+#
+# ⚠️ La barre oblique initiale est essentielle : sans elle, `projects/` exclut
+# TOUT dossier de ce nom à n'importe quelle profondeur — y compris le paquet
+# applicatif `api/modules/projects/`, qui s'est retrouvé absent du dépôt lors
+# de la refonte de `projects.py` en paquet (constaté le 01/08/2026 : `main.py`
+# importait `modules.projects.router`, introuvable après clonage).
+/projects/
 
 # --- Livrables générés ---
 rapport_auditcraft_grc.md

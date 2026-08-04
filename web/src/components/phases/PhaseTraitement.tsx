@@ -319,7 +319,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/nda`, "_blank")}
+                        onClick={() => api.projects.openPdf(activeProject.id, "nda").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -340,7 +340,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/ebios`, "_blank")}
+                        onClick={() => api.projects.openPdf(activeProject.id, "ebios").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -361,7 +361,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/pssi_pri`, "_blank")}
+                        onClick={() => api.projects.openPdf(activeProject.id, "pssi_pri").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -382,7 +382,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/aipd`, "_blank")}
+                        onClick={() => api.projects.openPdf(activeProject.id, "aipd").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -405,7 +405,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                           <FileDown size={13} /> Word (.docx)
                         </button>
                         <button
-                          onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/soa`, "_blank")}
+                          onClick={() => api.projects.openPdf(activeProject.id, "soa").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
                           className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                         >
                           <FileDown size={13} /> PDF
@@ -429,7 +429,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => window.open(`/api/projects/${activeProject.id}/pdf/audit_report`, "_blank")}
+                        onClick={() => api.projects.openPdf(activeProject.id, "audit_report").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
