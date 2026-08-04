@@ -27,7 +27,7 @@ cryptography>=41.0.0
 slowapi>=0.1.9
 markdown==3.7
 
-sqlalchemy==2.0.31
+sqlalchemy==2.0.51
 
 passlib[bcrypt]==1.7.4
 PyJWT[crypto]>=2.13.0
