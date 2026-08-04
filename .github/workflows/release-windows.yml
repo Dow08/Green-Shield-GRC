@@ -68,6 +68,7 @@ jobs:
           pyinstaller --onefile --name GreenShield `
             --add-data "frameworks;frameworks" `
             --add-data "web;web" `
+            --add-data "modules/auditcraft_grc/grc_rules.yaml;modules/auditcraft_grc" `
             --collect-all uvicorn `
             --collect-all fastapi `
             --collect-all passlib `
