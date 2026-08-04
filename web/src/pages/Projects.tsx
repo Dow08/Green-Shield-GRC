@@ -762,9 +762,17 @@ export function Projects() {
               {[1, 2, 3, 4, 5, 6].map((num) => {
                 const stepKey = ["cadrage", "diagnostic", "tprm", "ebios", "resilience", "traitement"][num - 1];
                 const isStepValidated = (activeProject.steps as Record<string, { validated?: boolean }>)[stepKey]?.validated;
+                // Une phase validée n'affiche plus qu'une coche : sans libellé
+                // explicite, le bouton devient inaccessible au clavier comme au
+                // lecteur d'écran (convention CLAUDE.md sur les boutons
+                // icône-seule).
+                const libellePhase = ["Cadrage & Patrimoine", "Diagnostic & RGPD", "Risques Tiers",
+                                      "Analyse des Menaces", "Résilience & E3R", "Traitement & Livrables"][num - 1];
                 return (
                   <button
                     key={num}
+                    aria-label={`Phase ${num} — ${libellePhase}${isStepValidated ? " (validée)" : ""}`}
+                    aria-current={currentStep === num ? "step" : undefined}
                     onClick={() => setCurrentStep(num)}
                     className={`grid h-7 w-7 place-items-center rounded-lg text-xs font-bold transition relative ${currentStep === num ? "bg-[var(--g1)] text-[#04150e]" : isStepValidated ? "bg-[rgba(46,230,160,0.12)] text-[var(--g1)] border border-[var(--g1)]" : "bg-white/[0.04] text-[var(--soft)] hover:bg-white/10"}`}
                   >

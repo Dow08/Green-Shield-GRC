@@ -107,7 +107,7 @@ async function ouvrirPhase(numero: number) {
   await user.click(screen.getByText("Mission Acme"));
   await waitFor(() => expect(screen.getByText(/Progression Mission/)).toBeInTheDocument());
   if (numero !== 1) {
-    await user.click(screen.getByRole("button", { name: String(numero) }));
+    await user.click(screen.getByRole("button", { name: new RegExp(`^Phase ${numero} —`) }));
   }
   return user;
 }
@@ -126,8 +126,10 @@ describe("Projects — caractérisation avant découpage", () => {
   it("ouvre une mission et affiche le stepper des 6 phases", async () => {
     render(<Projects />);
     await ouvrirPhase(1);
-    for (const n of ["1", "2", "3", "4", "5", "6"]) {
-      expect(screen.getByRole("button", { name: n })).toBeInTheDocument();
+    // Les pastilles se nomment par leur libellé accessible : une phase validée
+    // n'affiche plus qu'une coche, son numéro disparaît du rendu.
+    for (const n of [1, 2, 3, 4, 5, 6]) {
+      expect(screen.getByRole("button", { name: new RegExp(`^Phase ${n} —`) })).toBeInTheDocument();
     }
   });
 

@@ -20,9 +20,41 @@ Un environnement d'audit moderne, hors-ligne et modulaire, qui guide une mission
 ## 📸 Aperçu de la plateforme
 
 <p align="center">
-  <img src="docs/assets/demo_sql.webp" width="800" alt="Démonstration de la navigation dans GREEN SHIELD">
+  <img src="docs/assets/demo_sql.webp" width="820" alt="Démonstration de la navigation dans GREEN SHIELD">
   <br>
   <em>Navigation et sauvegarde d'une mission.</em>
+</p>
+
+Les captures ci-dessous proviennent de la **mission de démonstration** livrée avec l'outil — entièrement fictive, générée en un clic, et régénérable par [`scripts/captures_readme.py`](scripts/captures_readme.py).
+
+<p align="center">
+  <img src="docs/assets/01-registre-missions.png" width="820" alt="Registre des missions avec la frise des remédiations sur trois horizons">
+  <br>
+  <em><strong>Registre des missions.</strong> Frise des remédiations consolidée sur trois horizons (court / moyen / long terme), toutes missions confondues, avec charges consommées et complétion moyenne.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/04-multi-referentiel.png" width="820" alt="Check-lists d'audit ISO 27001 et DORA sur une même mission">
+  <br>
+  <em><strong>Multi-référentiel.</strong> Une même mission porte ISO 27001 <em>et</em> DORA : chaque check-list est regroupée par référentiel, et les livrables indiquent l'origine de chaque contrôle.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/05-soa.png" width="820" alt="Bibliothèque de preuves et Déclaration d'Applicabilité">
+  <br>
+  <em><strong>Preuves et Déclaration d'Applicabilité.</strong> Une preuve peut couvrir des contrôles de plusieurs référentiels à la fois. En dessous, les 93 contrôles de l'Annexe A avec leur justification d'inclusion ou d'exclusion.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/03-phase2-violations.png" width="820" alt="Registre des violations de données personnelles">
+  <br>
+  <em><strong>Registre des violations (RGPD Art. 33-34).</strong> Toute violation se documente, même jugée non notifiable. Le délai de 72 h est contrôlé avant l'export.</em>
+</p>
+
+<p align="center">
+  <img src="docs/assets/06-phase6-livrables.png" width="820" alt="Revue avant export et génération des livrables">
+  <br>
+  <em><strong>Revue avant export et livrables.</strong> L'outil énumère ce qui manque avant qu'un document ne parte chez le client, puis génère les six livrables en Word, PDF et Markdown.</em>
 </p>
 
 > **Envie de voir le résultat sans rien installer ?** Le dossier **[docs/exemples/](docs/exemples/)** contient les livrables bruts de deux missions fictives, générés de bout en bout par l'outil (Word, HTML, Markdown).
