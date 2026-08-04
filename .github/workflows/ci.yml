@@ -10,14 +10,18 @@ on:
   pull_request:
     branches: [main]
 
+permissions: {}
+
 jobs:
   backend:
     name: Backend (pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@0b93645e5fea7318ecaed2b359559ac225c90a2b # v5.3.0
         with:
           python-version: "3.12"
           cache: pip
@@ -79,9 +83,11 @@ jobs:
       run:
         working-directory: web
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
           node-version: "22"
           cache: npm

@@ -1,0 +1,67 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+jobs:
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: TruffleHog OSS
+        uses: trufflesecurity/trufflehog-actions@a1649f826a31f08e457e5e34be6214371fa7a4e6 # v3.88.0
+        with:
+          extra_args: --debug --only-verified
+
+  sast-semgrep:
+    name: SAST Code Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write # Permet de pousser les alertes dans l'onglet Security de GitHub
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Semgrep Analysis
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep semgrep scan --config auto --sarif --output=semgrep.sarif
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@b5a5c3d0f7ed6c100782ef910ab5673323d8320c # v3.28.10
+        with:
+          sarif_file: semgrep.sarif
+
+  container-sca:
+    name: Container Vulnerability Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Build local image
+        run: docker build -t test-image:${{ github.sha }} .
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394d2dd8c87dbb0 # v0.29.0
+        with:
+          image-ref: 'test-image:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@b5a5c3d0f7ed6c100782ef910ab5673323d8320c # v3.28.10
+        with:
+          sarif_file: trivy-results.sarif
