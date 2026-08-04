@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog-actions@a1649f826a31f08e457e5e34be6214371fa7a4e6 # v3.88.0
+        uses: trufflesecurity/trufflehog@24c98ca20e421a6807518f79c5cdd063400774f2 # main
         with:
           extra_args: --debug --only-verified
 
@@ -38,7 +38,7 @@ jobs:
         run: |
           docker run --rm -v "${{ github.workspace }}:/src" semgrep/semgrep semgrep scan --config auto --sarif --output=semgrep.sarif
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@b5a5c3d0f7ed6c100782ef910ab5673323d8320c # v3.28.10
+        uses: github/codeql-action/upload-sarif@a65a038433a26f4363cf9f029e3b9ceac831ad5d # v3.28.10
         with:
           sarif_file: semgrep.sarif
 
@@ -55,13 +55,13 @@ jobs:
       - name: Build local image
         run: docker build -t test-image:${{ github.sha }} .
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394d2dd8c87dbb0 # v0.29.0
+        uses: aquasecurity/trivy-action@18f2510ee396bbf400402947b394f2dd8c87dbb0 # v0.29.0
         with:
           image-ref: 'test-image:${{ github.sha }}'
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
       - name: Upload Trivy SARIF
-        uses: github/codeql-action/upload-sarif@b5a5c3d0f7ed6c100782ef910ab5673323d8320c # v3.28.10
+        uses: github/codeql-action/upload-sarif@a65a038433a26f4363cf9f029e3b9ceac831ad5d # v3.28.10
         with:
           sarif_file: trivy-results.sarif
