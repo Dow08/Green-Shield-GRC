@@ -61,7 +61,7 @@ export function ArchivePanel({ missionName, onExport, onImport }: Props) {
   return (
     <div className="glass p-4 flex flex-col gap-3">
       <span className="text-[10px] font-bold text-[var(--faint)] uppercase tracking-wide flex items-center gap-1.5">
-        <Archive size={12} /> Sauvegarde &amp; portabilité
+        <Archive size={12} /> Sauvegarde & portabilité
       </span>
 
       <div className="flex items-start gap-2 text-[11px] text-[var(--soft)] bg-[rgba(46,230,160,0.05)] border border-[rgba(46,230,160,0.15)] rounded-xl p-2.5">

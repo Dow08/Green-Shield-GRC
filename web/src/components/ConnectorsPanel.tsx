@@ -1,6 +1,5 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Cloud, Lock, Server, Link2, Search, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Link2, CheckCircle2, AlertCircle, Loader2, ShieldAlert, Upload } from "lucide-react";
 import { api } from "../lib/api";
 import type { ProjectState } from "../types";
 
@@ -9,123 +8,115 @@ interface Props {
   onChange: (project: ProjectState) => void;
 }
 
+/**
+ * Import Red Shield uniquement (31/07/2026) — trois autres « connecteurs »
+ * (Microsoft 365, AWS, GitHub) ont été retirés : ils ne faisaient jamais
+ * d'appel réel à ces API et écrivaient un texte de preuve entièrement
+ * fabriqué dans les contrôles ISO 27001 de la mission, contraire à la
+ * philosophie « zéro invention » du projet. Red Shield reste légitime :
+ * il importe des données réellement parsées depuis un fichier déposé.
+ */
 export function ConnectorsPanel({ project, onChange }: Props) {
-  const [scanning, setScanning] = useState<string | null>(null);
-  const [result, setResult] = useState<{ [key: string]: { status: string; count: number; details: string } }>({});
+  const [scanning, setScanning] = useState(false);
+  const [result, setResult] = useState<{ status: string; count: number; details: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleScan = async (connectorId: string) => {
-    setScanning(connectorId);
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setScanning(true);
     try {
-      const res = await api.projects.scanConnector(project.id, connectorId);
-      setResult(prev => ({ ...prev, [connectorId]: { status: res.status, count: res.updates_count, details: res.details } }));
-      
-      // On recharge le projet pour rafraichir le Kanban (si un scan met à jour un statut)
+      const text = await file.text();
+      const payload = JSON.parse(text);
+
+      const res = await fetch(`/api/connectors/${project.id}/redshield`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error("Erreur import Red Shield");
+      const data = await res.json();
+
+      setResult({ status: data.status, count: data.updates_count, details: data.details });
       const updatedProject = await api.projects.get(project.id);
       onChange(updatedProject);
     } catch (e) {
       console.error(e);
-      alert("Erreur lors de la communication avec le connecteur.");
+      alert("Fichier JSON invalide ou erreur réseau.");
     } finally {
-      setScanning(null);
+      setScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
-
-  const connectors = [
-    {
-      id: "microsoft_365",
-      name: "Microsoft 365 / Entra ID",
-      icon: Cloud,
-      description: "Vérifie les configurations d'accès (MFA, Conditional Access) sur votre tenant.",
-      color: "text-blue-500",
-      bg: "bg-blue-500/10",
-      border: "border-blue-500/30"
-    },
-    {
-      id: "aws",
-      name: "Amazon Web Services",
-      icon: Server,
-      description: "Analyse le chiffrement (KMS, S3) et la gestion des identités IAM.",
-      color: "text-[#FF9900]",
-      bg: "bg-[#FF9900]/10",
-      border: "border-[#FF9900]/30"
-    },
-    {
-      id: "github",
-      name: "GitHub Enterprise",
-      icon: Lock,
-      description: "Audite la sécurité du code source, les secrets et les revues de code.",
-      color: "text-white",
-      bg: "bg-white/10",
-      border: "border-white/30"
-    }
-  ];
 
   return (
     <div className="flex flex-col gap-6">
       <div>
         <h3 className="text-xl font-bold flex items-center gap-2">
-          <Link2 className="text-[var(--accent)]" /> Continuous Compliance
+          <Link2 className="text-[var(--accent)]" /> Import Red Shield
         </h3>
         <p className="text-sm text-[var(--soft)]">
-          Connectez l'infrastructure de votre client pour collecter des preuves automatisées et valider instantanément les exigences ISO 27001.
+          Importez les découvertes techniques (CVE, hôtes, HIDS) réellement remontées par un export Red Shield.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {connectors.map((c) => {
-          const Icon = c.icon;
-          const isScanning = scanning === c.id;
-          const scanResult = result[c.id];
+      <input
+        type="file"
+        accept=".json"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        className="hidden"
+      />
 
-          return (
-            <div key={c.id} className={`glass p-5 border flex flex-col justify-between ${scanResult ? 'border-[var(--accent)]' : 'border-white/10'}`}>
-              <div>
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`p-3 rounded-lg ${c.bg} ${c.color}`}>
-                    <Icon size={24} />
-                  </div>
-                  {scanResult && (
-                    <div className="text-[var(--accent)] flex items-center gap-1 text-xs font-bold bg-[var(--accent)]/10 px-2 py-1 rounded">
-                      <CheckCircle2 size={12} /> Sync
-                    </div>
-                  )}
-                </div>
-                <h4 className="font-bold text-[var(--ink)] mb-1">{c.name}</h4>
-                <p className="text-xs text-[var(--faint)] leading-relaxed h-10">{c.description}</p>
+      <div className="glass p-5 border border-white/10 flex flex-col justify-between max-w-sm">
+        <div>
+          <div className="flex items-start justify-between mb-3">
+            <div className="p-3 rounded-lg bg-red-500/10 text-red-500">
+              <ShieldAlert size={24} />
+            </div>
+            {result && (
+              <div className="text-[var(--accent)] flex items-center gap-1 text-xs font-bold bg-[var(--accent)]/10 px-2 py-1 rounded">
+                <CheckCircle2 size={12} /> Sync
               </div>
+            )}
+          </div>
+          <h4 className="font-bold text-[var(--ink)] mb-1">Red Shield</h4>
+          <p className="text-xs text-[var(--faint)] leading-relaxed h-10">
+            Importez les découvertes techniques (CVE, Hôtes, HIDS) depuis Red Shield.
+          </p>
+        </div>
 
-              <div className="mt-5 pt-4 border-t border-white/5">
-                {scanResult ? (
-                  <div className="flex flex-col gap-2">
-                    <div className="text-xs text-[var(--soft)] flex items-center gap-2">
-                      <AlertCircle size={14} className="text-[var(--sky)]" />
-                      {scanResult.count} exigence(s) validée(s)
-                    </div>
-                    <div className="text-[10px] text-[var(--faint)] italic truncate">
-                      {scanResult.details}
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => handleScan(c.id)}
-                    disabled={isScanning || scanning !== null}
-                    className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isScanning ? (
-                      <>
-                        <Loader2 size={16} className="animate-spin" /> Analyse...
-                      </>
-                    ) : (
-                      <>
-                        <Search size={16} /> Lancer le scan
-                      </>
-                    )}
-                  </button>
-                )}
+        <div className="mt-5 pt-4 border-t border-white/5">
+          {result ? (
+            <div className="flex flex-col gap-2">
+              <div className="text-xs text-[var(--soft)] flex items-center gap-2">
+                <AlertCircle size={14} className="text-[var(--sky)]" />
+                {result.count} élément(s) importé(s)
+              </div>
+              <div className="text-[10px] text-[var(--faint)] italic truncate">
+                {result.details}
               </div>
             </div>
-          );
-        })}
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={scanning}
+              className="w-full py-2 rounded-lg bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {scanning ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Import...
+                </>
+              ) : (
+                <>
+                  <Upload size={16} /> Importer SXF
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

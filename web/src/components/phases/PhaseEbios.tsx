@@ -46,7 +46,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
   return (
               <div className="flex flex-col gap-4">
                 <div className="text-sm font-bold text-[var(--g1)] border-b border-white/[0.04] pb-1.5 flex items-center gap-2">
-                  <Award size={15} /> 4. Analyse des Menaces EBIOS RM &amp; Scan Réel de Configuration
+                  <Award size={15} /> 4. Analyse des Menaces EBIOS RM & Scan Réel de Configuration
                 </div>
 
                 {/* GRC ACTIVE SCANS AND GENUINE TARGET AUDITS (SHIELD) */}
@@ -196,7 +196,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
 
                 {/* B. SOURCES DE RISQUE */}
                 <div className="mt-1 border-t border-white/[0.04] pt-3">
-                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">B. Sources de Risque &amp; Objectifs Visés (Atelier 2)</div>
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">B. Sources de Risque & Objectifs Visés (Atelier 2)</div>
                   <div className="flex flex-col gap-2">
                     {sources.map((s: RiskSource, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.05] text-xs flex justify-between items-center">
@@ -425,7 +425,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
 
                 {/* CASE STUDIES REFLEXES */}
                 <div className="mt-1 border-t border-white/[0.04] pt-2">
-                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">D. Fiches de Décision &amp; Retours d'Expérience Réels (REX)</div>
+                  <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">D. Fiches de Décision & Retours d'Expérience Réels (REX)</div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {casReels.map((c: CaseStudy, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-xs animate-fade-in relative group">

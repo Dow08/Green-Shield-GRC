@@ -1,4 +1,4 @@
-import { LayoutGrid, Settings, X, Bug } from "lucide-react";
+import { LayoutGrid, Settings, X, Bug, LogOut } from "lucide-react";
 import type { ModuleInfo } from "../types";
 import { iconFor } from "../lib/icons";
 import { useDismissOnOutsideOrEscape } from "../lib/useDismissOnOutsideOrEscape";
@@ -10,9 +10,10 @@ interface Props {
   /** Ouverture du tiroir en dessous du point de rupture `md`. Sans effet au-delà. */
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void;
 }
 
-export function Sidebar({ view, onNavigate, modules, isOpen, onClose }: Props) {
+export function Sidebar({ view, onNavigate, modules, isOpen, onClose, onLogout }: Props) {
   const ref = useDismissOnOutsideOrEscape<HTMLElement>(isOpen, onClose);
 
   // Naviguer referme le tiroir : sur mobile il recouvre le contenu qu'on vient
@@ -87,6 +88,9 @@ export function Sidebar({ view, onNavigate, modules, isOpen, onClose }: Props) {
 
         <NavButton active={view === "settings"} label="Réglages & Paramètres" onClick={() => naviguer("settings")}>
           <Settings size={19} strokeWidth={2} />
+        </NavButton>
+        <NavButton active={false} label="Déconnexion" onClick={onLogout}>
+          <LogOut size={19} strokeWidth={2} />
         </NavButton>
         <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-[#3a4d5a] to-[#22323c] text-sm font-bold text-[#cfe]">
           GS+

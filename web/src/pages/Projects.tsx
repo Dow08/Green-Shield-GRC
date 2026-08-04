@@ -29,9 +29,16 @@ export function Projects() {
   const [error, setError] = useState<string | null>(null);
   
   // Project creation form state
-  const [showCreate, setShowCreate] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
-  const [showCopilot, setShowCopilot] = useState(false);
+  // Un seul mode de création à la fois. Trois booléens indépendants les
+  // rendaient cumulables : l'Assistant ouvert, « Nouveau Projet » ne montrait
+  // rien (le formulaire était masqué par `!showWizard`) et l'utilisateur
+  // restait bloqué — constaté en recette le 31/07/2026. L'exclusivité est
+  // désormais garantie par construction (« une seule source de vérité par
+  // opération de domaine », CLAUDE.md).
+  type ModeCreation = null | "form" | "wizard" | "copilot";
+  const [creationMode, setCreationMode] = useState<ModeCreation>(null);
+  const basculerMode = (mode: Exclude<ModeCreation, null>) =>
+    setCreationMode((actuel) => (actuel === mode ? null : mode));
   const [newProjectName, setNewProjectName] = useState("");
   const [newProjectClient, setNewProjectClient] = useState("");
   const [newProjectType, setNewProjectType] = useState<"grc" | "consulting">("consulting");
@@ -86,6 +93,17 @@ export function Projects() {
     loadProjectsAndFrameworks();
   }, []);
 
+  // Échap ferme le panneau de création ouvert (convention du projet sur les
+  // panneaux et sélecteurs, CLAUDE.md).
+  useEffect(() => {
+    if (!creationMode) return;
+    const surTouche = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCreationMode(null);
+    };
+    window.addEventListener("keydown", surTouche);
+    return () => window.removeEventListener("keydown", surTouche);
+  }, [creationMode]);
+
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProjectName.trim()) return;
@@ -98,7 +116,7 @@ export function Projects() {
       framework_ids: newProjectType === "grc" ? selectedFrameworks : undefined
     })
     .then((created) => {
-      setShowCreate(false);
+      setCreationMode(null);
       setNewProjectName("");
       setNewProjectClient("");
       setActiveProject(created);
@@ -111,8 +129,7 @@ export function Projects() {
   const handleWizardComplete = (data: { name: string; client: string; type: "grc" | "consulting"; framework_ids?: string[] }) => {
     api.projects.create(data)
     .then((created) => {
-      setShowWizard(false);
-      setShowCopilot(false);
+      setCreationMode(null);
       setActiveProject(created);
       setCurrentStep(1);
       loadProjectsAndFrameworks();
@@ -328,7 +345,7 @@ export function Projects() {
         ) : null}
         <div>
           <h2 className="text-xl font-extrabold tracking-tight">
-            {activeProject ? activeProject.name : "Registre des Missions &amp; Projets"}
+            {activeProject ? activeProject.name : "Registre des Missions & Projets"}
           </h2>
           <p className="text-xs text-[var(--soft)] mt-0.5">
             {activeProject 
@@ -501,19 +518,22 @@ export function Projects() {
                 <FlaskConical size={14} /> Mission de démo
               </button>
               <button
-                onClick={() => setShowCopilot(true)}
-                className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-[var(--soft)] transition hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30"
+                onClick={() => basculerMode("copilot")}
+                aria-pressed={creationMode === "copilot"}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold transition ${creationMode === "copilot" ? "border-indigo-500/40 bg-indigo-500/10 text-indigo-400" : "border-[var(--stroke)] bg-white/[0.04] text-[var(--soft)] hover:bg-indigo-500/10 hover:text-indigo-400 hover:border-indigo-500/30"}`}
               >
-                <Bot size={14} /> IA Vocale
+                <Bot size={14} /> Dictée / Description
               </button>
               <button
-                onClick={() => setShowWizard(true)}
-                className="flex items-center gap-1.5 rounded-full border border-[var(--stroke)] bg-white/[0.04] px-3.5 py-1.5 text-xs font-bold text-[var(--soft)] transition hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30"
+                onClick={() => basculerMode("wizard")}
+                aria-pressed={creationMode === "wizard"}
+                className={`flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-bold transition ${creationMode === "wizard" ? "border-[var(--accent)]/40 bg-[var(--accent)]/10 text-[var(--accent)]" : "border-[var(--stroke)] bg-white/[0.04] text-[var(--soft)] hover:bg-[var(--accent)]/10 hover:text-[var(--accent)] hover:border-[var(--accent)]/30"}`}
               >
                 <Wand2 size={14} /> Assistant Création
               </button>
               <button
-                onClick={() => setShowCreate(!showCreate)}
+                onClick={() => basculerMode("form")}
+                aria-pressed={creationMode === "form"}
                 className="flex items-center gap-1.5 rounded-full bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-3.5 py-1.5 text-xs font-bold text-[#04150e] transition hover:opacity-90"
               >
                 <Plus size={14} /> Nouveau Projet
@@ -522,7 +542,7 @@ export function Projects() {
           </div>
 
           {/* PROJECT WIZARD */}
-          {showWizard && (
+          {creationMode === "wizard" && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }} 
               animate={{ opacity: 1, scale: 1 }}
@@ -531,13 +551,13 @@ export function Projects() {
               <ProjectWizard 
                 frameworks={frameworks}
                 onComplete={handleWizardComplete}
-                onCancel={() => setShowWizard(false)}
+                onCancel={() => setCreationMode(null)}
               />
             </motion.div>
           )}
 
           {/* AI COPILOT */}
-          {showCopilot && (
+          {creationMode === "copilot" && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.98 }} 
               animate={{ opacity: 1, scale: 1 }}
@@ -545,13 +565,13 @@ export function Projects() {
             >
               <AICopilotCreator 
                 onProjectGenerated={handleWizardComplete}
-                onCancel={() => setShowCopilot(false)}
+                onCancel={() => setCreationMode(null)}
               />
             </motion.div>
           )}
 
           {/* CREATE PROJECT FORM */}
-          {showCreate && !showWizard && !showCopilot && (
+          {creationMode === "form" && (
             <motion.form 
               initial={{ opacity: 0, y: -10 }} 
               animate={{ opacity: 1, y: 0 }}
@@ -592,7 +612,7 @@ export function Projects() {
                       onClick={() => setNewProjectType("consulting")}
                       className={`flex-1 py-2 rounded-xl border text-xs font-bold transition ${newProjectType === "consulting" ? "bg-[rgba(46,230,160,0.12)] border-[var(--g1)] text-[var(--g1)]" : "border-[var(--stroke)] text-[var(--soft)] bg-white/[0.02]"}`}
                     >
-                      Conseil &amp; Analyse EBIOS RM
+                      Conseil & Analyse EBIOS RM
                     </button>
                     <button
                       type="button"
@@ -641,7 +661,7 @@ export function Projects() {
               <div className="flex gap-2 justify-end mt-2">
                 <button
                   type="button"
-                  onClick={() => setShowCreate(false)}
+                  onClick={() => setCreationMode(null)}
                   className="px-4 py-2 border border-[var(--stroke)] rounded-full text-xs text-[var(--soft)] hover:bg-white/5"
                 >
                   Annuler

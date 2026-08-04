@@ -57,6 +57,15 @@ def _mission(env_path: Path, p_id: str = "acme", **extra) -> str:
     state = {"id": p_id, "name": "Acme", "client": "Acme Corp", "steps": {}}
     state.update(extra)
     (p_dir / "project.json").write_text(json.dumps(state), encoding="utf-8")
+    
+    from modules.database.models import Project
+    from modules.database.session import get_db
+    db = next(get_db())
+    if not db.query(Project).filter_by(id=p_id).first():
+        p = Project(id=p_id, owner_id=0, name="Acme", client="Acme Corp", type="grc", status="en_cours", progress=0, steps=state.get("steps", {}))
+        db.add(p)
+        db.commit()
+        
     return p_id
 
 

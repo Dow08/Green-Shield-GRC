@@ -2,7 +2,7 @@ import { useEffect, useState, lazy, Suspense } from "react";
 import { Menu, Loader2 } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { Home } from "./pages/Home";
-import { api } from "./lib/api";
+import { api, clearSession, subscribeToSessionExpired } from "./lib/api";
 import type { ModuleInfo } from "./types";
 
 // L'accueil est chargé d'emblée (c'est la première vue) ; les modules ne le
@@ -52,12 +52,55 @@ const COMING: ModuleInfo[] = [
   },
 ];
 
+import { Auth } from "./pages/Auth";
+
 export default function App() {
   const [modules, setModules] = useState<ModuleInfo[]>(COMING);
   const [view, setView] = useState("home");
   const [menuOuvert, setMenuOuvert] = useState(false);
+  const [authView, setAuthView] = useState<"login"|"register">("login");
+  // Trois états, pas un booléen : la simple présence d'un token ne prouve pas
+  // qu'il est encore valide. Avant cette distinction (recette du 31/07/2026),
+  // un token périmé faisait croire à l'application qu'elle était connectée,
+  // tous les appels échouaient en 401 et l'utilisateur restait bloqué sur
+  // « Token invalide » sans pouvoir revenir à l'écran de connexion.
+  const [authState, setAuthState] = useState<"verification" | "connecte" | "deconnecte">(() => {
+    try {
+      return localStorage.getItem("greenshield_token") ? "verification" : "deconnecte";
+    } catch {
+      return "deconnecte";
+    }
+  });
+  const isAuthenticated = authState === "connecte";
+
+  const handleLogout = () => {
+    clearSession();
+    setAuthState("deconnecte");
+    setView("home");
+  };
+
+  // Un 401 sur n'importe quel appel (token expiré, secret changé, compte
+  // supprimé) ramène immédiatement à l'écran de connexion.
+  useEffect(() => subscribeToSessionExpired(() => {
+    setAuthState("deconnecte");
+    setView("home");
+  }), []);
+
+  // Validation du token au démarrage — `/api/auth/me` est la route la moins
+  // coûteuse qui exige une authentification.
+  useEffect(() => {
+    if (authState !== "verification") return;
+    let annule = false;
+    api.auth
+      .me()
+      .then(() => { if (!annule) setAuthState("connecte"); })
+      .catch(() => { if (!annule) { clearSession(); setAuthState("deconnecte"); } });
+    return () => { annule = true; };
+  }, [authState]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+
     api
       .modules()
       .then((active) => {
@@ -71,7 +114,19 @@ export default function App() {
         setModules(merged);
       })
       .catch(() => setModules(COMING));
-  }, []);
+  }, [isAuthenticated]);
+
+  if (authState === "verification") {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[var(--bg)] text-sm text-[var(--soft)]">
+        Vérification de la session…
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Auth view={authView} setView={setAuthView as any} onLogin={() => setAuthState("connecte")} />;
+  }
 
   return (
     // Sur petit écran l'application occupe toute la surface : la marge et les
@@ -84,6 +139,7 @@ export default function App() {
           modules={modules}
           isOpen={menuOuvert}
           onClose={() => setMenuOuvert(false)}
+          onLogout={handleLogout}
         />
         <main className="min-h-[560px] min-w-0 flex-1 overflow-hidden p-4 sm:p-6">
           {/* Déclencheur du tiroir : le rail latéral est masqué sous `md`. */}

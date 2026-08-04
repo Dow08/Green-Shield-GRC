@@ -43,10 +43,48 @@ function addApiLog(log: ApiLog) {
 // -----------------------
 
 function getHeaders(extraHeaders: Record<string, string> = {}): Record<string, string> {
-  return { ...extraHeaders };
+  const token = localStorage.getItem("greenshield_token");
+  const headers: Record<string, string> = { ...extraHeaders };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+// --- Expiration de session (recette du 31/07/2026) ---
+// Un token périmé ou signé par un secret désormais différent faisait échouer
+// tous les appels en 401, sans que l'application ne s'en rende compte : elle
+// se croyait connectée et affichait « Token invalide » sans issue. Toutes les
+// requêtes passant par `handleResponse`, c'est le seul endroit à instrumenter.
+const sessionExpiredSubscribers = new Set<() => void>();
+
+export function subscribeToSessionExpired(callback: () => void) {
+  sessionExpiredSubscribers.add(callback);
+  return () => {
+    sessionExpiredSubscribers.delete(callback);
+  };
+}
+
+export function clearSession() {
+  try {
+    localStorage.removeItem("greenshield_token");
+    localStorage.removeItem("greenshield_premium");
+  } catch {
+    // Navigation privée / quota : la purge mémoire suffit à sortir de l'impasse.
+  }
 }
 
 async function handleResponse(res: Response) {
+  if (res.status === 401) {
+    // Un 401 *sans* token stocké est un échec d'identification normal
+    // (mot de passe erroné) : ce n'est pas une session expirée, et prévenir
+    // l'application ferait clignoter l'écran de connexion pour rien.
+    const avaitUnToken = !!localStorage.getItem("greenshield_token");
+    if (avaitUnToken) {
+      clearSession();
+      sessionExpiredSubscribers.forEach((cb) => cb());
+    }
+  }
   if (!res.ok) throw new Error(await errorDetail(res));
 }
 
@@ -249,7 +287,6 @@ export const api = {
     couverture: (id: string) => get<CouvertureTechnique>(`/api/projects/${id}/couverture`),
     createDemo: () => post<ProjectState>("/api/projects/demo", {}),
     copilotGenerate: (prompt: string) => post<{ name: string; client: string; type: string; framework_ids?: string[] }>("/api/projects/copilot/generate", { prompt }),
-    scanConnector: (id: string, connector_id: string) => post<{ connector_id: string; status: string; updates_count: number; details: string }>(`/api/connectors/${id}/scan`, { connector_id }),
     echeancesRgpd: () => get<EcheanceRgpdMission[]>("/api/rgpd/echeances"),
     updateRgpd: (id: string, politique: { duree_conservation_mois: number; date_fin_mission: string }) =>
       put<ProjectState>(`/api/projects/${id}/rgpd`, politique),
@@ -342,5 +379,12 @@ export const api = {
       post<FingerprintResult>("/api/collecte/fingerprint", data),
     importAsset: (projectId: string, data: SuggestedAsset) =>
       post<ProjectState>(`/api/projects/${projectId}/collecte/import`, data),
+  },
+
+  auth: {
+    login: (data: any) => post<any>("/api/auth/login", data),
+    register: (data: any) => post<any>("/api/auth/register", data),
+    activate: (data: any) => post<any>("/api/auth/activate", data),
+    me: () => get<any>("/api/auth/me"),
   },
 };

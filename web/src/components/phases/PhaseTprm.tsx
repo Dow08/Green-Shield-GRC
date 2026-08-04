@@ -98,7 +98,7 @@ export function PhaseTprm({ activeProject, updateStepData, handleSaveProject, on
   return (
     <div className="flex flex-col gap-4">
       <div className="text-sm font-bold text-[var(--g1)] border-b border-white/[0.04] pb-1.5 flex items-center gap-2">
-        <Activity size={15} /> 3. Évaluation de l'Écosystème &amp; des Risques Tiers (TPRM / NIST ID.RA-10)
+        <Activity size={15} /> 3. Évaluation de l'Écosystème & des Risques Tiers (TPRM / NIST ID.RA-10)
       </div>
 
       <p className="text-xs text-[var(--soft)]">

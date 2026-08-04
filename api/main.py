@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Depends
+from modules.auth import get_current_user, limiter
 from fastapi.middleware.cors import CORSMiddleware
 
 from modules import auditcraft_grc
@@ -16,30 +17,34 @@ from modules.projects.router import router as projects_router
 from modules import collecte_technique
 from modules import copilot_grc
 from modules.connectors import router as connectors_router
+from modules.auth_routes import router as auth_router
 
 # Cible auditée : /audit/target en conteneur (monté :ro), sinon ../lab_target en local.
 TARGET_DIR = os.environ.get("AUDIT_TARGET_DIR", str(Path(__file__).resolve().parent.parent / "lab_target"))     
 
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from fastapi import Request
 
 app = FastAPI(title="GREEN SHIELD API", version="1.0.0")
 
-limiter = Limiter(key_func=get_remote_address, default_limits=["60/minute"])
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# `default_limits` seul ne freine rien : il faut le middleware pour que la
+# limite s'applique aux routes qui n'ont pas de décorateur explicite.
+app.add_middleware(SlowAPIMiddleware)
 
 # Le frontend (SPA) est servi sur http://localhost:8080 en prod
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],
+    allow_origins=["http://localhost:8080", "http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Enregistrement des routes projets/frameworks/collecte technique/copilote GRC (sécurisées)
+app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(collecte_technique.router)
 app.include_router(copilot_grc.router)
@@ -55,13 +60,13 @@ def health() -> dict:
 
 
 @app.get("/api/modules")
-def list_modules() -> list[dict]:
+def list_modules(_user=Depends(get_current_user)) -> list[dict]:
     """Registre : la nav du shell est construite à partir de cette liste."""
     return MODULES
 
 
 @app.get("/api/auditcraft/run")
-def auditcraft_run() -> dict:
+def auditcraft_run(_user=Depends(get_current_user)) -> dict:
     """Exécute l'audit AuditCraft-GRC sur la cible et renvoie le résultat complet."""
     try:
         return auditcraft_grc.run(TARGET_DIR)

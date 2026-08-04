@@ -21,16 +21,33 @@ def _write_project(base: Path, project_id: str, state: dict) -> None:
 
 
 @pytest.fixture()
-def empty_registry(tmp_path, monkeypatch):
+def empty_registry(tmp_path, monkeypatch, db_session):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
     monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
     monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
     monkeypatch.setattr(projects.snapshots_routes, "PROJECTS_DIR", tmp_path, raising=False)
+
+    from modules.database.models import Project
+    db_session.query(Project).delete()
+    db_session.commit()
     return tmp_path
 
 
+
 @pytest.fixture()
-def populated_registry(tmp_path, monkeypatch):
+def db_session():
+    from modules.database.session import SessionLocal
+    db = SessionLocal()
+    yield db
+    db.close()
+
+@pytest.fixture()
+def test_user():
+    from modules.database.models import User
+    return User(id="testuser")
+
+@pytest.fixture()
+def populated_registry(tmp_path, monkeypatch, db_session):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
     monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
     monkeypatch.setattr(projects.exports, "PROJECTS_DIR", tmp_path, raising=False)
@@ -60,13 +77,20 @@ def populated_registry(tmp_path, monkeypatch):
             "traitement": {"validated": True, "quick_wins": ["x", "y"]},
         },
     })
+    
+    from modules.database.models import Project
+    db_session.query(Project).delete()
+    db_session.add(Project(id="acme", name="Acme", owner_id="testuser", client="Acme Corp", type="grc", progress=60, steps={"tprm": {"tiers": [{"name": "Infogéreur X", "score": 4.5, "rating": "Critique"}, {"name": "Cabinet compta", "score": 2.0, "rating": "Faible"}]}, "ebios": {"redoute_events": [{"event": "Ransomware sur SI production", "gravity": 4}, {"event": "Incident mineur", "gravity": 1}]}, "evaluation": {"technical_results": {"controls": [{"title": "PermitRootLogin doit être désactivé", "status": "NON_CONFORME", "severity": "Critique"}, {"title": "Port SSH standard", "status": "CONFORME", "severity": "Faible"}]}}, "traitement": {"validated": False, "quick_wins": ["a", "b", "c"]}}))
+    db_session.add(Project(id="cassiope", name="Cassiopé", owner_id="testuser", client="Cassiopé Asso", type="consulting", progress=40, steps={"tprm": {"tiers": [{"name": "Hébergeur cloud", "score": 3.5, "rating": "Élevé"}]}, "traitement": {"validated": True, "quick_wins": ["x", "y"]}}))
+    db_session.commit()
+    
     return tmp_path
 
 
 # --- aggregate_context ----------------------------------------------------
 
-def test_aggregate_context_sur_registre_vide_ne_fabrique_aucune_donnee(empty_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_sur_registre_vide_ne_fabrique_aucune_donnee(empty_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     assert ctx["total_projects"] == 0
     assert ctx["avg_progress"] == 0
     assert ctx["tiers_critiques"] == []
@@ -75,8 +99,8 @@ def test_aggregate_context_sur_registre_vide_ne_fabrique_aucune_donnee(empty_reg
     assert ctx["quick_wins_en_attente"] == 0
 
 
-def test_aggregate_context_compte_les_missions_par_type(populated_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_compte_les_missions_par_type(populated_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     assert ctx["total_projects"] == 2
     assert ctx["by_type"] == {"grc": 1, "consulting": 1}
     # list_projects() recalcule la progression à partir des étapes
@@ -84,51 +108,51 @@ def test_aggregate_context_compte_les_missions_par_type(populated_registry):
     # La valeur exacte dépend du barème, qui a évolué le 30/07/2026 pour ne plus
     # créditer la maturité du client — on vérifie donc la moyenne, pas un nombre
     # arbitraire à réécrire à chaque ajustement.
-    par_mission = [p["progress"] for p in projects.list_projects()]
+    par_mission = [p["progress"] for p in projects.list_projects(test_user, db_session)]
     assert ctx["avg_progress"] == round(sum(par_mission) / len(par_mission))
 
 
-def test_aggregate_context_ne_retient_que_les_tiers_critiques_ou_eleves(populated_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_ne_retient_que_les_tiers_critiques_ou_eleves(populated_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     noms = {t["tiers_name"] for t in ctx["tiers_critiques"]}
     assert noms == {"Infogéreur X", "Hébergeur cloud"}
     assert "Cabinet compta" not in noms  # rating Faible : exclu
 
 
-def test_aggregate_context_trie_les_tiers_par_score_decroissant(populated_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_trie_les_tiers_par_score_decroissant(populated_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     scores = [t["score"] for t in ctx["tiers_critiques"]]
     assert scores == sorted(scores, reverse=True)
 
 
-def test_aggregate_context_ne_retient_que_les_evenements_graves(populated_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_ne_retient_que_les_evenements_graves(populated_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     events = {e["event"] for e in ctx["redoute_events"]}
     assert events == {"Ransomware sur SI production"}
 
 
-def test_aggregate_context_agrege_les_non_conformites_techniques(populated_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_agrege_les_non_conformites_techniques(populated_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     assert len(ctx["non_conformites"]) == 1
     assert ctx["non_conformites"][0]["control"] == "PermitRootLogin doit être désactivé"
 
 
-def test_aggregate_context_compte_les_quick_wins_seulement_pour_les_missions_non_validees(populated_registry):
-    ctx = copilot_grc.aggregate_context()
+def test_aggregate_context_compte_les_quick_wins_seulement_pour_les_missions_non_validees(populated_registry, test_user, db_session):
+    ctx = copilot_grc.aggregate_context(test_user, db_session)
     # Acme (non validé) : 3 quick wins comptés. Cassiopé (validé) : ignoré.
     assert ctx["quick_wins_en_attente"] == 3
 
 
 # --- ask_copilot : hors-ligne ---------------------------------------------
 
-def test_ask_sans_projets_indique_le_portefeuille_vide(empty_registry):
-    result = copilot_grc.ask_copilot({"prompt": "priorise mes risques"})
+def test_ask_sans_projets_indique_le_portefeuille_vide(empty_registry, test_user, db_session):
+    result = copilot_grc.ask_copilot({"prompt": "priorise mes risques"}, test_user, db_session)
     assert result["source"] == "offline"
     assert "vide" in result["response"].lower() or "aucune mission" in result["response"].lower()
 
 
-def test_ask_hors_ligne_utilise_les_chiffres_reels_agreges(populated_registry):
-    result = copilot_grc.ask_copilot({"prompt": "priorise mes risques"})
+def test_ask_hors_ligne_utilise_les_chiffres_reels_agreges(populated_registry, test_user, db_session):
+    result = copilot_grc.ask_copilot({"prompt": "priorise mes risques"}, test_user, db_session)
     assert result["source"] == "offline"
     assert "Infogéreur X" in result["response"]
     assert "Ransomware sur SI production" in result["response"]
@@ -137,7 +161,7 @@ def test_ask_hors_ligne_utilise_les_chiffres_reels_agreges(populated_registry):
 
 # --- ask_copilot : en ligne / repli ----------------------------------------
 
-def test_ask_avec_cle_valide_appelle_gemini(populated_registry, monkeypatch):
+def test_ask_avec_cle_valide_appelle_gemini(populated_registry, monkeypatch, test_user, db_session):
     captured = {}
 
     def fake_call(api_key, system_context, prompt):
@@ -146,7 +170,7 @@ def test_ask_avec_cle_valide_appelle_gemini(populated_registry, monkeypatch):
         return "Synthèse générée par Gemini"
 
     monkeypatch.setattr(copilot_grc.ai_gateway, "call_gemini", fake_call)
-    result = copilot_grc.ask_copilot({"prompt": "priorise", "key": "fake-key"})
+    result = copilot_grc.ask_copilot({"prompt": "priorise", "key": "fake-key"}, test_user, db_session)
     assert result == {
         "status": "success",
         "response": "Synthèse générée par Gemini",
@@ -157,14 +181,14 @@ def test_ask_avec_cle_valide_appelle_gemini(populated_registry, monkeypatch):
     assert "2 mission(s)" in captured["system_context"]
 
 
-def test_ask_avec_cle_invalide_bascule_vers_le_repli_hors_ligne(populated_registry, monkeypatch):
+def test_ask_avec_cle_invalide_bascule_vers_le_repli_hors_ligne(populated_registry, monkeypatch, test_user, db_session):
     monkeypatch.setattr(copilot_grc.ai_gateway, "call_gemini", lambda *a, **k: None)
-    result = copilot_grc.ask_copilot({"prompt": "priorise", "key": "bad-key"})
+    result = copilot_grc.ask_copilot({"prompt": "priorise", "key": "bad-key"}, test_user, db_session)
     assert result["source"] == "offline_fallback"
     assert "Infogéreur X" in result["response"]
 
 
 # --- endpoint GET /api/copilot/context ------------------------------------
 
-def test_get_copilot_context_endpoint_renvoie_l_agregat(populated_registry):
-    assert copilot_grc.get_copilot_context() == copilot_grc.aggregate_context()
+def test_get_copilot_context_endpoint_renvoie_l_agregat(populated_registry, test_user, db_session):
+    assert copilot_grc.get_copilot_context(test_user, db_session) == copilot_grc.aggregate_context(test_user, db_session)

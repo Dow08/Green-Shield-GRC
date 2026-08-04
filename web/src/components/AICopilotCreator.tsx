@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Send, Bot, Sparkles, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 
@@ -12,56 +11,80 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
   const [prompt, setPrompt] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  // @ts-ignore - webkitSpeechRecognition is not in standard TS DOM lib
+  // La prise en charge de la dictée doit vivre dans un *state* : elle était
+  // auparavant lue depuis la ref ci-dessous, assignée dans `useEffect`, ce qui
+  // ne provoque aucun rendu — le bouton micro n'apparaissait donc jamais
+  // (constaté en recette le 31/07/2026).
+  const [dicteeDisponible, setDicteeDisponible] = useState(false);
+  const [erreurDictee, setErreurDictee] = useState("");
+
   const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
-    // Initialisation de la reconnaissance vocale
-    if ('webkitSpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'fr-FR';
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
 
-      recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = '';
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
+    const reconnaissance = new SpeechRecognition();
+    reconnaissance.continuous = true;
+    reconnaissance.interimResults = true;
+    reconnaissance.lang = "fr-FR";
+
+    reconnaissance.onresult = (event: any) => {
+      let finalTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
         }
-        if (finalTranscript) {
-          setPrompt(prev => prev + " " + finalTranscript.trim());
-        }
-      };
-
-      recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error", event.error);
-        setIsListening(false);
-      };
-
-      recognitionRef.current.onend = () => {
-        setIsListening(false);
-      };
-    }
-    
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
       }
+      if (finalTranscript) {
+        setPrompt((prev) => (prev ? prev + " " : "") + finalTranscript.trim());
+      }
+    };
+
+    reconnaissance.onerror = (event: any) => {
+      const messages: Record<string, string> = {
+        "not-allowed": "Accès au micro refusé. Autorisez-le dans les réglages du navigateur pour dicter.",
+        "service-not-allowed": "Le service de dictée du navigateur est indisponible.",
+        "no-speech": "Aucune parole détectée — réessayez en parlant plus près du micro.",
+        "audio-capture": "Aucun micro détecté sur ce poste.",
+      };
+      setErreurDictee(messages[event.error] || `Dictée interrompue (${event.error}).`);
+      setIsListening(false);
+    };
+
+    reconnaissance.onend = () => setIsListening(false);
+
+    recognitionRef.current = reconnaissance;
+    setDicteeDisponible(true);
+
+    return () => {
+      try { reconnaissance.stop(); } catch { /* déjà arrêtée */ }
     };
   }, []);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
+    setErreurDictee("");
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
-    } else {
-      setPrompt("");
+      return;
+    }
+    // Demande explicite du micro : sans elle, le navigateur peut échouer
+    // silencieusement et l'utilisateur ne comprend pas pourquoi rien ne se
+    // passe. Le flux est relâché aussitôt, la dictée ouvre le sien.
+    try {
+      const flux = await navigator.mediaDevices.getUserMedia({ audio: true });
+      flux.getTracks().forEach((piste) => piste.stop());
+    } catch {
+      setErreurDictee("Accès au micro refusé. Autorisez-le dans les réglages du navigateur pour dicter.");
+      return;
+    }
+    try {
       recognitionRef.current?.start();
       setIsListening(true);
+    } catch {
+      setErreurDictee("La dictée n'a pas pu démarrer. Réessayez.");
     }
   };
 
@@ -82,7 +105,7 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
       
     } catch (error) {
       console.error(error);
-      alert("L'IA n'a pas pu générer le projet.");
+      alert("Le pré-remplissage du formulaire a échoué.");
     } finally {
       setIsLoading(false);
     }
@@ -95,9 +118,10 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
           <Bot size={24} />
         </div>
         <div>
-          <h2 className="text-xl font-bold">Copilote IA GREEN SHIELD</h2>
+          <h2 className="text-xl font-bold">Création assistée</h2>
           <p className="text-sm text-[var(--soft)]">
-            Décrivez la mission à voix haute ou à l'écrit, l'IA s'occupe de tout configurer.
+            Décrivez la mission à voix haute ou à l'écrit : le formulaire de création est
+            pré-rempli, à vous de le relire et de le compléter.
           </p>
         </div>
       </div>
@@ -111,15 +135,17 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
         />
         
         <div className="absolute bottom-4 right-4 flex gap-2">
-          {recognitionRef.current && (
+          {dicteeDisponible && (
             <button
+              type="button"
               onClick={toggleListening}
+              aria-label={isListening ? "Arrêter la dictée" : "Dicter à voix haute"}
               className={`p-3 rounded-full flex items-center justify-center transition-all shadow-lg ${
-                isListening 
-                  ? "bg-red-500 text-white animate-pulse" 
+                isListening
+                  ? "bg-red-500 text-white animate-pulse"
                   : "bg-[var(--bg3)] text-[var(--fg)] hover:bg-[var(--stroke)]"
               }`}
-              title="Dicter à voix haute"
+              title={isListening ? "Arrêter la dictée" : "Dicter à voix haute"}
             >
               {isListening ? <MicOff size={20} /> : <Mic size={20} />}
             </button>
@@ -127,11 +153,37 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
         </div>
       </div>
 
-      <div className="mt-4 flex items-center justify-between p-4 bg-[var(--accent)]/5 border border-[var(--accent)]/20 rounded-lg text-sm text-[var(--soft)]">
-        <div className="flex items-center gap-2">
-          <Sparkles size={16} className="text-[var(--accent)]" />
-          <span>Vos données confidentielles sont masquées localement avant envoi.</span>
+      {erreurDictee && (
+        <p className="mt-2 text-xs text-[var(--rose)]">{erreurDictee}</p>
+      )}
+      {!dicteeDisponible && (
+        <p className="mt-2 text-xs text-[var(--faint)]">
+          La dictée vocale n'est pas prise en charge par ce navigateur — la saisie au clavier
+          reste disponible. (Chrome et Edge la proposent.)
+        </p>
+      )}
+
+      {/* Ce panneau annonçait « vos données confidentielles sont masquées avant
+          envoi » : rien n'est envoyé, et le masquage ne couvre pas les noms de
+          clients. Le texte décrit désormais le comportement réel. */}
+      <div className="mt-4 flex flex-col gap-2 p-4 bg-[var(--accent)]/5 border border-[var(--accent)]/20 rounded-lg text-sm text-[var(--soft)]">
+        <div className="flex items-start gap-2">
+          <Sparkles size={16} className="text-[var(--accent)] flex-shrink-0 mt-0.5" />
+          <span>
+            Le formulaire est pré-rempli <strong>localement</strong>, sans appel à un service
+            d'IA : votre description ne quitte pas ce poste.
+          </span>
         </div>
+        {dicteeDisponible && (
+          <div className="flex items-start gap-2">
+            <Mic size={16} className="text-[var(--accent)] flex-shrink-0 mt-0.5" />
+            <span>
+              <strong>Exception :</strong> la dictée s'appuie sur le service de reconnaissance
+              vocale du navigateur, qui transmet l'audio à son éditeur. Préférez le clavier pour
+              tout élément confidentiel.
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Footer / Controls */}
@@ -143,17 +195,18 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
           Annuler
         </button>
         <button
+          type="button"
           onClick={handleGenerate}
           disabled={!prompt.trim() || isLoading}
           className="flex items-center gap-2 px-6 py-2 rounded bg-[var(--accent)] text-white text-sm font-bold hover:bg-opacity-90 disabled:opacity-50 transition-all"
         >
           {isLoading ? (
             <>
-              <Loader2 size={16} className="animate-spin" /> Génération...
+              <Loader2 size={16} className="animate-spin" /> Préparation...
             </>
           ) : (
             <>
-              Générer <Send size={16} />
+              Pré-remplir le formulaire <Send size={16} />
             </>
           )}
         </button>

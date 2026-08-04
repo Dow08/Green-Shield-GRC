@@ -28,7 +28,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
   return (
               <div className="flex flex-col gap-4">
                 <div className="text-sm font-bold text-[var(--g1)] border-b border-white/[0.04] pb-1.5 flex items-center gap-2">
-                  <Target size={15} /> 1. Cadrage de l'Audit &amp; Identification du Patrimoine (NIST)
+                  <Target size={15} /> 1. Cadrage de l'Audit & Identification du Patrimoine (NIST)
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -42,7 +42,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Missions &amp; Finalités de l'entreprise</label>
+                    <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Missions & Finalités de l'entreprise</label>
                     <input
                       type="text"
                       value={activeProject.steps.cadrage?.client_missions || ""}
@@ -394,7 +394,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       }}
                       className="rounded border-[var(--stroke)] bg-transparent text-[var(--g1)] focus:ring-0"
                     />
-                    Étape 1 (Cadrage &amp; Patrimoine) validée
+                    Étape 1 (Cadrage & Patrimoine) validée
                   </label>
                 </div>
 

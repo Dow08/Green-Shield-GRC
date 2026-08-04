@@ -33,6 +33,12 @@ export function Settings() {
   const [frameworks, setFrameworks] = useState<Framework[]>([]);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
+  // Licence
+  const [licenseKey, setLicenseKey] = useState("");
+  const [licenseStatus, setLicenseStatus] = useState("");
+  const [licenseError, setLicenseError] = useState("");
+  const isPremium = localStorage.getItem("greenshield_premium") === "1";
+
   useEffect(() => {
     const savedName = safeGetItem("consultant_name");
     const savedCompany = safeGetItem("consultant_company");
@@ -46,6 +52,11 @@ export function Settings() {
     if (savedKey) setApiKey(savedKey);
     if (savedLogo) setLogoBase64(savedLogo);
     api.frameworks.list().then(setFrameworks).catch(() => setFrameworks([]));
+    
+    // Fetch auth status to get current license if needed
+    api.auth.me().then(data => {
+        if (data.license_key) setLicenseKey(data.license_key);
+    }).catch(console.error);
   }, []);
 
   const enregistrerReferentiel = async (data: Parameters<typeof api.frameworks.import>[0]) => {
@@ -94,6 +105,19 @@ export function Settings() {
     setSaveError(!ok);
     setTimeout(() => { setSaved(false); setSaveError(false); }, 2500);
   };
+  
+  const handleActivateLicense = async () => {
+    setLicenseError("");
+    setLicenseStatus("");
+    try {
+        const res = await api.auth.activate({ license_key: licenseKey });
+        setLicenseStatus(res.message);
+        localStorage.setItem("greenshield_premium", "1");
+        setTimeout(() => window.location.reload(), 1500);
+    } catch (err: any) {
+        setLicenseError(err.message || "Erreur d'activation");
+    }
+  };
 
   return (
     <motion.div 
@@ -104,7 +128,7 @@ export function Settings() {
     >
       <header className="mb-5">
         <h2 className="text-xl font-extrabold tracking-tight flex items-center gap-2">
-          <SettingsIcon size={20} className="text-[var(--g1)]" /> Réglages &amp; Paramètres
+          <SettingsIcon size={20} className="text-[var(--g1)]" /> Réglages & Paramètres
         </h2>
         <p className="text-xs text-[var(--soft)] mt-0.5">
           Configurez vos préférences locales de consultant et les clés d'ingestion d'API
@@ -115,7 +139,7 @@ export function Settings() {
         {/* CONSULTANT IDENTITY */}
         <div className="glass p-5 flex flex-col gap-3">
           <div className="text-xs font-bold text-[var(--g1)] uppercase tracking-wide flex items-center gap-1.5 mb-1">
-            <User size={14} /> Profil &amp; Identité de l'auditeur
+            <User size={14} /> Profil & Identité de l'auditeur
           </div>
           <p className="text-[11px] text-[var(--soft)] leading-normal -mt-1.5">
             Ces informations personnalisent les livrables générés (page de garde, signatures, pied de page) — chaque consultant utilisant GREEN SHIELD renseigne ici sa propre identité.
@@ -193,6 +217,38 @@ export function Settings() {
               )}
             </div>
           </div>
+        </div>
+
+        {/* SECTION LICENCE */}
+        <div className="glass p-5 flex flex-col gap-3 border-l-4 border-amber-500">
+          <div className="text-xs font-bold text-amber-500 uppercase tracking-wide flex items-center gap-1.5 mb-1">
+            <Key size={14} /> 
+            Licence Premium
+          </div>
+          <p className="text-xs text-[var(--faint)]">
+            Activez votre clé de licence professionnelle pour débloquer toutes les fonctionnalités avancées de GREEN SHIELD.
+            {isPremium && <span className="ml-2 font-bold text-emerald-500">Statut actuel : PRO</span>}
+          </p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Ex: GS-PRO-XXXX-YYYY"
+              value={licenseKey}
+              onChange={(e) => setLicenseKey(e.target.value)}
+              disabled={isPremium}
+              className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-amber-500 disabled:opacity-50"
+            />
+            <button
+              type="button"
+              onClick={handleActivateLicense}
+              disabled={isPremium || !licenseKey}
+              className="bg-amber-600/20 text-amber-500 border border-amber-500/30 hover:bg-amber-600/30 font-bold px-4 py-2 rounded-xl text-xs transition disabled:opacity-50"
+            >
+              {isPremium ? "Activé" : "Activer"}
+            </button>
+          </div>
+          {licenseStatus && <p className="text-[10px] font-bold text-emerald-500 mt-1">{licenseStatus}</p>}
+          {licenseError && <p className="text-[10px] font-bold text-[var(--rose)] mt-1">{licenseError}</p>}
         </div>
 
         {/* API COPILOTE KEY */}

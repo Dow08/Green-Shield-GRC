@@ -115,7 +115,7 @@ export function AuditCraft() {
             </div>
           </div>
 
-          <div className="mb-3 text-sm font-bold text-[var(--soft)]">Écarts &amp; conformité</div>
+          <div className="mb-3 text-sm font-bold text-[var(--soft)]">Écarts & conformité</div>
           <div className="flex flex-col gap-2.5">
             {data.controls.map((c, i) => (
               <motion.div

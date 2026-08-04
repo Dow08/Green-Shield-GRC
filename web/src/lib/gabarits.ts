@@ -22,7 +22,7 @@ export const SUGGESTED_SUPPORT = [
 ];
 
 export const SUGGESTED_RGPD = [
-  { id: "RG-PAYE", name: "Gestion de la paie &amp; RH", purpose: "Virement des salaires et suivi de carrières.", data_categories: "NIR, Coordonnées bancaires, Échelon", retention: "5 ans" },
+  { id: "RG-PAYE", name: "Gestion de la paie & RH", purpose: "Virement des salaires et suivi de carrières.", data_categories: "NIR, Coordonnées bancaires, Échelon", retention: "5 ans" },
   { id: "RG-CRM", name: "Gestion de la Relation Client (CRM)", purpose: "Suivi commercial et prospection.", data_categories: "Nom, Prénom, Téléphone, Email", retention: "Fin de relation + 3 ans" },
   { id: "RG-MESS", name: "Messagerie Professionnelle (Email)", purpose: "Communication interne et externe des collaborateurs.", data_categories: "Email, Logs de connexion, Contenu des flux", retention: "1 an (logs)" }
 ];

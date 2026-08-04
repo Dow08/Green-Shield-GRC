@@ -17,7 +17,9 @@ import re
 from dataclasses import dataclass, field
 
 import yaml
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from .database.models import User
+from .auth import get_current_user
 
 from . import projects
 from . import audit_log
@@ -337,13 +339,15 @@ def fingerprint(filename: str, content: str) -> Fingerprint:
     except Exception:
         return _fingerprint_inconnu(filename, content)
 
+from .schemas import FingerprintRequest, ImportAssetRequest, coerce
 
 # --- Routes API ---------------------------------------------------------
 
 @router.post("/collecte/fingerprint")
-def run_fingerprint(data: dict) -> dict:
-    filename = data.get("filename", "config")
-    content = data.get("content", "")
+def run_fingerprint(data: FingerprintRequest, current_user: User = Depends(get_current_user)) -> dict:
+    data = coerce(FingerprintRequest, data)
+    filename = data.filename
+    content = data.content
     if not content.strip():
         raise HTTPException(status_code=400, detail="Aucun contenu à analyser")
     return fingerprint(filename, content).to_dict()
@@ -355,16 +359,17 @@ from . import ids
 
 
 @router.post("/projects/{p_id}/collecte/import")
-def import_asset_into_registry(p_id: str, data: dict) -> dict:
+def import_asset_into_registry(p_id: str, data: ImportAssetRequest, current_user: User = Depends(get_current_user)) -> dict:
     """Ajoute un actif (issu d'une empreinte, validée/éditée par le consultant)
     au registre des Biens Supports (Phase 1) de la mission choisie."""
+    data = coerce(ImportAssetRequest, data)
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = projects.PROJECTS_DIR / p_id
     state_file = p_dir / "project.json"
     if not state_file.exists():
         raise HTTPException(status_code=404, detail="Projet introuvable")
 
-    name = (data.get("name") or "").strip()
+    name = data.name.strip()
     if not name:
         raise HTTPException(status_code=400, detail="Le nom de l'actif est obligatoire")
 
@@ -376,9 +381,9 @@ def import_asset_into_registry(p_id: str, data: dict) -> dict:
         assets_support.append({
             "id": bs_id,
             "name": name,
-            "type": data.get("type") or "Logiciel",
-            "description": data.get("description", ""),
-            "owner": data.get("owner", ""),
+            "type": data.type or "Logiciel",
+            "description": data.description or "",
+            "owner": data.owner or "",
         })
         state["progress"] = projects.calculate_progress(state)
         projects._write_json_atomic(state_file, state)

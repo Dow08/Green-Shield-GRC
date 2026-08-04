@@ -15,18 +15,22 @@ partir des chiffres agrégés réels.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from modules.database.models import User
+from sqlalchemy.orm import Session
+from modules.auth import get_current_user
+from modules.database.session import get_db
 
 from . import ai_gateway, audit_log, projects
 
 router = APIRouter(prefix="/api")
 
 
-def aggregate_context() -> dict:
+def aggregate_context(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     """Relit toutes les missions du registre et agrège leurs constats réels.
     Aucune donnée n'est inventée : chaque entrée provient d'un champ existant
     d'une mission (TPRM, EBIOS RM, scan technique, plan de traitement)."""
-    all_projects = projects.list_projects()
+    all_projects = projects.list_projects(current_user, db)
 
     by_type: dict[str, int] = {"grc": 0, "consulting": 0}
     progress_sum = 0
@@ -145,15 +149,15 @@ def _offline_reply(context: dict, prompt: str) -> str:
 
 
 @router.get("/copilot/context")
-def get_copilot_context() -> dict:
-    return aggregate_context()
+def get_copilot_context(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    return aggregate_context(current_user, db)
 
 
 @router.post("/copilot/ask")
-def ask_copilot(data: dict) -> dict:
+def ask_copilot(data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     prompt = data.get("prompt", "")
     api_key = (data.get("key") or "").strip()
-    context = aggregate_context()
+    context = aggregate_context(current_user, db)
 
     if api_key:
         online_text = ai_gateway.call_gemini(api_key, _build_system_context(context), prompt)

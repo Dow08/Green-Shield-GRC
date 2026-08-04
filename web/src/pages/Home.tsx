@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Search, Bell, ChevronRight, Boxes, Layers, Lock, MonitorSmartphone, Activity, FolderKanban } from "lucide-react";
+import { Search, Bell, ChevronRight, Boxes, Lock, Activity, FolderKanban } from "lucide-react";
 import { useEffect, useState } from "react";
 import type { ModuleInfo, ProjectState } from "../types";
 import { iconFor } from "../lib/icons";

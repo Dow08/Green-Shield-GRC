@@ -31,3 +31,22 @@ rapport_auditcraft_grc.md
 Thumbs.db
 .idea/
 .vscode/
+
+# --- Bases de données locales ---
+# La base réelle vit hors du dépôt (%APPDATA%\GreenShield). `api/data/` est un
+# artefact créé quand l'application est lancée depuis un autre répertoire de
+# travail : jamais versionné, il peut contenir des données de mission.
+*.db
+api/data/
+
+# --- Secrets locaux ---
+.jwt_secret
+
+# --- Scripts de correctif ponctuels ---
+# Générés au fil des sessions pour patcher le code en place ; ce ne sont pas
+# des livrables et ils divergent du code dès qu'il évolue.
+fix_*.py
+append_routes.py
+rewrite_test.py
+out.txt
+old_projects.txt

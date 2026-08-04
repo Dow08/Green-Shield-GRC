@@ -29,7 +29,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
   return (
               <div className="flex flex-col gap-4">
                 <div className="text-sm font-bold text-[var(--g1)] border-b border-white/[0.04] pb-1.5 flex items-center gap-2">
-                  <Shield size={15} /> 2. Socle de Sécurité, État des lieux &amp; Protection RGPD/CNIL
+                  <Shield size={15} /> 2. Socle de Sécurité, État des lieux & Protection RGPD/CNIL
                 </div>
 
                 {/* Security Hygiène checklist with click-for-help panels */}
@@ -344,7 +344,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">3. Évaluation des risques pour les droits et libertés des personnes (Impacts &amp; Gravité CNIL)</label>
+                        <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">3. Évaluation des risques pour les droits et libertés des personnes (Impacts & Gravité CNIL)</label>
                         <textarea
                           rows={2}
                           value={activeProject.steps.diagnostic?.aipd?.risks_eval || ""}
@@ -398,7 +398,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                       }}
                       className="rounded border-[var(--stroke)] bg-transparent text-[var(--g1)] focus:ring-0"
                     />
-                    Étape 2 (Diagnostic &amp; RGPD) validée
+                    Étape 2 (Diagnostic & RGPD) validée
                   </label>
                 </div>
 

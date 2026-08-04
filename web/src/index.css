@@ -15,6 +15,9 @@
   --amber: #ffcf6b;
   --sky: #5cc8ff;
   --violet: #8b7bff;
+  --accent: #2ee6a0;
+  --bg3: rgba(255, 255, 255, 0.06);
+  --fg: #eaf4f0;
 }
 
 html,

@@ -185,7 +185,8 @@ describe("Projects — caractérisation avant découpage", () => {
 
   it("affiche le suivi du temps et le panneau d'archive sur toutes les phases", async () => {
     render(<Projects />);
-    await ouvrirPhase(1);
+    const user = await ouvrirPhase(1);
+    await user.click(screen.getByText(/Paramètres/i));
     expect(screen.getByText(/Temps consommé/i)).toBeInTheDocument();
     expect(screen.getByText(/Sauvegarde/i)).toBeInTheDocument();
   });
