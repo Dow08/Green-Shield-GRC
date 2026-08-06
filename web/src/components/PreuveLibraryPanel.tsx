@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FileText, Plus, Trash2, Search, Link as LinkIcon } from "lucide-react";
 import { nextId } from "../lib/ids";
-import type { LienControle, ManualControl, Preuve } from "../types";
+import type { LienControle, ManualControl, Preuve, SuggestionPreuve } from "../types";
 import { api } from "../lib/api";
 
 interface Props {
@@ -30,7 +30,7 @@ function lienEgal(a: LienControle, b: LienControle): boolean {
  */
 export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChange }: Props) {
   const [nouvelle, setNouvelle] = useState<Omit<Preuve, "id">>(NOUVELLE);
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestionPreuve[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
   const fetchSuggestions = async () => {
@@ -46,7 +46,7 @@ export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChang
     }
   };
 
-  const applySuggestion = (sug: any) => {
+  const applySuggestion = (sug: SuggestionPreuve) => {
     const list = [...preuves];
     const preuveIdx = list.findIndex(p => p.id === sug.preuve_id);
     if (preuveIdx !== -1) {

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { api } from "../lib/api";
 import { Lock, Mail, Key } from "lucide-react";
 
-export function Auth({ view, setView, onLogin }: { view: "login" | "register", setView: (v: string) => void, onLogin: () => void }) {
+export function Auth({ view, setView, onLogin }: { view: "login" | "register", setView: (v: "login" | "register") => void, onLogin: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,8 +23,8 @@ export function Auth({ view, setView, onLogin }: { view: "login" | "register", s
         await api.auth.register({ email, password });
         setView("login");
       }
-    } catch (err: any) {
-      setError(err.message || "Une erreur est survenue");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Une erreur est survenue");
     } finally {
       setLoading(false);
     }

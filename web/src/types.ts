@@ -437,6 +437,18 @@ export interface Preuve {
   controles_lies: LienControle[];
 }
 
+export interface SuggestionPreuve {
+  preuve_id: string;
+  preuve_libelle: string;
+  controle_suggere: {
+    referentiel_id: string;
+    control_id: string;
+    title: string;
+    referentiel_name: string | null;
+  };
+  confiance: number;
+}
+
 // Déclaration d'Applicabilité (SoA) — ISO/IEC 27001:2022 Annexe A, clause
 // 6.1.3 d. `applicable` démarre à `null` (non statué), jamais `true` : une
 // mission ne doit jamais afficher 93 décisions que le consultant n'a pas
@@ -675,5 +687,25 @@ export interface CarteNist {
   fonctions: FonctionNist[];
   total_rattaches: number;
   note: string;
+}
+
+// --- Authentification ---
+export interface LoginResult {
+  access_token: string;
+  token_type: string;
+  is_premium: boolean;
+  email: string;
+}
+
+export interface UserProfile {
+  email: string;
+  role: string;
+  is_premium: boolean;
+  license_key: string | null;
+  plan: string;
+}
+
+export interface MessageResponse {
+  message: string;
 }
 

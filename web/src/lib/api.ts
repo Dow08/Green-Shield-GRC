@@ -6,6 +6,7 @@ import type {
   PratiqueControle, EtatControlesTechniques,
   MaterielInfo, MesureModele,
   RegistreDemandesPreuves, ControleLie, StatutDemande, CarteNist,
+  SuggestionPreuve, LoginResult, UserProfile, MessageResponse,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -121,8 +122,8 @@ async function get<T>(path: string): Promise<T> {
     status = res.status;
     await handleResponse(res);
     return res.json() as Promise<T>;
-  } catch (err: any) {
-    errorMsg = err.message || String(err);
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : String(err);
     throw err;
   } finally {
     addApiLog({
@@ -152,8 +153,8 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     status = res.status;
     await handleResponse(res);
     return res.json() as Promise<T>;
-  } catch (err: any) {
-    errorMsg = err.message || String(err);
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : String(err);
     throw err;
   } finally {
     addApiLog({
@@ -183,8 +184,8 @@ async function put<T>(path: string, body: unknown): Promise<T> {
     status = res.status;
     await handleResponse(res);
     return res.json() as Promise<T>;
-  } catch (err: any) {
-    errorMsg = err.message || String(err);
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : String(err);
     throw err;
   } finally {
     addApiLog({
@@ -214,8 +215,8 @@ async function patch<T>(path: string, body: unknown): Promise<T> {
     status = res.status;
     await handleResponse(res);
     return res.json() as Promise<T>;
-  } catch (err: any) {
-    errorMsg = err.message || String(err);
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : String(err);
     throw err;
   } finally {
     addApiLog({
@@ -241,8 +242,8 @@ async function deleteReq<T>(path: string): Promise<T> {
     status = res.status;
     await handleResponse(res);
     return res.json() as Promise<T>;
-  } catch (err: any) {
-    errorMsg = err.message || String(err);
+  } catch (err) {
+    errorMsg = err instanceof Error ? err.message : String(err);
     throw err;
   } finally {
     addApiLog({
@@ -371,7 +372,7 @@ export const api = {
       post<ProjectState>(`/api/projects/${id}/snapshots/${nom}/restore`, {}),
     addTemps: (id: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
       post<ProjectState>(`/api/projects/${id}/temps`, entry),
-    getSuggestions: (id: string) => get<any>(`/api/projects/${id}/preuves/suggestions`),
+    getSuggestions: (id: string) => get<SuggestionPreuve[]>(`/api/projects/${id}/preuves/suggestions`),
     // TPRM : le navigateur n'envoie que les curseurs. La notation appartient au
     // serveur, sans quoi deux copies de la formule finissent par diverger.
     addTiers: (id: string, tiers: { name: string; dependence: number; penetration: number; maturity: number; trust: number }) =>
@@ -485,9 +486,9 @@ export const api = {
   },
 
   auth: {
-    login: (data: any) => post<any>("/api/auth/login", data),
-    register: (data: any) => post<any>("/api/auth/register", data),
-    activate: (data: any) => post<any>("/api/auth/activate", data),
-    me: () => get<any>("/api/auth/me"),
+    login: (data: { email: string; password: string }) => post<LoginResult>("/api/auth/login", data),
+    register: (data: { email: string; password: string }) => post<MessageResponse>("/api/auth/register", data),
+    activate: (data: { license_key: string }) => post<MessageResponse>("/api/auth/activate", data),
+    me: () => get<UserProfile>("/api/auth/me"),
   },
 };

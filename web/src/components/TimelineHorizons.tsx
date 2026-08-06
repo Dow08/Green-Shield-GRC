@@ -1,10 +1,12 @@
 import { useMemo } from "react";
-import type { ProjectState } from "../types";
-import { Clock, AlertTriangle, CheckCircle2 } from "lucide-react";
+import type { ProjectState, Remediation } from "../types";
+import { Clock, AlertTriangle, CheckCircle2, type LucideIcon } from "lucide-react";
 
 interface Props {
   projects: ProjectState[];
 }
+
+type RemediationAvecProjet = Remediation & { project_name: string; project_id: string };
 
 export function TimelineHorizons({ projects }: Props) {
   const horizons = useMemo(() => {
@@ -12,20 +14,20 @@ export function TimelineHorizons({ projects }: Props) {
     today.setHours(0, 0, 0, 0);
 
     const rems = projects.flatMap(p => {
-      const remediations = (p.steps?.traitement?.remediations || []) as any[];
-      return remediations.map(r => ({
+      const remediations = (p.steps?.traitement?.remediations || []) as Remediation[];
+      return remediations.map((r): RemediationAvecProjet => ({
         ...r,
         project_name: p.name,
         project_id: p.id,
       }));
-    }).filter(r => r.echeance && r.statut !== "Fait" && r.statut !== "Annulé");
+    }).filter(r => r.echeance && r.statut !== "Fait" && (r.statut as string) !== "Annulé");
 
-    const courtTerme = [];
-    const moyenTerme = [];
-    const longTerme = [];
+    const courtTerme: RemediationAvecProjet[] = [];
+    const moyenTerme: RemediationAvecProjet[] = [];
+    const longTerme: RemediationAvecProjet[] = [];
 
     for (const r of rems) {
-      const echeance = new Date(r.echeance);
+      const echeance = new Date(r.echeance ?? "");
       const diffTime = echeance.getTime() - today.getTime();
       const diffMonths = diffTime / (1000 * 3600 * 24 * 30);
       
@@ -38,7 +40,8 @@ export function TimelineHorizons({ projects }: Props) {
       }
     }
 
-    const sortByDate = (a: any, b: any) => new Date(a.echeance).getTime() - new Date(b.echeance).getTime();
+    const sortByDate = (a: RemediationAvecProjet, b: RemediationAvecProjet) =>
+      new Date(a.echeance ?? "").getTime() - new Date(b.echeance ?? "").getTime();
 
     courtTerme.sort(sortByDate);
     moyenTerme.sort(sortByDate);
@@ -47,7 +50,7 @@ export function TimelineHorizons({ projects }: Props) {
     return { courtTerme, moyenTerme, longTerme };
   }, [projects]);
 
-  const renderColumn = (title: string, data: any[], color: string, icon: any) => {
+  const renderColumn = (title: string, data: RemediationAvecProjet[], color: string, icon: LucideIcon) => {
     const Icon = icon;
     return (
       <div className="flex flex-col gap-3">

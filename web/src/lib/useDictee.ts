@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { obtenirConstructeurReconnaissance, type SpeechRecognitionLike } from "../types/speech";
 
 /**
  * Dictée vocale réutilisable, adossée à l'API de reconnaissance du navigateur.
@@ -45,7 +46,7 @@ export function useDictee(onTexte: (texte: string) => void, actif = true): EtatD
   const [disponible, setDisponible] = useState(false);
   const [ecoute, setEcoute] = useState(false);
   const [erreur, setErreur] = useState("");
-  const reconnaissanceRef = useRef<any>(null);
+  const reconnaissanceRef = useRef<SpeechRecognitionLike | null>(null);
 
   // Le callback change à chaque rendu du parent ; le garder dans une ref évite
   // de reconstruire l'objet de reconnaissance (ce qui couperait une dictée en
@@ -57,16 +58,15 @@ export function useDictee(onTexte: (texte: string) => void, actif = true): EtatD
 
   useEffect(() => {
     if (!actif) return;
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    const SpeechRecognitionCtor = obtenirConstructeurReconnaissance();
+    if (!SpeechRecognitionCtor) return;
 
-    const reconnaissance = new SpeechRecognition();
+    const reconnaissance = new SpeechRecognitionCtor();
     reconnaissance.continuous = true;
     reconnaissance.interimResults = true;
     reconnaissance.lang = "fr-FR";
 
-    reconnaissance.onresult = (evenement: any) => {
+    reconnaissance.onresult = (evenement) => {
       let definitif = "";
       for (let i = evenement.resultIndex; i < evenement.results.length; ++i) {
         if (evenement.results[i].isFinal) definitif += evenement.results[i][0].transcript;
@@ -74,7 +74,7 @@ export function useDictee(onTexte: (texte: string) => void, actif = true): EtatD
       if (definitif.trim()) onTexteRef.current(definitif.trim());
     };
 
-    reconnaissance.onerror = (evenement: any) => {
+    reconnaissance.onerror = (evenement) => {
       setErreur(MESSAGES_ERREUR[evenement.error] || `Dictée interrompue (${evenement.error}).`);
       setEcoute(false);
     };

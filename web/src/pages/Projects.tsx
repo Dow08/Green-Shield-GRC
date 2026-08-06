@@ -150,7 +150,7 @@ export function Projects() {
           setActiveProject(null);
         }
       })
-      .catch((err: any) => alert("Échec suppression : " + err.message));
+      .catch((err) => alert("Échec suppression : " + (err instanceof Error ? err.message : String(err))));
   };
 
   const handleSelectProject = (id: string) => {

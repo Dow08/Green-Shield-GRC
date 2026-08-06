@@ -145,7 +145,7 @@ export function BugTracker() {
               <label className="text-xs font-bold text-[var(--soft)] mb-1 block">Sévérité</label>
               <select
                 value={nouvelleSeverite}
-                onChange={(e) => setNouvelleSeverite(e.target.value as any)}
+                onChange={(e) => setNouvelleSeverite(e.target.value as BugReport["severite"])}
                 className="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg2)] px-3 py-2 text-sm text-[var(--ink)] focus:border-[var(--g1)] focus:outline-none"
               >
                 <option value="Basse">Basse (Cosmétique)</option>

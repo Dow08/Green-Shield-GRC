@@ -25,7 +25,7 @@ export function Login({ onSuccess }: LoginProps) {
       // Ping an authenticated route to verify the token
       await api.modules(); 
       onSuccess();
-    } catch (err: any) {
+    } catch {
       sessionStorage.removeItem("greenshield_token");
       setError("Jeton d'accès incorrect ou refusé.");
     } finally {

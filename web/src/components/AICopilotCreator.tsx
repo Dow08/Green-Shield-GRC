@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Send, Bot, Sparkles, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
+import { obtenirConstructeurReconnaissance, type SpeechRecognitionLike } from "../types/speech";
 
 interface AICopilotCreatorProps {
   onProjectGenerated: (data: { name: string; client: string; type: "grc" | "consulting"; framework_ids?: string[] }) => void;
@@ -18,19 +19,18 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
   const [dicteeDisponible, setDicteeDisponible] = useState(false);
   const [erreurDictee, setErreurDictee] = useState("");
 
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   useEffect(() => {
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) return;
+    const SpeechRecognitionCtor = obtenirConstructeurReconnaissance();
+    if (!SpeechRecognitionCtor) return;
 
-    const reconnaissance = new SpeechRecognition();
+    const reconnaissance = new SpeechRecognitionCtor();
     reconnaissance.continuous = true;
     reconnaissance.interimResults = true;
     reconnaissance.lang = "fr-FR";
 
-    reconnaissance.onresult = (event: any) => {
+    reconnaissance.onresult = (event) => {
       let finalTranscript = "";
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         if (event.results[i].isFinal) {
@@ -42,7 +42,7 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
       }
     };
 
-    reconnaissance.onerror = (event: any) => {
+    reconnaissance.onerror = (event) => {
       const messages: Record<string, string> = {
         "not-allowed": "Accès au micro refusé. Autorisez-le dans les réglages du navigateur pour dicter.",
         "service-not-allowed": "Le service de dictée du navigateur est indisponible.",

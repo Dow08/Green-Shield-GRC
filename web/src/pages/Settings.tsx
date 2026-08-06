@@ -129,8 +129,8 @@ export function Settings() {
         setLicenseStatus(res.message);
         localStorage.setItem("greenshield_premium", "1");
         setTimeout(() => window.location.reload(), 1500);
-    } catch (err: any) {
-        setLicenseError(err.message || "Erreur d'activation");
+    } catch (err) {
+        setLicenseError(err instanceof Error ? err.message : "Erreur d'activation");
     }
   };
 

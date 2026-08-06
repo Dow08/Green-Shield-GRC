@@ -125,7 +125,7 @@ export default function App() {
   }
 
   if (!isAuthenticated) {
-    return <Auth view={authView} setView={setAuthView as any} onLogin={() => setAuthState("connecte")} />;
+    return <Auth view={authView} setView={setAuthView} onLogin={() => setAuthState("connecte")} />;
   }
 
   return (
