@@ -9,6 +9,7 @@ testable directement et prépare l'habillage graphique des livrables.
 from __future__ import annotations
 
 from datetime import datetime
+from html import escape
 
 from . import aipd as aipd_module
 from . import charte
@@ -86,7 +87,7 @@ def _charges_consommees(state: dict) -> str:
 
     tableau = "\n".join(lignes)
     if budget:
-        tableau += f"\n\n*   **Budget vendu :** {budget}"
+        tableau += f"\n\n*   **Budget vendu :** {_t(budget)}"
     return tableau
 
 
@@ -94,12 +95,34 @@ def _cellule(valeur) -> str:
     """Neutralise ce qui casserait une cellule Markdown, sans rien inventer.
 
     Une barre verticale saisie par le consultant scinde la cellule et décale
-    toute la ligne ; un retour à la ligne la coupe en deux.
+    toute la ligne ; un retour à la ligne la coupe en deux. Échappé pour le
+    HTML (v. `_t`) : ce Markdown est ensuite converti en HTML par
+    `markdown.markdown()` dans exports.py, qui laisse passer tel quel le HTML
+    brut présent dans sa source — un `<script>` saisi dans un champ de mission
+    doit rester du texte affiché, jamais du balisage exécuté.
     """
     if valeur is None:
         return "—"
-    texte = str(valeur).strip().replace("|", "/").replace("\n", " ")
-    return texte or "—"
+    texte = str(valeur).strip()
+    if not texte:
+        return "—"
+    return escape(texte).replace("|", "/").replace("\n", " ")
+
+
+def _t(valeur) -> str:
+    """Échappe une valeur libre pour un rendu Markdown → HTML sûr.
+
+    Miroir de `report_html.py::_t()` : ce module produit du Markdown converti
+    en HTML sans échappement en aval (`markdown.markdown()` préserve le HTML
+    brut de sa source), contrairement à `report_html.py` qui construit du HTML
+    directement. Composable avec le motif existant `champ.get(...) or "N/A"` :
+    une valeur absente/vide renvoie une chaîne vide (fausse), le repli
+    `or "..."` s'applique donc normalement.
+    """
+    if valeur is None:
+        return ""
+    texte = str(valeur)
+    return escape(texte) if texte else texte
 
 
 def _tableau(entetes: tuple[str, ...], lignes: list[tuple], vide: str) -> str:
@@ -257,7 +280,7 @@ def _synthese_md(state: dict) -> str:
     """Synthèse pour la direction — le premier chapitre lu, jamais inventé."""
     resume = ((state.get("steps") or {}).get("restitution") or {}).get("exec_summary") or ""
     if resume.strip():
-        return resume.strip()
+        return _t(resume.strip())
     return ("_Synthèse non rédigée. Elle se saisit en phase 6 (Traitement & Livrables) "
             "et n'est jamais produite automatiquement : elle engage le jugement du consultant._")
 
@@ -389,7 +412,7 @@ def _reserve_md(state: dict, date_emission: str) -> str:
     Réutilise la formulation du rapport Word pour qu'un même client ne reçoive
     pas deux délimitations de responsabilité différentes selon le format.
     """
-    return docx_export.mention_reserve(date_emission, str(state.get("client") or ""))
+    return docx_export.mention_reserve(date_emission, _t(state.get("client") or ""))
 
 
 _ETAT_OBLIGATION = {True: "Fait", False: "**Reste à faire**"}
@@ -411,7 +434,7 @@ def _obligations_aipd_md(aipd: dict) -> str:
                        f"| Non applicable (risque résiduel non élevé) | |\n")
             continue
         saisie = saisies.get(obligation["id"], {})
-        commentaire = (saisie.get("commentaire") or "").replace("\n", " ").replace("|", "/")
+        commentaire = _t((saisie.get("commentaire") or "").replace("\n", " ").replace("|", "/"))
         lignes += (f"| {obligation['libelle']} | {obligation['reference']} "
                    f"| {_ETAT_OBLIGATION[bool(saisie.get('satisfait'))]} | {commentaire} |\n")
 
@@ -434,16 +457,17 @@ def _protection_donnees_md(steps: dict) -> str:
     rgpd_reg = diagnostic.get("rgpd_register") or []
     registre_md = "| ID | Traitement | Finalité | Catégories de données | Conservation |\n| :--- | :--- | :--- | :--- | :--- |\n"
     for r in rgpd_reg:
-        registre_md += f"| {r.get('id')} | {r.get('name')} | {r.get('purpose')} | {r.get('data_categories')} | {r.get('retention')} |\n"
+        registre_md += (f"| {_t(r.get('id'))} | {_t(r.get('name'))} | {_t(r.get('purpose'))} "
+                         f"| {_t(r.get('data_categories'))} | {_t(r.get('retention'))} |\n")
     if not rgpd_reg:
         registre_md = "_Aucun traitement n'a été inscrit au registre._\n"
 
     violations = diagnostic.get("violations") or []
     violations_md = "| ID | Constatée le | Nature | CNIL | Personnes informées |\n| :--- | :--- | :--- | :--- | :--- |\n"
     for v in violations:
-        cnil = f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée"
+        cnil = f"Notifiée le {_t(v.get('date_notification_cnil'))}" if v.get("notifiee_cnil") else "Non notifiée"
         informees = "Oui" if v.get("personnes_informees") else "Non"
-        violations_md += f"| {v.get('id')} | {v.get('date_constat')} | {v.get('nature')} | {cnil} | {informees} |\n"
+        violations_md += f"| {_t(v.get('id'))} | {_t(v.get('date_constat'))} | {_t(v.get('nature'))} | {cnil} | {informees} |\n"
     if not violations:
         violations_md = "_Aucune violation de données n'a été constatée sur cette mission._\n"
 
@@ -455,10 +479,10 @@ def _protection_donnees_md(steps: dict) -> str:
 
     aipd = diagnostic.get("aipd") or {}
     volets_md = ("| Volet d'analyse | Contenu |\n| :--- | :--- |\n"
-                 f"| Description systématique du traitement | {aipd.get('treatment_description') or 'N/A'} |\n"
-                 f"| Nécessité et proportionnalité | {aipd.get('necessity_eval') or 'N/A'} |\n"
-                 f"| Risques pour les droits et libertés | {aipd.get('risks_eval') or 'N/A'} |\n"
-                 f"| Mesures d'atténuation | {aipd.get('mitigation_measures') or 'N/A'} |\n")
+                 f"| Description systématique du traitement | {_t(aipd.get('treatment_description')) or 'N/A'} |\n"
+                 f"| Nécessité et proportionnalité | {_t(aipd.get('necessity_eval')) or 'N/A'} |\n"
+                 f"| Risques pour les droits et libertés | {_t(aipd.get('risks_eval')) or 'N/A'} |\n"
+                 f"| Mesures d'atténuation | {_t(aipd.get('mitigation_measures')) or 'N/A'} |\n")
 
     return (contenu + f"\n### 4.2 Analyse d'impact — les quatre volets\n{volets_md}\n"
             f"\n### 4.3 Obligations organisationnelles\n{_obligations_aipd_md(aipd)}")
@@ -477,7 +501,7 @@ def _controles_techniques_md(state: dict) -> str:
     for pratique in resultat["pratiques"]:
         refs = ", ".join(f"{m['referentiel']} {m['ref']}" for m in pratique["mappings"])
         etat = "Couverte" if pratique["couverte"] else "**Non couverte**"
-        lignes += (f"| {pratique['libelle']} | {refs} | {etat} — {pratique['justification']} "
+        lignes += (f"| {pratique['libelle']} | {refs} | {etat} — {_t(pratique['justification'])} "
                    f"| Phase {pratique['phase']} ({pratique['phase_libelle']}) |\n")
 
     return (f"{lignes}\n{resultat['couvertes']} pratique(s) couverte(s) sur "
@@ -486,7 +510,14 @@ def _controles_techniques_md(state: dict) -> str:
 
 def build_document(state: dict, p_id: str, doc_type: str,
                    auditeur: str = "", cabinet: str = "") -> tuple[str, str]:
-    """Rend (nom de fichier, contenu Markdown) pour un livrable de mission."""
+    """Rend (nom de fichier, contenu Markdown) pour un livrable de mission.
+
+    `client`/`name`/`auditeur`/`cabinet` restent **non échappés** à ce niveau,
+    volontairement : certains usages plus bas passent par `_identite_md` ->
+    `_tableau` -> `_cellule`, qui échappe déjà — les échapper ici aussi les
+    échapperait deux fois (`&` deviendrait `&amp;amp;`). Chaque site
+    d'interpolation direct (hors tableau) applique `_t()` lui-même.
+    """
     client = state.get("client", "Client")
     name = state.get("name", "Projet")
     steps = state.get("steps", {})
@@ -500,12 +531,12 @@ def build_document(state: dict, p_id: str, doc_type: str,
 
     if doc_type == "nda":
         title = f"Accord_Confidentialite_{p_id}.md"
-        nda_text = steps.get("cadrage", {}).get("nda_text") or "NDA non rédigé."
+        nda_text = _t(steps.get("cadrage", {}).get("nda_text")) or "NDA non rédigé."
         markdown_content = f"""{charte.entete_markdown("ACCORD DE CONFIDENTIALITÉ", client, now, p_id, cabinet=cabinet)}
 # ACCORD DE CONFIDENTIALITÉ & PROTECTION DES DONNÉES (NDA)
 
-**Projet :** {name}  
-**Client :** {client}  
+**Projet :** {_t(name)}  
+**Client :** {_t(client)}  
 **Date d'édition :** {now}  
 **Classification :** **CONFIDENTIEL AFFAIRES**  
 
@@ -519,9 +550,9 @@ def build_document(state: dict, p_id: str, doc_type: str,
 
 En foi de quoi, les parties s'engagent et signent électroniquement ou de manière manuscrite :
 
-| Pour {cabinet or _CABINET_DEFAUT} | Pour {client} |
+| Pour {_t(cabinet) or _CABINET_DEFAUT} | Pour {_t(client)} |
 | :--- | :--- |
-| **{auditeur or _AUDITEUR_DEFAUT}, Consultant Cyber** | **Mandataire habilité** |
+| **{_t(auditeur) or _AUDITEUR_DEFAUT}, Consultant Cyber** | **Mandataire habilité** |
 | Signature cryptographique locale : `SHA256:{docx_export.data_fingerprint(state)}` | Signature : |
 | Date : {now} | Date : |
 """
@@ -535,27 +566,29 @@ En foi de quoi, les parties s'engagent et signent électroniquement ou de maniè
         metier_md = "| ID | Valeur Métier | Description | Données Perso (RGPD) |\n| :--- | :--- | :--- | :--- |\n"
         for m in assets_metier:
             rgpd_status = "OUI (Registre actif)" if m.get("is_personal_data") else "Non"
-            metier_md += f"| {m.get('id')} | {m.get('name')} | {m.get('description')} | {rgpd_status} |\n"
-            
+            metier_md += f"| {_t(m.get('id'))} | {_t(m.get('name'))} | {_t(m.get('description'))} | {rgpd_status} |\n"
+
         support_md = "| ID | Bien Support | Type | Description | Responsable |\n| :--- | :--- | :--- | :--- | :--- |\n"
         for s in assets_support:
-            support_md += f"| {s.get('id')} | {s.get('name')} | {s.get('type')} | {s.get('description')} | {s.get('owner')} |\n"
-            
+            support_md += (f"| {_t(s.get('id'))} | {_t(s.get('name'))} | {_t(s.get('type'))} "
+                            f"| {_t(s.get('description'))} | {_t(s.get('owner'))} |\n")
+
         redoutes_md = "| ID | Événement Redouté | Gravité | Impacts (Financier, Juridique, Image) |\n| :--- | :--- | :--- | :--- |\n"
         for r in redoutes:
-            redoutes_md += f"| {r.get('id')} | {r.get('event')} | {r.get('gravity')}/4 | {r.get('impact')} |\n"
-            
+            redoutes_md += f"| {_t(r.get('id'))} | {_t(r.get('event'))} | {r.get('gravity')}/4 | {_t(r.get('impact'))} |\n"
+
         scenarios_md = "| ID | Scénario Opérationnel (Connaître -> Intrusion -> Pivot -> Exploiter) | Gravité | Vraisemblance | Mesure d'Atténuation |\n| :--- | :--- | :--- | :--- | :--- |\n"
         for s in scenarios:
-            scenarios_md += f"| {s.get('id')} | {s.get('event')} | {s.get('gravity')}/4 | {s.get('likelihood')}/5 | {s.get('mitigation')} |\n"
+            scenarios_md += (f"| {_t(s.get('id'))} | {_t(s.get('event'))} | {s.get('gravity')}/4 "
+                              f"| {s.get('likelihood')}/5 | {_t(s.get('mitigation'))} |\n")
             
         markdown_content = f"""{charte.entete_markdown("ANALYSE DE RISQUES EBIOS RM", client, now, p_id, cabinet=cabinet)}
 # RAPPORT D'ANALYSE DE RISQUES CYBER (ORIENTATION EBIOS RM)
 
-**Projet :** {name}  
-**Client :** {client}  
+**Projet :** {_t(name)}  
+**Client :** {_t(client)}  
 **Date d'édition :** {now}  
-**Consultant :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}  
+**Consultant :** {_t(auditeur) or _AUDITEUR_DEFAUT}, {_t(cabinet) or _CABINET_DEFAUT}  
 **Classification :** CONFIDENTIEL  
 
 ---
@@ -612,21 +645,21 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
         pssi_sects = steps.get("pssi_pri", {}).get("pssi_sections", [])
         sections_md = ""
         for s in pssi_sects:
-            sections_md += f"### {s.get('title')}\n\n{s.get('content')}\n\n"
-            
-        rto = steps.get("resilience", {}).get("bcp_strategy", {}).get("rto", "N/A")
-        rpo = steps.get("resilience", {}).get("bcp_strategy", {}).get("rpo", "N/A")
-        bcp = steps.get("resilience", {}).get("bcp_strategy", {}).get("backup_policy", "N/A")
+            sections_md += f"### {_t(s.get('title'))}\n\n{_t(s.get('content'))}\n\n"
+
+        rto = _t(steps.get("resilience", {}).get("bcp_strategy", {}).get("rto", "N/A")) or "N/A"
+        rpo = _t(steps.get("resilience", {}).get("bcp_strategy", {}).get("rpo", "N/A")) or "N/A"
+        bcp = _t(steps.get("resilience", {}).get("bcp_strategy", {}).get("backup_policy", "N/A")) or "N/A"
         e3r = steps.get("resilience", {}).get("e3r", {})
         strategie = steps.get("resilience", {}).get("strategie_remediation", {})
 
         markdown_content = f"""{charte.entete_markdown("PSSI & PLAN DE REPRISE", client, now, p_id, cabinet=cabinet)}
 # POLITIQUE DE SÉCURITÉ DE L'INFORMATION (PSSI) & PLAN DE REPRISE (PRI)
 
-**Client :** {client}  
-**Projet :** {name}  
+**Client :** {_t(client)}  
+**Projet :** {_t(name)}  
 **Date :** {now}  
-**Auteur :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}  
+**Auteur :** {_t(auditeur) or _AUDITEUR_DEFAUT}, {_t(cabinet) or _CABINET_DEFAUT}  
 
 ---
 
@@ -649,26 +682,26 @@ Chaque mesure ci-dessous répond à un scénario ou à un écart constaté au ch
 En cas de compromission majeure de l'Active Directory ou de l'infrastructure Cloud :
 
 1.  **Endiguement (Contenir l'attaquant) :**  
-    {e3r.get('endiguement', 'N/A')}
+    {_t(e3r.get('endiguement', 'N/A')) or 'N/A'}
 2.  **Éviction (Reprendre le contrôle du cœur de confiance) :**  
-    {e3r.get('eviction', 'N/A')}
+    {_t(e3r.get('eviction', 'N/A')) or 'N/A'}
 3.  **Éradication (Nettoyage en profondeur des emprises) :**  
-    {e3r.get('eradication', 'N/A')}
+    {_t(e3r.get('eradication', 'N/A')) or 'N/A'}
 4.  **Reconstruction (Rebâtir de façon durcie dès la conception) :**
-    {e3r.get('reconstruction', 'N/A')}
+    {_t(e3r.get('reconstruction', 'N/A')) or 'N/A'}
 
 ### 2.4 Volet Stratégique — Arbitrage Direction
-*   **Urgence de redémarrage :** {strategie.get('urgence_redemarrage', 'N/A')}
-*   **Coûts et risques d'un redémarrage précipité :** {strategie.get('couts_risques_redemarrage', 'N/A')}
-*   **Décision retenue et autorité :** {strategie.get('decision_direction', 'N/A')}
+*   **Urgence de redémarrage :** {_t(strategie.get('urgence_redemarrage', 'N/A')) or 'N/A'}
+*   **Coûts et risques d'un redémarrage précipité :** {_t(strategie.get('couts_risques_redemarrage', 'N/A')) or 'N/A'}
+*   **Décision retenue et autorité :** {_t(strategie.get('decision_direction', 'N/A')) or 'N/A'}
 
 ---
 
 ### SIGNATURES POUR HOMOLOGATION DE SÉCURITÉ
 
-| Pour {cabinet or _CABINET_DEFAUT} | Pour la Direction de {client} |
+| Pour {_t(cabinet) or _CABINET_DEFAUT} | Pour la Direction de {_t(client)} |
 | :--- | :--- |
-| **{auditeur or _AUDITEUR_DEFAUT}** | **Directeur Général / RSSI** |
+| **{_t(auditeur) or _AUDITEUR_DEFAUT}** | **Directeur Général / RSSI** |
 | Signature : | Signature : |
 """
     elif doc_type == "aipd":
@@ -679,22 +712,23 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
         
         register_md = "| ID | Activité de Traitement | Finalité | Catégories de Données | Durée de conservation |\n| :--- | :--- | :--- | :--- | :--- |\n"
         for r in rgpd_reg:
-            register_md += f"| {r.get('id')} | {r.get('name')} | {r.get('purpose')} | {r.get('data_categories')} | {r.get('retention')} |\n"
+            register_md += (f"| {_t(r.get('id'))} | {_t(r.get('name'))} | {_t(r.get('purpose'))} "
+                             f"| {_t(r.get('data_categories'))} | {_t(r.get('retention'))} |\n")
 
         violations = diagnostic.get("violations", [])
         violations_md = "| ID | Constatée le | Nature | CNIL | Personnes informées |\n| :--- | :--- | :--- | :--- | :--- |\n"
         for v in violations:
-            cnil = f"Notifiée le {v.get('date_notification_cnil')}" if v.get("notifiee_cnil") else "Non notifiée"
+            cnil = f"Notifiée le {_t(v.get('date_notification_cnil'))}" if v.get("notifiee_cnil") else "Non notifiée"
             informees = "Oui" if v.get("personnes_informees") else "Non"
-            violations_md += f"| {v.get('id')} | {v.get('date_constat')} | {v.get('nature')} | {cnil} | {informees} |\n"
+            violations_md += f"| {_t(v.get('id'))} | {_t(v.get('date_constat'))} | {_t(v.get('nature'))} | {cnil} | {informees} |\n"
         if not violations:
             violations_md = "_Aucune violation de données n'a été constatée sur cette mission._\n"
 
         markdown_content = f"""{charte.entete_markdown("AIPD / PIA (RGPD)", client, now, p_id, cabinet=cabinet)}
 # ANALYSE D'IMPACT RELATIVE À LA PROTECTION DES DONNÉES (AIPD / PIA)
 
-**Client :** {client}  
-**Projet :** {name}  
+**Client :** {_t(client)}  
+**Projet :** {_t(name)}  
 **Date :** {now}  
 **Délégué à la Protection des Données (DPO) :** Enregistré au registre  
 
@@ -711,16 +745,16 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
 ## 2. Analyse d'Impact Systématique (PIA)
 
 ### 2.1 Description Systématique du Traitement
-{aipd.get('treatment_description', 'N/A')}
+{_t(aipd.get('treatment_description', 'N/A')) or 'N/A'}
 
 ### 2.2 Évaluation de la Nécessité et de la Proportionnalité
-{aipd.get('necessity_eval', 'N/A')}
+{_t(aipd.get('necessity_eval', 'N/A')) or 'N/A'}
 
 ### 2.3 Évaluation des Risques sur les Droits et Libertés des Personnes
-{aipd.get('risks_eval', 'N/A')}
+{_t(aipd.get('risks_eval', 'N/A')) or 'N/A'}
 
 ### 2.4 Mesures de Traitement & de Sécurité envisagées (Atténuation)
-{aipd.get('mitigation_measures', 'N/A')}
+{_t(aipd.get('mitigation_measures', 'N/A')) or 'N/A'}
 
 ---
 
@@ -754,10 +788,10 @@ En cas de compromission majeure de l'Active Directory ou de l'infrastructure Clo
         markdown_content = f"""{charte.entete_markdown("DÉCLARATION D'APPLICABILITÉ (SoA)", client, now, p_id, cabinet=cabinet)}
 # DÉCLARATION D'APPLICABILITÉ (SoA) — ISO/IEC 27001:2022 ANNEXE A
 
-**Client :** {client}  
-**Projet :** {name}  
+**Client :** {_t(client)}  
+**Projet :** {_t(name)}  
 **Date d'édition :** {now}  
-**Auteur :** {auditeur or _AUDITEUR_DEFAUT}, {cabinet or _CABINET_DEFAUT}  
+**Auteur :** {_t(auditeur) or _AUDITEUR_DEFAUT}, {_t(cabinet) or _CABINET_DEFAUT}  
 
 **{resume['statues']}/{resume['total']} contrôle(s) statué(s) ({resume['taux']} %)** — {resume['applicables']} applicable(s), {resume['exclus']} exclu(s).
 
@@ -939,7 +973,7 @@ L'auditeur certifie l'exactitude des constats factuels mentionnés ci-dessus.
 
 | Signature de l'Auditeur Cyber | Signature du Client Audité |
 | :--- | :--- |
-| **{auditeur or _AUDITEUR_DEFAUT}** | **DSI / Responsable de la sécurité** |
+| **{_t(auditeur) or _AUDITEUR_DEFAUT}** | **DSI / Responsable de la sécurité** |
 | Signature cryptographique locale : `SHA256:{docx_export.data_fingerprint(state)}` | Signature : |
 """
     else:

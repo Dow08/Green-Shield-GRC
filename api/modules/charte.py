@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+from html import escape
 
 LOGO_BASE64 = (
     "iVBORw0KGgoAAAANSUhEUgAAAEgAAABICAIAAADajyQQAAAlQUlEQVR42m17Z7Ck51XmOe/75c7d"
@@ -294,8 +295,14 @@ def entete_markdown(titre_document: str, client: str, date_edition: str, referen
     `data:` URI, tandis qu'un navigateur affiche les tableaux Markdown en texte
     brut, tuyaux compris. Chaque format porte désormais sa propre mise en forme —
     Markdown pur ici, HTML complet dans `report_html.py`.
+
+    `client`/`cabinet` sont échappés (`html.escape`) : ce Markdown est ensuite
+    converti en HTML par `markdown.markdown()` côté appelant, qui laisse passer
+    tel quel le HTML brut présent dans sa source.
     """
-    return (f"**GREEN SHIELD** · {cabinet or _CABINET_DEFAUT} — Audit & Conseil Cybersécurité\n\n"
+    client = escape(str(client)) if client else client
+    cabinet_affiche = escape(str(cabinet)) if cabinet else cabinet
+    return (f"**GREEN SHIELD** · {cabinet_affiche or _CABINET_DEFAUT} — Audit & Conseil Cybersécurité\n\n"
             f"> **{titre_document}** — {client}\n"
             f"> Édité le {date_edition} · Réf. `{reference}`\n"
             f"> **Document confidentiel — diffusion restreinte**\n")
@@ -303,8 +310,9 @@ def entete_markdown(titre_document: str, client: str, date_edition: str, referen
 
 def pied_markdown(empreinte: str, cabinet: str = "") -> str:
     """Pied d'un livrable Markdown."""
+    cabinet_affiche = escape(str(cabinet)) if cabinet else cabinet
     return ("\n---\n\n"
-            f"GREEN SHIELD — {cabinet or _CABINET_DEFAUT} · Document confidentiel, "
+            f"GREEN SHIELD — {cabinet_affiche or _CABINET_DEFAUT} · Document confidentiel, "
             "ne pas diffuser sans autorisation écrite.\n\n"
             f"Empreinte SHA-256 de l'état de la mission à l'édition : `{empreinte}`\n\n"
             "*Toute modification ultérieure de la mission, même rétablie, produit "

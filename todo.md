@@ -92,6 +92,22 @@ Suite à l'audit combiné (gabarit Lead Software Architect + Principal Pentester
 - Vérifié : `py -3 -m pytest api/tests -q` (618 passed, suite existante — ne couvre pas encore la couche auth/DB), `py -3 -c "import main"` (imports propres), smoke-test manuel complet (register/login/create/tprm/controles-techniques/export, 401 sans token puis 200 avec token, mission réelle sans données fictives), `npx tsc --noEmit` et `npx vitest run` (150 passed) propres après le retrait des connecteurs fabriqués.
 - Committé depuis (les `fix_*.py`/`append_routes.py`/`out.txt`/`old_projects.txt` mentionnés à l'origine comme non suivis n'existent plus dans le dépôt).
 
+## Audit combiné Software Architecture / Pentest (06/08/2026)
+
+Gabarit Lead Software Architect + Principal Pentester, demandé par l'utilisateur. 67 routes inventoriées. Un seul point critique, corrigé le jour même ; le reste est Majeur/Mineur, non bloquant pour l'usage mono-poste prévu. IDs propres à cet audit (V-01 à V-09), sans rapport avec les V-02 à V-06 de l'audit du 28/07/2026 (déjà résolus, cf. `test_projects_security.py`).
+
+- [x] **V-01 (CRITIQUE) — XSS stockée dans l'export PDF/HTML** corrigé le 06/08/2026 : voir TRACKING.md pour le détail. `_cellule()`/`_t()` (nouveau) échappent désormais tout champ libre dans `report_builder.py` et `charte.py`. 22 tests ajoutés.
+- [ ] **V-02 (Majeur) — Aucun mécanisme de révocation de session** : JWT valide 24h, aucun `/logout` serveur, aucune liste de révocation, aucun changement de mot de passe. Un jeton dérobé reste utilisable jusqu'à expiration naturelle.
+- [ ] **V-03 (Majeur) — Aucun plafond de taille sur `POST /projects/{p_id}/upload`** : ni `Content-Length`, ni limite Starlette, `shutil.copyfileobj` en flux non borné.
+- [ ] **V-04 (Mineur) — Rate limiting générique (60/min) sur les 14 routes d'export et `/copilot/ask`** : le SEC-04 du 31/07/2026 affirmait ces routes déjà limitées spécifiquement — vérifié faux dans le code actuel.
+- [ ] **V-05 (Mineur) — `modele` non échappé dans l'URL Gemini** (`ai_gateway.py`) : `f"...models/{modele}:generateContent"` sans `quote()` ni liste blanche, contrairement à `api_key` sur la même ligne.
+- [ ] **V-06 (Mineur) — Aucun en-tête de sécurité HTTP dans le déploiement principal (exe)** : CSP/X-Frame-Options/etc. présents seulement dans `web/nginx.conf` (Docker optionnel), absents en mode `uvicorn` direct (le déploiement desktop réel).
+- [ ] **V-07 (Mineur) — Import d'archive : lecture intégrale en mémoire avant contrôle de taille** (`crud.py:1065`) : le plafond de 200 Mo porte sur la taille décompressée, pas sur le flux brut reçu.
+- [ ] **V-08 (Mineur) — Double implémentation de l'assainissement de chemin** dans `create_project` (`crud.py:564`, réimplémente `path_safety.safe_path_component` au lieu de l'appeler). Non exploitable aujourd'hui, point de divergence latent.
+- [ ] **V-09 (Mineur) — Listes non paginées** sur `GET /api/projects`, `/api/rgpd/echeances`, `/api/projects/{p_id}/snapshots` : pas de problème réel au volume actuel, à surveiller si l'usage s'intensifie (missions récurrentes sur plusieurs années).
+- **Vérifié propre** (aucune action requise) : zéro injection SQL (ORM paramétré à 100 %), zéro injection de commande, zéro secret en dur, `get_current_user` fail-closed, 4/5 fournisseurs IA à URL fixe, `report_html.py` déjà correctement échappé, PUT idempotents.
+- **Décision produit reconfirmée** : absence d'isolation multi-utilisateur (BOLA) — cohérente avec la décision du 31/07/2026, vérifiée non régressée dans tout le code. Non bloquant pour l'usage mono-poste ; à réévaluer impérativement si l'outil devient multi-consultant.
+
 ## Notes
 
 - Ne pas ajouter de tâche à cette liste sans la relier à une friction sourcée ou à une demande explicite de l'utilisateur — évite de transformer ce fichier en backlog spéculatif (cf. règle CLAUDE.md, F12 de l'audit critique : périmètre piloté par les besoins réels, pas par la spéculation).

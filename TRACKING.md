@@ -4,6 +4,20 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [06/08/2026] — XSS stockée corrigée dans l'export PDF/HTML (V-01, audit combiné Software Architecture / Pentest)
+
+Audit combiné (gabarit Lead Software Architect + Principal Pentester, demandé par l'utilisateur, 67 routes inventoriées) mené sur l'ensemble de l'API. Un seul point critique — les autres constats sont Majeur/Mineur, non bloquants pour l'usage mono-poste : **XSS stockée** dans `GET /projects/{p_id}/pdf/{doc_type}`. Chaque champ de mission libre (client, nom, texte du NDA, entretiens, AIPD, remédiations, sections PSSI, `cabinet`/`auditeur`…) était interpolé sans échappement dans le Markdown produit par `report_builder.py`, converti en HTML par `markdown.markdown()` — qui préserve tel quel le HTML brut de sa source — puis injecté dans une `HTMLResponse` avec `<body onload="window.print()">`. Un `<script>` saisi dans n'importe lequel de ces champs s'exécutait à l'ouverture du document exporté.
+
+Corrigé par un échappement HTML systématique plutôt qu'au cas par cas, pour ne pas risquer d'en oublier sur un fichier de 950 lignes : `_cellule()` (déjà le point de passage de toutes les cellules de tableau via `_tableau()`, donc de la majorité des champs) échappe désormais chaque valeur, et un nouveau `_t()` (miroir de `report_html.py::_t()`, déjà correct) couvre les ~25 sites d'interpolation directe restants (texte libre hors tableau : `client`, `name`, `auditeur`, `cabinet`, `nda_text`, synthèse de direction, volets AIPD, sections PSSI, E3R, budget…). `charte.py::entete_markdown`/`pied_markdown` échappent en interne (`client`/`cabinet`), sans dépendre de ce que leur passe l'appelant.
+
+Piège rencontré en cours de route : échapper `client`/`name`/`auditeur`/`cabinet` une seule fois en tête de `build_document()` aurait doublement échappé les mêmes valeurs là où elles traversent ensuite `_identite_md()` → `_tableau()` → `_cellule()` (un `&` serait devenu `&amp;amp;`) — l'échappement doit se faire au point de sortie (la « feuille »), jamais en amont d'un chemin qui échappe déjà. Un second oubli corrigé en cours de route : la réécriture de plusieurs blocs a fait sauter les doubles espaces de fin de ligne (saut de ligne Markdown) sur certaines lignes `**Champ :** valeur` — restaurés après comparaison du diff.
+
+**22 tests ajoutés** (`test_report_builder.py`) : un `<script>` dans chacun des ~12 points d'entrée (client, nom, auditeur/cabinet, NDA, entretien, AIPD, remédiation, section PSSI, E3R, registre RGPD/violations, synthèse, budget) ressort échappé et jamais brut, sur les 6 types de livrables où c'est pertinent. Un test de non-régression confirme qu'un texte normal (accents, apostrophes) n'est pas visuellement défiguré par l'échappement. Vérifié aussi en simulant le pipeline de production complet (`build_document` → `markdown.markdown()` → `HTMLResponse`) avec un vrai payload : confirmé qu'aucun `<script>` brut n'atteint la sortie finale. **727 tests backend.**
+
+Les autres constats de l'audit (révocation de session absente, upload sans plafond de taille, rate limiting générique sur les exports/Copilote, en-têtes de sécurité absents hors nginx, `modele` non échappé dans l'URL Gemini) restent ouverts, non bloquants — voir le rapport d'audit livré en conversation pour le détail.
+
+---
+
 ## [06/08/2026] — Validation Pydantic, fuites d'erreurs corrigées, racine du dépôt rangée, README mis à jour
 
 Trois chantiers indépendants menés à la suite, tous motivés par la relecture de `todo.md`.

@@ -280,3 +280,130 @@ def test_la_numerotation_des_chapitres_du_rapport_est_alignee_sur_word_et_html()
         "## 14. Certifications et signatures d'audit",
     ):
         assert titre in contenu, f"chapitre manquant ou mal numéroté : {titre}"
+
+
+# --- Échappement HTML (V-01, non-régression XSS) ---------------------------
+#
+# `build_document` produit du Markdown converti en HTML par `markdown.markdown()`
+# côté appelant (exports.py), sans échappement en aval : ce module doit donc
+# échapper lui-même tout champ libre issu de la mission, faute de quoi un
+# `<script>` saisi par le consultant s'exécuterait à l'ouverture du document
+# exporté (audit combiné du 06/08/2026, V-01).
+
+_PAYLOAD = "<script>alert(1)</script>"
+_PAYLOAD_ECHAPPE = "&lt;script&gt;alert(1)&lt;/script&gt;"
+
+
+@pytest.mark.parametrize("doc_type", report_builder.TYPES_DOCUMENTS)
+def test_un_script_dans_le_client_ou_le_nom_de_mission_est_echappe(doc_type):
+    etat = mission()
+    etat["client"] = _PAYLOAD
+    etat["name"] = _PAYLOAD
+    _, contenu = report_builder.build_document(etat, "acme", doc_type)
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+@pytest.mark.parametrize("doc_type", report_builder.TYPES_DOCUMENTS)
+def test_un_script_dans_auditeur_ou_cabinet_est_echappe(doc_type):
+    _, contenu = report_builder.build_document(
+        mission(), "acme", doc_type, auditeur=_PAYLOAD, cabinet=_PAYLOAD,
+    )
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_le_texte_du_nda_est_echappe():
+    etat = mission()
+    etat["steps"]["cadrage"]["nda_text"] = _PAYLOAD
+    _, contenu = report_builder.build_document(etat, "acme", "nda")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_un_entretien_est_echappe_dans_le_rapport_d_audit():
+    etat = mission()
+    etat["socle"] = {"entretiens": [{"role": _PAYLOAD, "date": "2026-08-01", "synthese": _PAYLOAD}]}
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_un_champ_libre_aipd_est_echappe():
+    etat = mission()
+    etat["steps"]["diagnostic"]["aipd"]["risks_eval"] = _PAYLOAD
+    _, contenu = report_builder.build_document(etat, "acme", "aipd")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_une_mesure_de_remediation_est_echappe():
+    etat = mission()
+    etat["steps"]["traitement"] = {"remediations": [
+        {"id": "R-01", "priority": "Critique", "axe": "Protection", "measure": _PAYLOAD},
+    ]}
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_une_section_pssi_est_echappe():
+    etat = mission()
+    etat["steps"]["pssi_pri"] = {"pssi_sections": [{"title": _PAYLOAD, "content": _PAYLOAD}]}
+    _, contenu = report_builder.build_document(etat, "acme", "pssi_pri")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_le_volet_strategique_e3r_est_echappe():
+    etat = mission()
+    etat["steps"]["resilience"]["e3r"] = {"endiguement": _PAYLOAD, "eviction": "", "eradication": "", "reconstruction": ""}
+    etat["steps"]["resilience"]["strategie_remediation"] = {"urgence_redemarrage": _PAYLOAD}
+    _, contenu = report_builder.build_document(etat, "acme", "pssi_pri")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_le_registre_rgpd_ou_les_violations_est_echappe():
+    etat = mission()
+    etat["steps"]["diagnostic"]["rgpd_register"] = [
+        {"id": "RGPD-01", "name": _PAYLOAD, "purpose": "x", "data_categories": "x", "retention": "x"},
+    ]
+    etat["steps"]["diagnostic"]["violations"] = [
+        {"id": "V-01", "date_constat": "2026-08-01", "nature": _PAYLOAD, "notifiee_cnil": False, "personnes_informees": False},
+    ]
+    _, contenu_audit = report_builder.build_document(etat, "acme", "audit_report")
+    assert _PAYLOAD not in contenu_audit
+    assert _PAYLOAD_ECHAPPE in contenu_audit
+    _, contenu_aipd = report_builder.build_document(etat, "acme", "aipd")
+    assert _PAYLOAD not in contenu_aipd
+    assert _PAYLOAD_ECHAPPE in contenu_aipd
+
+
+def test_un_script_dans_la_synthese_de_direction_est_echappe():
+    etat = mission()
+    etat["steps"]["restitution"] = {"exec_summary": _PAYLOAD}
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_un_script_dans_le_budget_vendu_est_echappe():
+    etat = mission()
+    etat["socle"] = {"temps": {"entrees": [{"phase": "cadrage", "minutes": 60}]},
+                      "qualification": {"budget": _PAYLOAD}}
+    _, contenu = report_builder.build_document(etat, "acme", "audit_report")
+    assert _PAYLOAD not in contenu
+    assert _PAYLOAD_ECHAPPE in contenu
+
+
+def test_le_texte_normal_n_est_pas_defigure_par_l_echappement():
+    """Non-régression fonctionnelle : un client/texte ordinaire (accents,
+    apostrophes) ne doit pas ressortir visuellement altéré."""
+    etat = mission()
+    etat["client"] = "Société Générale d'Investissement"
+    _, contenu = report_builder.build_document(etat, "acme", "nda")
+    assert "Société Générale d&#x27;Investissement" in contenu or "Société Générale d'Investissement" in contenu
+    # Le texte doit rester lisible : aucune séquence d'échappement visible pour
+    # des caractères qui n'en ont pas besoin (accents).
+    assert "Soci&eacute;t&eacute;" not in contenu
