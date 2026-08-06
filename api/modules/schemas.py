@@ -9,7 +9,7 @@ où la clarté (Swagger) ou la sécurité (validation) l'exige.
 """
 from __future__ import annotations
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Literal, Optional, TypeVar
 import re
 
@@ -88,6 +88,22 @@ class CreateProjectRequest(BaseModel):
     type: Literal["consulting", "grc"] = "consulting"
     framework_id: str = Field(default="iso27001", max_length=100)
     framework_ids: Optional[list[str]] = None
+
+
+class UpdateProjectRequest(BaseModel):
+    """État complet d'une mission, remplacé intégralement à chaque sauvegarde.
+
+    Volontairement peu contraint sur la forme interne : `steps`/`socle`/`grc`/
+    `consulting` évoluent au fil des jalons via la chaîne de migration
+    (schema_migration.py), pas via ce schéma — un `model_config` permissif
+    (`extra="allow"`) les laisse passer tels quels. Seuls les champs
+    d'identité sont vérifiés nécessaires : sans eux, un corps de requête vide
+    ou tronqué écraserait silencieusement `project.json` sur disque.
+    """
+    model_config = ConfigDict(extra="allow")
+
+    id: str = Field(..., min_length=1)
+    name: str = Field(..., min_length=1, max_length=200)
 
 
 class UpdateRgpdRequest(BaseModel):

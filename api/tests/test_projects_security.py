@@ -91,6 +91,32 @@ def test_delete_project_legitime_fonctionne_toujours(legit_project):
     assert not (projects.PROJECTS_DIR / "legit").exists()
 
 
+# --- update_project : validation Pydantic (audit du 31/07/2026, corrigé le 06/08/2026) --
+
+def test_update_project_avec_corps_vide_est_rejete(legit_project):
+    # Un corps sans "id"/"name" ne doit plus pouvoir écraser silencieusement
+    # project.json avec un état vide.
+    with pytest.raises(HTTPException) as exc_info:
+        projects.update_project(legit_project, {})
+    assert exc_info.value.status_code == 400
+
+
+def test_update_project_avec_id_ne_correspondant_pas_a_l_url_est_rejete(legit_project):
+    with pytest.raises(HTTPException) as exc_info:
+        projects.update_project(legit_project, {"id": "une-autre-mission", "name": "Legit"})
+    assert exc_info.value.status_code == 400
+    # project.json n'a pas été modifié.
+    sur_disque = projects._read_state(projects.PROJECTS_DIR / legit_project / "project.json")
+    assert sur_disque["id"] == "legit"
+
+
+def test_update_project_legitime_fonctionne_toujours(legit_project):
+    result = projects.update_project(legit_project, {
+        "id": legit_project, "name": "Legit", "client": "Legit Corp", "steps": {"cadrage": {"scope": "SI"}},
+    })
+    assert result["steps"]["cadrage"]["scope"] == "SI"
+
+
 # --- V-03 : upload_file -------------------------------------------------
 
 def test_v03_upload_avec_nom_de_fichier_traverse_reste_confine_dans_targets(legit_project):
@@ -136,6 +162,29 @@ def test_import_framework_legitime_fonctionne_toujours(isolated_dirs):
     result = projects.import_framework({"id": "mon_referentiel", "name": "Mon référentiel"})
     assert result["status"] == "ok"
     assert (isolated_dirs / "frameworks" / "custom" / "mon_referentiel.yaml").is_file()
+
+
+def test_import_framework_avec_exigence_mal_formee_est_rejete(isolated_dirs):
+    # Chaque exigence doit porter "id" et "title" (ExigenceImport) — un corps
+    # dict brut n'importe quoi n'atterrit plus tel quel dans le YAML.
+    with pytest.raises(HTTPException) as exc_info:
+        projects.import_framework({
+            "id": "mon_referentiel_2", "name": "Mon référentiel",
+            "requirements": [{"titre_sans_accent": "manque id et title"}],
+        })
+    assert exc_info.value.status_code == 400
+    assert not (isolated_dirs / "frameworks" / "custom" / "mon_referentiel_2.yaml").exists()
+
+
+def test_import_framework_avec_exigences_valides_les_conserve(isolated_dirs):
+    result = projects.import_framework({
+        "id": "mon_referentiel_3", "name": "Mon référentiel",
+        "requirements": [{"id": "REQ-01", "title": "Politique documentée"}],
+    })
+    assert result["status"] == "ok"
+    contenu = (isolated_dirs / "frameworks" / "custom" / "mon_referentiel_3.yaml").read_text(encoding="utf-8")
+    assert "REQ-01" in contenu
+    assert "Politique documentée" in contenu
 
 
 # --- V-05 : signature du NDA / rapport d'audit --------------------------

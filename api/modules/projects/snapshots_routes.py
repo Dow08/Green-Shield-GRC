@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import json
+import logging
 import re
 import shutil
 import unicodedata
@@ -35,6 +36,7 @@ from .. import soa
 from .. import tprm
 
 router = APIRouter(prefix="/api")
+_log = logging.getLogger("greenshield.projects.snapshots_routes")
 
 from . import PROJECTS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate, _chiffrer, _dechiffrer
 
@@ -493,8 +495,9 @@ def restore_snapshot(p_id: str, nom: str, current_user: User = Depends(get_curre
         restaure["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
         restaure["progress"] = calculate_progress(restaure)
         _write_json_atomic(state_file, restaure)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        _log.exception("Échec de restauration de l'instantané (mission=%s, nom=%s)", p_id, nom)
+        raise HTTPException(status_code=500, detail="Restauration impossible : échec d'écriture sur disque.")
 
     audit_log.record("snapshot.restore", target=p_id, detail=nom)
     return restaure
@@ -605,8 +608,9 @@ def _lire_state_pour_docx(p_id: str) -> tuple[str, dict]:
         raise HTTPException(status_code=404, detail="Projet introuvable")
     try:
         return p_id, _read_state(state_file)
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erreur lecture projet: {exc}")
+    except Exception:
+        _log.exception("Échec de lecture de la mission (id=%s)", p_id)
+        raise HTTPException(status_code=500, detail="Erreur de lecture du projet.")
 
 
 def _servir_docx(p_id: str, filename: str, content: bytes, action_journal: str) -> Response:

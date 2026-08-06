@@ -1,6 +1,7 @@
 from __future__ import annotations
 import os
 import json
+import logging
 import re
 import shutil
 import unicodedata
@@ -16,7 +17,7 @@ from ..auth import get_current_user
 from sqlalchemy.orm import Session
 from ..schemas import (
     coerce,
-    CreateProjectRequest, UpdateRgpdRequest, AddTiersRequest,
+    CreateProjectRequest, UpdateProjectRequest, UpdateRgpdRequest, AddTiersRequest,
     UpdateExigenceTiersRequest, AddTempsRequest, CopilotMissionRequest,
     AddDemandePreuveRequest, UpdateDemandePreuveRequest,
     ImportFrameworkRequest, DocxExportRequest,
@@ -96,6 +97,7 @@ from .. import tprm
 from .. import ids
 
 router = APIRouter(prefix="/api")
+_log = logging.getLogger("greenshield.projects.crud")
 
 from . import PROJECTS_DIR, FRAMEWORKS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate, _chiffrer, _dechiffrer
 
@@ -679,13 +681,16 @@ def get_project(p_id: str, current_user: User = Depends(get_current_user), db: S
     return state
 
 @router.put("/projects/{p_id}")
-def update_project(p_id: str, state: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+def update_project(p_id: str, state: UpdateProjectRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    state = coerce(UpdateProjectRequest, state).model_dump()
     current_user, db = _resolve_test_deps(current_user, db)
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p, old_state = _get_project_db_or_disk(p_id, db)
     if not old_state:
         raise HTTPException(status_code=404, detail="Projet introuvable ou accès refusé")
-        
+    if state["id"] != p_id:
+        raise HTTPException(status_code=400, detail="L'identifiant de la mission dans le corps ne correspond pas à celui de l'URL")
+
     p_dir = PROJECTS_DIR / p_id
     p_dir.mkdir(parents=True, exist_ok=True)
     
@@ -1088,9 +1093,10 @@ async def import_project_archive(
     except archive.ArchiveInvalide as exc:
         shutil.rmtree(p_dir, ignore_errors=True)
         raise HTTPException(status_code=400, detail=str(exc))
-    except Exception as exc:
+    except Exception:
         shutil.rmtree(p_dir, ignore_errors=True)
-        raise HTTPException(status_code=500, detail=str(exc))
+        _log.exception("Échec de l'import d'archive (mission=%s)", p_id)
+        raise HTTPException(status_code=500, detail="Import impossible : échec d'écriture sur disque.")
 
     audit_log.record("project.archive_import", target=p_id, detail=f"fichiers={len(fichiers)}")
     return state
@@ -1261,18 +1267,15 @@ def get_framework_workflow(fw_id: str, current_user: User = Depends(get_current_
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except ValueError as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+        # Le message inclut le chemin disque du fichier de workflow : ne
+        # jamais le renvoyer tel quel au client.
+        _log.error("Workflow invalide (référentiel=%s) : %s", fw_id, exc)
+        raise HTTPException(status_code=500, detail=f"Workflow invalide pour le référentiel « {fw_id} ».")
 
 @router.post("/frameworks/import")
-def import_framework(data: dict, current_user: User = Depends(get_current_user)) -> dict:
-    fw_id = data.get("id")
-    name = data.get("name")
-    description = data.get("description", "")
-    requirements = data.get("requirements", [])
-    
-    if not fw_id or not name:
-        raise HTTPException(status_code=400, detail="ID et Nom sont requis")
-    fw_id = path_safety.safe_path_component(fw_id, "identifiant de référentiel")
+def import_framework(data: ImportFrameworkRequest, current_user: User = Depends(get_current_user)) -> dict:
+    data = coerce(ImportFrameworkRequest, data)
+    fw_id = path_safety.safe_path_component(data.id, "identifiant de référentiel")
 
     if (FRAMEWORKS_DIR / f"{fw_id}.yaml").is_file():
         raise HTTPException(
@@ -1282,9 +1285,9 @@ def import_framework(data: dict, current_user: User = Depends(get_current_user))
 
     fw_data = {
         "id": fw_id,
-        "name": name,
-        "description": description,
-        "requirements": requirements
+        "name": data.name,
+        "description": data.description,
+        "requirements": [r.model_dump() for r in data.requirements],
     }
     
     custom_dir = FRAMEWORKS_DIR / "custom"

@@ -10,7 +10,8 @@ Un environnement d'audit moderne, hors-ligne et modulaire, qui guide une mission
 
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.12-009688)
-![Tests](https://img.shields.io/badge/tests-700%20back%20%2F%20183%20front-success)
+![Tests](https://img.shields.io/badge/tests-705%20back%20%2F%20183%20front-success)
+![CI](https://github.com/Dow08/Green-Shield-GRC/actions/workflows/ci.yml/badge.svg)
 ![Licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-lightgrey)
 
 </div>
@@ -65,7 +66,7 @@ Les captures ci-dessous proviennent de la **mission de démonstration** livrée 
 
 À l'aube d'un stage en consulting cybersécurité pour une association, j'ai ressenti le besoin de structurer mon approche. La sécurité de l'information est un enjeu critique où **rien ne doit être laissé au hasard**.
 
-Pour pallier le risque d'oubliédes information importante inhérent à tout début de carrière, j'ai voulu me doter d'un outil extrêmement guidé, capable d'anticiper les oublis et de rattraper d'éventuelles erreurs. Je me suis largement inspiré des leaders du marché comme **Vanta** ou **CISO Assistant**, mais avec un objectif différent : créer un assistant de consulting **plus directif, plus pédagogique**, qui prend l'auditeur par la main.
+Pour pallier le risque d'oublier une information importante, inhérent à tout début de carrière, j'ai voulu me doter d'un outil extrêmement guidé, capable d'anticiper les oublis et de rattraper d'éventuelles erreurs. Je me suis largement inspiré des leaders du marché comme **Vanta** ou **CISO Assistant**, mais avec un objectif différent : créer un assistant de consulting **plus directif, plus pédagogique**, qui prend l'auditeur par la main.
 
 ### Une règle qui structure tout le produit : zéro invention
 
@@ -95,8 +96,8 @@ Les outils que nous utilisons ne doivent pas devenir le maillon faible. Voici l'
 
 L'application est hors-ligne **par défaut**. Deux fonctionnalités, et deux seulement, peuvent émettre du trafic — toujours sur action volontaire :
 
-1. **Copilote en ligne** — si (et seulement si) vous saisissez une clé API Gemini. La clé est conservée en `sessionStorage` (effacée à la fermeture de l'onglet), **jamais persistée côté serveur ni journalisée** ; elle transite par le backend qui la relaie à l'API sans la stocker. Sans clé, le repli local s'applique et rien ne sort.
-2. **Dictée vocale** — elle s'appuie sur le service de reconnaissance vocale du navigateur, qui transmet l'audio à son éditeur. L'interface le signale à l'endroit où l'on dicte. Préférez le clavier pour tout élément confidentiel.
+1. **Copilote GRC, cinq fournisseurs au choix** — passerelle unique (`api/modules/ai_gateway.py`) qui parle en HTTP brut (`urllib`, aucun SDK propriétaire) à **Ollama** (100 % local, `127.0.0.1:11434`, aucune clé, aucune sortie réseau), **Gemini**, **Anthropic (Claude)**, **OpenAI** ou **Kimi (Moonshot)**. La clé du fournisseur choisi est conservée en `sessionStorage` (effacée à la fermeture de l'onglet), **jamais persistée côté serveur ni journalisée** ; elle transite par le backend qui la relaie à l'API sans la stocker. Sans fournisseur configuré, le repli local s'applique et rien ne sort. Pour Ollama, une détection matérielle (RAM, cœurs, GPU) recommande un modèle réellement exécutable sur le poste, avec un vrai chronométrage à l'appui plutôt qu'une estimation en l'air.
+2. **Dictée vocale** — elle s'appuie sur le service de reconnaissance vocale du navigateur, qui transmet l'audio à son éditeur. Désactivée par défaut (à activer explicitement dans les Réglages), et **absente sur les champs porteurs de données client** (nom du client, comptes rendus d'entretien, constats d'audit, preuves, violations, périmètre de mission) quel que soit ce réglage.
 
 > ℹ️ **Chiffrement au repos.** Depuis le 06/08/2026, chaque mission est chiffrée sur disque par défaut — plus besoin de définir une variable d'environnement. Un chiffrement de disque complémentaire (BitLocker / LUKS) reste recommandé en défense en profondeur, mais n'est plus la seule protection.
 
@@ -128,6 +129,9 @@ L'application est hors-ligne **par défaut**. Deux fonctionnalités, et deux seu
 - **📄 Exports multi-formats** — NDA, EBIOS RM, PSSI/PRI, AIPD, Déclaration d'Applicabilité et rapport de mission, en **Word (`python-docx`), HTML et Markdown**, à l'identité de votre cabinet (logo, nom, coordonnées).
 - **⏱️ Suivi des charges** — temps consommé par phase, comparé au budget vendu, repris dans le rapport.
 - **🔬 AuditCraft-GRC** — analyse hors-ligne de fichiers de configuration (`sshd_config`, `nginx.conf`) rattachée aux référentiels **CIS v8 / NIST CSF 2.0**, avec un **taux de couverture technique** affiché honnêtement : ce qui repose sur du déclaratif est annoncé comme tel.
+- **🧭 NIST CSF 2.0 — deux lectures, jamais confondues** — une **roue de rattachement** (SVG pur, sans bibliothèque de graphes) qui mesure la couverture *calculée* des contrôles sur les six fonctions (Govern, Identify, Protect, Detect, Respond, Recover), et un **radar de maturité** distinct où le consultant **déclare** un Tier (1 à 4, vocabulaire officiel Partial / Risk Informed / Repeatable / Adaptive) par fonction — un jugement professionnel qu'aucune donnée de mission ne saurait deviner à sa place.
+- **📋 Registre des demandes de preuves** — chaque document réclamé au client est suivi (à qui, depuis quand, relancé ou non) ; une demande sans réponse reste visible, jamais requalifiée en preuve tant que rien n'est reçu. Détecte aussi les contrôles jugés conformes **sans aucune preuve ni demande associée**.
+- **🎙️ Dictée vocale contrôlée** — micro sur les champs de texte libre, désactivé par défaut, **absent par construction** sur toute nature de champ qui porterait une donnée client (nom du client, entretiens, constats, preuves, violations, périmètre) — la liste d'exclusion est nominative et commentée, pas un simple interrupteur.
 
 ### 🚀 Mission de démonstration
 
@@ -142,7 +146,7 @@ Elle permet de démontrer l'outil **sans jamais ouvrir une mission cliente réel
 - **Référentiels** : ISO/IEC 27001:2022 (dont les 93 contrôles de l'Annexe A), DORA, NIS2, RGPD, NIST CSF 2.0, EU AI Act.
 - **Méthodes** : EBIOS RM (ANSSI), AIPD/PIA (CNIL), séquence de remédiation E3R (ANSSI), ratio de criticité tiers ANSSI.
 - **Architecture** : React 19 + Vite + Tailwind v4 (TypeScript strict) / FastAPI + Python 3.12, données en fichiers JSON/YAML à plat, empaquetage Docker Compose.
-- **Qualité** : **700 tests backend (pytest) et 183 tests frontend (vitest)**, schéma de mission versionné avec chaîne de migration rejouable, écritures atomiques.
+- **Qualité** : **705 tests backend (pytest) et 183 tests frontend (vitest)**, schéma de mission versionné avec chaîne de migration rejouable (14 versions), écritures atomiques, CI GitHub Actions (build + tests + lint + scan de sécurité + scan de vulnérabilités conteneur) sur chaque push.
 
 > **Respect du droit d'auteur des normes** : les référentiels embarqués ne contiennent que des **identifiants et intitulés courts reformulés**. Aucun texte normatif ISO/AFNOR n'est reproduit.
 
@@ -157,6 +161,8 @@ make up          # construit et lance l'app sur http://localhost:8080
 
 > Sans `make` (Windows) : `docker compose up --build -d`.
 
+**Sous Windows** : un exécutable autonome `GreenShield.exe` est publié dans les [Releases](../../releases) — ni Python, ni Node, ni Docker requis. Double-clic, le navigateur s'ouvre sur l'application.
+
 ### En développement
 
 ```bash
@@ -170,7 +176,7 @@ cd web && npm install && npm run dev
 ### Tests
 
 ```bash
-py -3 -m pytest api/tests -q      # 700 tests backend
+py -3 -m pytest api/tests -q      # 705 tests backend
 cd web && npx vitest run          # 183 tests frontend
 cd web && npx tsc --noEmit        # typage strict
 ```
@@ -238,8 +244,8 @@ An audit tool that "fills in the blanks" is a dangerous tool — it makes the co
 
 The application is offline **by default**. Two features — and only two — can generate traffic, always on a deliberate action:
 
-1. **Online Copilot** — only if you enter a Gemini API key. The key is held in `sessionStorage` (cleared when the tab closes), **never persisted server-side nor logged**; it passes through the backend, which relays it to the API without storing it. With no key, the local fallback applies and nothing leaves.
-2. **Voice dictation** — relies on the browser's speech recognition service, which sends audio to its vendor. The interface says so where you dictate. Use the keyboard for anything confidential.
+1. **GRC Copilot, five providers to choose from** — a single gateway (`api/modules/ai_gateway.py`) that speaks raw HTTP (`urllib`, no proprietary SDK) to **Ollama** (fully local, `127.0.0.1:11434`, no key, no network egress), **Gemini**, **Anthropic (Claude)**, **OpenAI**, or **Kimi (Moonshot)**. The chosen provider's key is held in `sessionStorage` (cleared when the tab closes), **never persisted server-side nor logged**; it passes through the backend, which relays it to the API without storing it. With no provider configured, the local fallback applies and nothing leaves. For Ollama, a hardware probe (RAM, cores, GPU) recommends a model your machine can actually run, backed by a real timed benchmark rather than a guess.
+2. **Voice dictation** — relies on the browser's speech recognition service, which sends audio to its vendor. Disabled by default (opt-in from Settings), and **absent by construction on any field carrying client data** (client name, interview notes, audit findings, evidence, breaches, engagement scope) regardless of that setting.
 
 > ℹ️ **Encryption at rest.** As of 2026-08-06, every engagement is encrypted on disk by default — no environment variable to set. Full-disk encryption (BitLocker / LUKS) is still recommended as defence in depth, but it is no longer the only protection.
 
@@ -269,6 +275,9 @@ The application is offline **by default**. Two features — and only two — can
 - **📄 Multi-format exports** — NDA, EBIOS RM, security policy / DR plan, DPIA, Statement of Applicability and engagement report, in **Word (`python-docx`), HTML and Markdown**, branded with your firm's identity (logo, name, details).
 - **⏱️ Effort tracking** — time spent per phase against the sold budget, carried into the report.
 - **🔬 AuditCraft-GRC** — offline analysis of configuration files (`sshd_config`, `nginx.conf`) mapped to **CIS v8 / NIST CSF 2.0**, with a **technical coverage rate** stated honestly: whatever rests on self-declaration is labelled as such.
+- **🧭 NIST CSF 2.0 — two distinct readings, never conflated** — a **coverage wheel** (hand-rolled SVG, no charting library) measuring *calculated* control coverage across the six functions (Govern, Identify, Protect, Detect, Respond, Recover), and a separate **maturity radar** where the consultant **declares** a Tier (1 to 4, official Partial / Risk Informed / Repeatable / Adaptive vocabulary) per function — a professional judgment no mission data could ever infer on its own.
+- **📋 Evidence request register** — every document requested from the client is tracked (from whom, since when, chased or not); a request without a reply stays visible, never silently reclassified as evidence until something is actually received. Also flags controls marked compliant **with no evidence and no request behind them**.
+- **🎙️ Controlled voice dictation** — a microphone on free-text fields, off by default, **structurally absent** on any field nature that would carry client data (client name, interviews, findings, evidence, breaches, scope) — the exclusion list is named and commented, not a single on/off switch.
 
 ### 🚀 Demonstration engagement
 
@@ -281,7 +290,7 @@ It lets you demo the tool **without ever opening a real client engagement** — 
 - **Frameworks**: ISO/IEC 27001:2022 (including all 93 Annex A controls), DORA, NIS2, GDPR, NIST CSF 2.0, EU AI Act.
 - **Methods**: EBIOS RM (ANSSI), DPIA (CNIL), E3R remediation sequence (ANSSI), ANSSI third-party criticality ratio.
 - **Architecture**: React 19 + Vite + Tailwind v4 (strict TypeScript) / FastAPI + Python 3.12, flat JSON/YAML storage, Docker Compose packaging.
-- **Quality**: **700 backend tests (pytest) and 183 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain, atomic writes.
+- **Quality**: **705 backend tests (pytest) and 183 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain (14 versions), atomic writes, GitHub Actions CI (build + tests + lint + security scan + container vulnerability scan) on every push.
 
 > **Respect for standards copyright**: bundled frameworks contain only **identifiers and short reworded titles**. No ISO/AFNOR normative text is reproduced.
 
@@ -306,7 +315,7 @@ cd web && npm install && npm run dev                        # frontend
 ### Tests
 
 ```bash
-py -3 -m pytest api/tests -q      # 700 backend tests
+py -3 -m pytest api/tests -q      # 705 backend tests
 cd web && npx vitest run          # 183 frontend tests
 cd web && npx tsc --noEmit        # strict typing
 ```

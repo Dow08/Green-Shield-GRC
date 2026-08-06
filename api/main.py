@@ -5,6 +5,7 @@ Le moteur reste 100 % Python ; l'API n'est qu'une façade JSON.
 """
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 
@@ -21,8 +22,10 @@ from modules import copilot_grc
 from modules.connectors import router as connectors_router
 from modules.auth_routes import router as auth_router
 
-# Cible auditée : /audit/target en conteneur (monté :ro), sinon ../lab_target en local.
-TARGET_DIR = os.environ.get("AUDIT_TARGET_DIR", str(Path(__file__).resolve().parent.parent / "lab_target"))     
+# Cible auditée : /audit/target en conteneur (monté :ro), sinon ../target_lab/config en local.
+TARGET_DIR = os.environ.get("AUDIT_TARGET_DIR", str(Path(__file__).resolve().parent.parent / "target_lab" / "config"))
+
+_log = logging.getLogger("greenshield.main")
 
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -72,8 +75,11 @@ def auditcraft_run(_user=Depends(get_current_user)) -> dict:
     """Exécute l'audit AuditCraft-GRC sur la cible et renvoie le résultat complet."""
     try:
         return auditcraft_grc.run(TARGET_DIR)
-    except Exception as exc:  # cible/référentiel introuvable → 500 explicite
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        # Le détail (chemin, trace) reste dans les logs serveur : le renvoyer
+        # au client exposerait la structure du système de fichiers du poste.
+        _log.exception("Échec de l'audit AuditCraft-GRC (cible=%s)", TARGET_DIR)
+        raise HTTPException(status_code=500, detail="Audit impossible : cible ou référentiel introuvable ou illisible.")
 
 
 # --- Frontend embarqué (exécutable de bureau) --------------------------------

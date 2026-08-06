@@ -13,6 +13,7 @@ lève jamais d'exception, il retombe simplement sur un résultat générique.
 """
 from __future__ import annotations
 
+import logging
 import re
 from dataclasses import dataclass, field
 
@@ -27,6 +28,7 @@ from . import path_safety
 from .auditcraft_grc import parser as sshd_nginx_parser
 
 router = APIRouter(prefix="/api")
+_log = logging.getLogger("greenshield.collecte_technique")
 
 MODULE = {
     "id": "collecte_technique",
@@ -391,5 +393,6 @@ def import_asset_into_registry(p_id: str, data: ImportAssetRequest, current_user
         return state
     except HTTPException:
         raise
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+    except Exception:
+        _log.exception("Échec d'import d'actif dans le registre (mission=%s)", p_id)
+        raise HTTPException(status_code=500, detail="Import impossible : échec d'écriture sur disque.")
