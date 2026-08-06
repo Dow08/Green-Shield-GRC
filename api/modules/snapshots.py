@@ -16,6 +16,7 @@ import json
 import os
 from datetime import datetime
 from pathlib import Path
+from typing import Callable
 
 # Au-delà, les plus anciens sont supprimés : l'historique sert à rattraper une
 # erreur récente, pas à archiver indéfiniment (l'archive chiffrée est faite
@@ -30,10 +31,16 @@ def _dossier(p_dir: Path) -> Path:
     return p_dir / DOSSIER
 
 
-def creer(p_dir: Path, state: dict, motif: str) -> str | None:
+def creer(
+    p_dir: Path,
+    state: dict,
+    motif: str,
+    chiffrer: Callable[[bytes], bytes] | None = None,
+) -> str | None:
     """Enregistre un instantané de la mission. Renvoie son nom, ou None si
     l'écriture échoue — un instantané raté ne doit jamais empêcher une
-    sauvegarde d'aboutir."""
+    sauvegarde d'aboutir. `chiffrer` est optionnel (rétrocompatibilité des
+    appels existants) : sans lui, l'instantané reste en clair comme avant."""
     try:
         dossier = _dossier(p_dir)
         dossier.mkdir(parents=True, exist_ok=True)
@@ -44,7 +51,10 @@ def creer(p_dir: Path, state: dict, motif: str) -> str | None:
 
         cible = dossier / nom
         tmp = cible.with_name(cible.name + ".tmp")
-        tmp.write_text(json.dumps(state, indent=2, ensure_ascii=False), encoding="utf-8")
+        contenu = json.dumps(state, indent=2, ensure_ascii=False).encode("utf-8")
+        if chiffrer:
+            contenu = chiffrer(contenu)
+        tmp.write_bytes(contenu)
         os.replace(tmp, cible)
 
         _elaguer(dossier)
@@ -85,8 +95,14 @@ def lister(p_dir: Path) -> list[dict]:
     return resultat
 
 
-def lire(p_dir: Path, nom: str) -> dict:
-    """Relit un instantané. Le nom est validé par l'appelant (path_safety)."""
+def lire(
+    p_dir: Path,
+    nom: str,
+    dechiffrer: Callable[[bytes], bytes] | None = None,
+) -> dict:
+    """Relit un instantané. Le nom est validé par l'appelant (path_safety).
+    `dechiffrer` est optionnel : sans lui, le fichier est lu tel quel (clair),
+    comme avant l'activation du chiffrement par défaut."""
     chemin = _dossier(p_dir) / nom
     if not chemin.is_file():
         raise FileNotFoundError(f"Instantané introuvable : {nom}")
@@ -94,4 +110,7 @@ def lire(p_dir: Path, nom: str) -> dict:
     # que le chemin résolu reste dans le dossier d'instantanés.
     if not chemin.resolve().is_relative_to(_dossier(p_dir).resolve()):
         raise FileNotFoundError(f"Instantané introuvable : {nom}")
-    return json.loads(chemin.read_text(encoding="utf-8"))
+    contenu = chemin.read_bytes()
+    if dechiffrer:
+        contenu = dechiffrer(contenu)
+    return json.loads(contenu.decode("utf-8"))

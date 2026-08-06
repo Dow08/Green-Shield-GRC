@@ -101,7 +101,7 @@ def test_la_note_est_tronquee_pour_ne_pas_gonfler_le_fichier(mission):
 
 def test_l_ajout_est_persiste_sur_disque(mission, tmp_path):
     projects.add_temps_entry(mission, {"phase": "tprm", "minutes": 120})
-    sauvegarde = json.loads((tmp_path / mission / "project.json").read_text(encoding="utf-8"))
+    sauvegarde = projects._read_state(tmp_path / mission / "project.json")
     assert sauvegarde["socle"]["temps"]["entrees"][0]["minutes"] == 120
 
 

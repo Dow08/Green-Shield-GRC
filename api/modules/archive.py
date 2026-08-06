@@ -21,6 +21,7 @@ from __future__ import annotations
 import io
 import json
 from pathlib import Path
+from typing import Callable
 
 import pyzipper
 
@@ -58,8 +59,22 @@ def _fichiers_de_mission(p_dir: Path) -> list[tuple[Path, str]]:
     return fichiers
 
 
-def export_archive(p_dir: Path, password: str) -> bytes:
-    """Produit l'archive chiffrée d'une mission."""
+def _est_chiffrable(nom_archive: str) -> bool:
+    """`project.json` et les instantanés sont chiffrés au repos par la clé
+    propre à ce poste (voir projects/__init__.py) ; il faut les déchiffrer
+    avant de les embarquer, sinon l'archive portable dépendrait de la clé
+    machine en plus du mot de passe choisi par le consultant."""
+    return nom_archive == "project.json" or nom_archive.startswith("snapshots/")
+
+
+def export_archive(
+    p_dir: Path,
+    password: str,
+    dechiffrer: Callable[[bytes], bytes] | None = None,
+) -> bytes:
+    """Produit l'archive chiffrée d'une mission. `dechiffrer` est optionnel :
+    sans lui, les fichiers sont embarqués tels quels (comportement historique
+    des tests, missions non chiffrées au repos)."""
     if not password:
         raise ArchiveInvalide("Un mot de passe est obligatoire pour chiffrer l'archive")
     if not (p_dir / "project.json").is_file():
@@ -71,7 +86,10 @@ def export_archive(p_dir: Path, password: str) -> bytes:
     ) as zf:
         zf.setpassword(password.encode("utf-8"))
         for chemin, nom_archive in _fichiers_de_mission(p_dir):
-            zf.write(chemin, nom_archive)
+            donnees = chemin.read_bytes()
+            if dechiffrer and _est_chiffrable(nom_archive):
+                donnees = dechiffrer(donnees)
+            zf.writestr(nom_archive, donnees)
 
     return tampon.getvalue()
 
@@ -152,11 +170,17 @@ def lire_archive(donnees: bytes, password: str) -> tuple[dict, list[tuple[str, b
     return state, fichiers
 
 
-def ecrire_fichiers(fichiers: list[tuple[str, bytes]], destination: Path) -> None:
+def ecrire_fichiers(
+    fichiers: list[tuple[str, bytes]],
+    destination: Path,
+    chiffrer: Callable[[bytes], bytes] | None = None,
+) -> None:
     """Écrit les fichiers d'une archive validée dans `destination`.
 
     Chaque nom repasse par la validation anti-traversée : la validation à la
-    lecture ne dispense pas de la refaire au moment d'écrire.
+    lecture ne dispense pas de la refaire au moment d'écrire. `chiffrer` est
+    optionnel : quand fourni, les instantanés restaurés sont re-protégés par
+    la clé du poste courant (le mot de passe d'archive ne protège que le zip).
     """
     destination.mkdir(parents=True, exist_ok=True)
     for nom_archive, donnees in fichiers:
@@ -164,4 +188,6 @@ def ecrire_fichiers(fichiers: list[tuple[str, bytes]], destination: Path) -> Non
             continue  # écrit séparément, après migration de schéma
         cible = _nom_sur(nom_archive, destination)
         cible.parent.mkdir(parents=True, exist_ok=True)
+        if chiffrer and _est_chiffrable(nom_archive):
+            donnees = chiffrer(donnees)
         cible.write_bytes(donnees)

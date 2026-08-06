@@ -36,7 +36,7 @@ from .. import tprm
 
 router = APIRouter(prefix="/api")
 
-from . import PROJECTS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate
+from . import PROJECTS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate, _dechiffrer
 
 def _nda_template(client: str) -> str:
     """Gabarit de NDA à compléter — un modèle, pas un constat sur le client."""
@@ -493,7 +493,7 @@ def export_project_archive(p_id: str, data: dict, current_user: User = Depends(g
         raise HTTPException(status_code=404, detail="Projet introuvable")
 
     try:
-        contenu = archive.export_archive(p_dir, data.get("password", ""))
+        contenu = archive.export_archive(p_dir, data.get("password", ""), dechiffrer=_dechiffrer)
     except archive.ArchiveInvalide as exc:
         raise HTTPException(status_code=400, detail=str(exc))
 

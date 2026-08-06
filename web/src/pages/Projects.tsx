@@ -7,6 +7,8 @@ import { ProjectWizard } from "../components/ProjectWizard";
 import { AICopilotCreator } from "../components/AICopilotCreator";
 import { IsoPivotView } from "../components/IsoPivotView";
 import { TempsPanel } from "../components/TempsPanel";
+import { DemandesPreuvesPanel } from "../components/DemandesPreuvesPanel";
+import { NistCsfWheel } from "../components/NistCsfWheel";
 import { ArchivePanel } from "../components/ArchivePanel";
 import { HistoriquePanel } from "../components/HistoriquePanel";
 import { RgpdPanel } from "../components/RgpdPanel";
@@ -843,6 +845,16 @@ export function Projects() {
                 onAdd={handleAddTemps}
                 onDelete={handleDeleteTemps}
               />
+
+              {/* REGISTRE DES DEMANDES DE PREUVES — suivi des documents réclamés au client */}
+              <DemandesPreuvesPanel
+                key={`demandes-${activeProject.id}`}
+                projectId={activeProject.id}
+                onProjectUpdate={setActiveProject}
+              />
+
+              {/* ROUE NIST CSF — rattachement des contrôles aux six fonctions */}
+              <NistCsfWheel key={`nist-${activeProject.id}`} projectId={activeProject.id} />
 
               {/* SAUVEGARDE / PORTABILITÉ (F14, F15) */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

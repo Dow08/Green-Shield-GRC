@@ -1,6 +1,8 @@
 from __future__ import annotations
 import os
 import json
+import logging
+import secrets
 import shutil
 from pathlib import Path
 from cryptography.fernet import Fernet
@@ -12,35 +14,68 @@ from .. import schema_migration
 from .. import audit_log
 from .. import tprm
 
+_log = logging.getLogger(__name__)
+
 PROJECTS_DIR = data_paths.resolve_projects_dir()
 FRAMEWORKS_DIR = ressources.frameworks_dir()
 _LEGACY_PROJECTS_DIR = Path(__file__).resolve().parent.parent.parent.parent / "projects"
 
-_STORAGE_KEY = os.environ.get("GREENSHIELD_STORAGE_KEY")
-_fernet = Fernet(_STORAGE_KEY) if _STORAGE_KEY else None
+
+def _storage_key_persistante() -> str:
+    """Clé Fernet générée une fois puis persistée hors dépôt, sur le modèle de
+    auth.py::_secret_persistant() pour le secret JWT. Le chiffrement au repos
+    doit être actif par défaut (souveraineté) sans configuration manuelle."""
+    chemin = data_paths.resolve_data_root() / ".storage_key"
+    try:
+        if chemin.is_file():
+            existante = chemin.read_text(encoding="utf-8").strip()
+            if existante:
+                return existante
+    except OSError as exc:
+        _log.warning("Lecture de la clé de chiffrement impossible (%s), clé volatile générée.", exc)
+        return Fernet.generate_key().decode("utf-8")
+
+    nouvelle = Fernet.generate_key().decode("utf-8")
+    try:
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        chemin.write_text(nouvelle, encoding="utf-8")
+        try:
+            os.chmod(chemin, 0o600)
+        except (OSError, NotImplementedError):
+            pass
+    except OSError as exc:
+        _log.warning("Écriture de la clé de chiffrement impossible (%s), clé volatile générée.", exc)
+    return nouvelle
+
+
+_env_storage_key = (os.environ.get("GREENSHIELD_STORAGE_KEY") or "").strip()
+_STORAGE_KEY = _env_storage_key or _storage_key_persistante()
+_fernet = Fernet(_STORAGE_KEY)
+
+
+def _chiffrer(donnees: bytes) -> bytes:
+    return _fernet.encrypt(donnees)
+
+
+def _dechiffrer(donnees: bytes) -> bytes:
+    """Déchiffre, avec repli silencieux vers les données brutes pour les
+    fichiers pré-existants écrits avant l'activation du chiffrement par défaut."""
+    try:
+        return _fernet.decrypt(donnees)
+    except Exception:
+        return donnees
+
 
 def _write_json_atomic(path: Path, data: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
     json_str = json.dumps(data, indent=2, ensure_ascii=False)
-    
-    if _fernet:
-        content = _fernet.encrypt(json_str.encode("utf-8"))
-    else:
-        content = json_str.encode("utf-8")
-        
+    content = _chiffrer(json_str.encode("utf-8"))
     tmp.write_bytes(content)
     os.replace(tmp, path)
 
 def _read_state(path: Path) -> dict:
-    content = path.read_bytes()
-    if _fernet:
-        try:
-            content = _fernet.decrypt(content)
-        except Exception:
-            # Fallback for unencrypted files read with a key
-            pass
-            
+    content = _dechiffrer(path.read_bytes())
     state = json.loads(content.decode("utf-8"))
     state = schema_migration.migrate(state)
     if "progress" not in state:

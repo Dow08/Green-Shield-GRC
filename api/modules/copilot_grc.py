@@ -15,13 +15,13 @@ partir des chiffres agrégés réels.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from modules.database.models import User
 from sqlalchemy.orm import Session
 from modules.auth import get_current_user
 from modules.database.session import get_db
 
-from . import ai_gateway, audit_log, projects
+from . import ai_gateway, audit_log, materiel, projects
 
 router = APIRouter(prefix="/api")
 
@@ -157,17 +157,31 @@ def get_copilot_context(current_user: User = Depends(get_current_user), db: Sess
 def ask_copilot(data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     prompt = data.get("prompt", "")
     api_key = (data.get("key") or "").strip()
+    fournisseur = (data.get("fournisseur") or "").strip().lower()
+    modele = (data.get("modele") or "").strip()
+    # Compatibilité ascendante : avant l'ajout du choix de fournisseur, une
+    # clé seule signifiait Gemini. Une installation mise à jour avec une clé
+    # déjà enregistrée doit continuer de fonctionner, pas retomber hors-ligne.
+    if not fournisseur and api_key:
+        fournisseur = "gemini"
     context = aggregate_context(current_user, db)
 
-    if api_key:
-        online_text = ai_gateway.call_gemini(api_key, _build_system_context(context), prompt)
-        if online_text is not None:
-            # Sortie réseau effective, portant une synthèse de TOUT le
-            # portefeuille : la trace est d'autant plus importante ici.
-            audit_log.record("copilot.portfolio", target="-", detail="source=online")
-            return {"status": "success", "response": online_text, "source": "online", "context": context}
+    # Un modèle local ne demande pas de clé : la condition porte sur le
+    # fournisseur choisi, pas sur la présence d'une clé.
+    local = fournisseur in ai_gateway.FOURNISSEURS_LOCAUX
+    if fournisseur and (api_key or local):
+        texte = ai_gateway.appeler_llm(
+            fournisseur, api_key, _build_system_context(context), prompt, modele=modele)
+        if texte is not None:
+            # Un modèle local ne produit aucune sortie réseau : la distinguer
+            # dans le journal évite de croire à une fuite qui n'a pas eu lieu.
+            source = "local" if local else "online"
+            audit_log.record("copilot.portfolio", target="-",
+                             detail=f"source={source} fournisseur={fournisseur}")
+            return {"status": "success", "response": texte, "source": source,
+                    "fournisseur": fournisseur, "context": context}
 
-    source = "offline_fallback" if api_key else "offline"
+    source = "offline_fallback" if fournisseur else "offline"
     audit_log.record("copilot.portfolio", target="-", detail=f"source={source}")
     return {
         "status": "success",
@@ -175,3 +189,25 @@ def ask_copilot(data: dict, current_user: User = Depends(get_current_user), db: 
         "source": source,
         "context": context,
     }
+
+
+@router.get("/copilot/materiel")
+def inspecter_materiel(_user: User = Depends(get_current_user)) -> dict:
+    """Capacités du poste et modèle local recommandé. Aucune exécution."""
+    return materiel.inspecter()
+
+
+@router.post("/copilot/materiel/test")
+def tester_modele(data: dict, _user: User = Depends(get_current_user)) -> dict:
+    """Chronomètre réellement un modèle local sur ce poste.
+
+    Peut durer plusieurs minutes au premier appel (chargement du modèle) :
+    l'interface doit prévenir avant de lancer.
+    """
+    modele = (data.get("modele") or "").strip()
+    if not modele:
+        raise HTTPException(status_code=400, detail="Aucun modèle indiqué.")
+    resultat = materiel.mesurer(modele)
+    audit_log.record("copilot.benchmark", target=modele,
+                     detail=f"ok={resultat.get('ok')}")
+    return resultat

@@ -151,7 +151,7 @@ def test_import_ajoute_l_actif_au_registre_avec_un_id_unique(project_dir):
 
 def test_import_persiste_sur_disque(project_dir, tmp_path):
     ct.import_asset_into_registry(project_dir, {"name": "Nginx", "type": "Logiciel", "description": "", "owner": ""})
-    saved = json.loads((tmp_path / project_dir / "project.json").read_text(encoding="utf-8"))
+    saved = projects._read_state(tmp_path / project_dir / "project.json")
     assert len(saved["steps"]["cadrage"]["assets_support"]) == 2
 
 

@@ -161,31 +161,57 @@ def test_ask_hors_ligne_utilise_les_chiffres_reels_agreges(populated_registry, t
 
 # --- ask_copilot : en ligne / repli ----------------------------------------
 
-def test_ask_avec_cle_valide_appelle_gemini(populated_registry, monkeypatch, test_user, db_session):
+def test_ask_avec_cle_valide_appelle_le_fournisseur(populated_registry, monkeypatch, test_user, db_session):
+    # Une clé sans fournisseur explicite vaut Gemini : c'est le cas d'une
+    # installation mise à jour dont la clé était déjà enregistrée.
     captured = {}
 
-    def fake_call(api_key, system_context, prompt):
-        captured["api_key"] = api_key
-        captured["system_context"] = system_context
-        return "Synthèse générée par Gemini"
+    def fake_call(fournisseur, api_key, system_context, prompt, modele=None, timeout=None):
+        captured.update(fournisseur=fournisseur, api_key=api_key, system_context=system_context)
+        return "Synthèse générée en ligne"
 
-    monkeypatch.setattr(copilot_grc.ai_gateway, "call_gemini", fake_call)
+    monkeypatch.setattr(copilot_grc.ai_gateway, "appeler_llm", fake_call)
     result = copilot_grc.ask_copilot({"prompt": "priorise", "key": "fake-key"}, test_user, db_session)
-    assert result == {
-        "status": "success",
-        "response": "Synthèse générée par Gemini",
-        "source": "online",
-        "context": result["context"],
-    }
+    assert result["source"] == "online"
+    assert result["response"] == "Synthèse générée en ligne"
+    assert captured["fournisseur"] == "gemini"
     assert captured["api_key"] == "fake-key"
     assert "2 mission(s)" in captured["system_context"]
 
 
 def test_ask_avec_cle_invalide_bascule_vers_le_repli_hors_ligne(populated_registry, monkeypatch, test_user, db_session):
-    monkeypatch.setattr(copilot_grc.ai_gateway, "call_gemini", lambda *a, **k: None)
+    monkeypatch.setattr(copilot_grc.ai_gateway, "appeler_llm", lambda *a, **k: None)
     result = copilot_grc.ask_copilot({"prompt": "priorise", "key": "bad-key"}, test_user, db_session)
     assert result["source"] == "offline_fallback"
     assert "Infogéreur X" in result["response"]
+
+
+def test_ask_avec_modele_local_ne_reclame_aucune_cle(populated_registry, monkeypatch, test_user, db_session):
+    captured = {}
+
+    def fake_call(fournisseur, api_key, system_context, prompt, modele=None, timeout=None):
+        captured.update(fournisseur=fournisseur, api_key=api_key, modele=modele)
+        return "Synthèse générée localement"
+
+    monkeypatch.setattr(copilot_grc.ai_gateway, "appeler_llm", fake_call)
+    result = copilot_grc.ask_copilot(
+        {"prompt": "priorise", "fournisseur": "ollama", "modele": "mistral"},
+        test_user, db_session)
+    # `local` et non `online` : aucune donnée n'est sortie de la machine, et
+    # le journal d'audit doit refléter cette différence.
+    assert result["source"] == "local"
+    assert result["fournisseur"] == "ollama"
+    assert captured["api_key"] == ""
+    assert captured["modele"] == "mistral"
+
+
+def test_ask_sans_fournisseur_ni_cle_reste_hors_ligne(populated_registry, monkeypatch, test_user, db_session):
+    def ne_doit_pas_etre_appele(*a, **k):
+        raise AssertionError("aucun appel sortant sans fournisseur ni clé")
+
+    monkeypatch.setattr(copilot_grc.ai_gateway, "appeler_llm", ne_doit_pas_etre_appele)
+    result = copilot_grc.ask_copilot({"prompt": "priorise"}, test_user, db_session)
+    assert result["source"] == "offline"
 
 
 # --- endpoint GET /api/copilot/context ------------------------------------

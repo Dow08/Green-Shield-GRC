@@ -4,7 +4,7 @@ import { Bot, ShieldAlert, AlertTriangle, XCircle, ArrowUpRight, Gauge, Loader2 
 import { api } from "../lib/api";
 import { safeGetItem } from "../lib/storage";
 import { CopilotSourceBadge } from "../components/CopilotSourceBadge";
-import type { CopilotContext, CopilotSource } from "../types";
+import type { CopilotContext, CopilotSource, FournisseurLLM } from "../types";
 
 interface Props {
   onNavigate: (view: string) => void;
@@ -21,6 +21,7 @@ export function CopilotGRC({ onNavigate }: Props) {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [source, setSource] = useState<CopilotSource | null>(null);
+  const [fournisseurUtilise, setFournisseurUtilise] = useState<FournisseurLLM | undefined>();
   const [asking, setAsking] = useState(false);
 
   const loadContext = () => {
@@ -40,11 +41,14 @@ export function CopilotGRC({ onNavigate }: Props) {
     setResponse("");
     setSource(null);
     const storedKey = safeGetItem("copilot_api_key") || "";
+    const fournisseur = safeGetItem("copilot_fournisseur") || "";
+    const modele = safeGetItem("copilot_modele") || "";
     api.copilot
-      .ask({ prompt, key: storedKey })
+      .ask({ prompt, key: storedKey, fournisseur, modele })
       .then((data) => {
         setResponse(data.response);
         setSource(data.source);
+        setFournisseurUtilise(data.fournisseur);
         if (data.context) setContext(data.context);
       })
       .catch((err) => alert("Copilote indisponible : " + err.message))
@@ -163,7 +167,7 @@ export function CopilotGRC({ onNavigate }: Props) {
         </div>
         {response && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="bg-white/[0.01] border border-white/5 rounded-xl p-3 text-xs font-mono text-[var(--soft)] whitespace-pre-line leading-relaxed">
-            <CopilotSourceBadge source={source} />
+            <CopilotSourceBadge source={source} fournisseur={fournisseurUtilise} />
             {response}
           </motion.div>
         )}

@@ -198,7 +198,7 @@ def test_une_date_de_fin_invalide_est_rejetee(registre):
 def test_la_route_de_purge_efface_et_compte(registre):
     resultat = projects.purge_donnees_personnelles("acme")
     assert resultat["efface"] == 4
-    sur_disque = json.loads((registre / "acme" / "project.json").read_text(encoding="utf-8"))
+    sur_disque = projects._read_state(registre / "acme" / "project.json")
     assert sur_disque["socle"]["entretiens"] == []
 
 

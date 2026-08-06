@@ -10,7 +10,7 @@ Un environnement d'audit moderne, hors-ligne et modulaire, qui guide une mission
 
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.12-009688)
-![Tests](https://img.shields.io/badge/tests-624%20back%20%2F%20150%20front-success)
+![Tests](https://img.shields.io/badge/tests-690%20back%20%2F%20177%20front-success)
 ![Licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-lightgrey)
 
 </div>
@@ -84,8 +84,9 @@ Les outils que nous utilisons ne doivent pas devenir le maillon faible. Voici l'
 | Garantie | Détail |
 |---|---|
 | **Fonctionnement hors-ligne** | L'application tourne intégralement en local (`127.0.0.1`). Sans clé API, le Copilote répond depuis un moteur local qui construit sa réponse à partir des données réelles de la mission. Aucune donnée ne sort. |
+| **Chiffrement au repos par défaut** | Chaque mission est chiffrée sur disque (**Fernet**, AES-128-CBC + HMAC) dès l'écriture, sans configuration : la clé est générée une fois puis conservée hors dépôt. Les instantanés de phase suivent la même protection. |
 | **Données hors du dépôt** | Les missions vivent dans `%APPDATA%\GreenShield` (Windows) / `$XDG_DATA_HOME` (Linux), jamais dans le dépôt git. Une mise à jour ou un `git clean` ne peut pas les détruire. |
-| **Archives chiffrées** | L'export d'une mission produit une archive **AES-256** (standard WinZip, lisible par 7-Zip). L'import est durci contre le Zip Slip et les bombes de décompression. |
+| **Archives chiffrées** | L'export d'une mission produit une archive **AES-256** (standard WinZip, lisible par 7-Zip), protégée par le mot de passe choisi par le consultant — jamais par la clé de chiffrement au repos du poste. L'import est durci contre le Zip Slip et les bombes de décompression. |
 | **Journal d'audit** | Chaque action sensible (création, suppression, export, purge, appel au Copilote) est tracée dans `logs/audit.log`. Le contenu des missions n'y figure jamais. |
 | **Rétention RGPD** | Les entretiens contiennent des données personnelles : une durée de conservation est définie par mission, avec purge qui efface les personnes interrogées **sans jamais toucher aux constats d'audit**. |
 | **Versionnement** | Un instantané est pris à chaque validation de phase et avant toute opération destructive. Aucune action n'est un aller sans retour. |
@@ -97,7 +98,7 @@ L'application est hors-ligne **par défaut**. Deux fonctionnalités, et deux seu
 1. **Copilote en ligne** — si (et seulement si) vous saisissez une clé API Gemini. La clé est conservée en `sessionStorage` (effacée à la fermeture de l'onglet), **jamais persistée côté serveur ni journalisée** ; elle transite par le backend qui la relaie à l'API sans la stocker. Sans clé, le repli local s'applique et rien ne sort.
 2. **Dictée vocale** — elle s'appuie sur le service de reconnaissance vocale du navigateur, qui transmet l'audio à son éditeur. L'interface le signale à l'endroit où l'on dicte. Préférez le clavier pour tout élément confidentiel.
 
-> ⚠️ **Prérequis d'exploitation.** Les missions sont stockées en JSON **non chiffré**. Un chiffrement de disque (BitLocker / LUKS) est un **prérequis**, pas une option — c'est ce qui protège les données au repos.
+> ℹ️ **Chiffrement au repos.** Depuis le 06/08/2026, chaque mission est chiffrée sur disque par défaut — plus besoin de définir une variable d'environnement. Un chiffrement de disque complémentaire (BitLocker / LUKS) reste recommandé en défense en profondeur, mais n'est plus la seule protection.
 
 > ℹ️ **Portée du masquage automatique.** Le module d'anonymisation couvre aujourd'hui les **adresses IP, courriels et noms de domaine**. Il ne détecte **pas** les noms de personnes ou d'organisations. Ne comptez pas dessus pour caviarder un nom de client.
 
@@ -141,7 +142,7 @@ Elle permet de démontrer l'outil **sans jamais ouvrir une mission cliente réel
 - **Référentiels** : ISO/IEC 27001:2022 (dont les 93 contrôles de l'Annexe A), DORA, NIS2, RGPD, NIST CSF 2.0, EU AI Act.
 - **Méthodes** : EBIOS RM (ANSSI), AIPD/PIA (CNIL), séquence de remédiation E3R (ANSSI), ratio de criticité tiers ANSSI.
 - **Architecture** : React 19 + Vite + Tailwind v4 (TypeScript strict) / FastAPI + Python 3.12, données en fichiers JSON/YAML à plat, empaquetage Docker Compose.
-- **Qualité** : **624 tests backend (pytest) et 150 tests frontend (vitest)**, schéma de mission versionné avec chaîne de migration rejouable, écritures atomiques.
+- **Qualité** : **690 tests backend (pytest) et 177 tests frontend (vitest)**, schéma de mission versionné avec chaîne de migration rejouable, écritures atomiques.
 
 > **Respect du droit d'auteur des normes** : les référentiels embarqués ne contiennent que des **identifiants et intitulés courts reformulés**. Aucun texte normatif ISO/AFNOR n'est reproduit.
 
@@ -169,8 +170,8 @@ cd web && npm install && npm run dev
 ### Tests
 
 ```bash
-py -3 -m pytest api/tests -q      # 624 tests backend
-cd web && npx vitest run          # 150 tests frontend
+py -3 -m pytest api/tests -q      # 690 tests backend
+cd web && npx vitest run          # 177 tests frontend
 cd web && npx tsc --noEmit        # typage strict
 ```
 
@@ -179,6 +180,7 @@ cd web && npx tsc --noEmit        # typage strict
 | Variable | Rôle |
 |---|---|
 | `GREENSHIELD_API_SECRET` | Secret de signature des jetons de session. **À définir en déploiement** : sinon un secret est généré et conservé localement au premier démarrage. |
+| `GREENSHIELD_STORAGE_KEY` | Clé de chiffrement des missions (Fernet). **Optionnelle** : une clé est générée et conservée localement au premier démarrage si absente. À définir pour imposer une clé externe (ex. gestion centralisée). |
 | `GREENSHIELD_DATA_DIR` | Répertoire des missions. Par défaut `%APPDATA%\GreenShield\projects`. |
 
 ---
@@ -225,8 +227,9 @@ An audit tool that "fills in the blanks" is a dangerous tool — it makes the co
 | Guarantee | Detail |
 |---|---|
 | **Offline operation** | Runs entirely locally (`127.0.0.1`). Without an API key, the Copilot answers from a local engine built on the engagement's real data. Nothing leaves the machine. |
+| **Encryption at rest by default** | Every engagement is encrypted on disk (**Fernet**, AES-128-CBC + HMAC) as soon as it is written, no configuration needed: the key is generated once and kept outside the repository. Phase snapshots get the same protection. |
 | **Data outside the repository** | Engagements live in `%APPDATA%\GreenShield` (Windows) / `$XDG_DATA_HOME` (Linux), never in the git repo. An update or a `git clean` cannot destroy them. |
-| **Encrypted archives** | Exporting an engagement produces an **AES-256** archive (WinZip AES standard, readable by 7-Zip). Import is hardened against Zip Slip and decompression bombs. |
+| **Encrypted archives** | Exporting an engagement produces an **AES-256** archive (WinZip AES standard, readable by 7-Zip), protected by the password the consultant chooses — never by the machine's at-rest encryption key. Import is hardened against Zip Slip and decompression bombs. |
 | **Audit log** | Every sensitive action (creation, deletion, export, purge, Copilot call) is recorded in `logs/audit.log`. Engagement content never appears there. |
 | **GDPR retention** | Interviews hold personal data: a retention period is set per engagement, and the purge erases interviewees **without ever touching audit findings**. |
 | **Versioning** | A snapshot is taken at every phase validation and before any destructive operation. No action is a one-way door. |
@@ -238,7 +241,7 @@ The application is offline **by default**. Two features — and only two — can
 1. **Online Copilot** — only if you enter a Gemini API key. The key is held in `sessionStorage` (cleared when the tab closes), **never persisted server-side nor logged**; it passes through the backend, which relays it to the API without storing it. With no key, the local fallback applies and nothing leaves.
 2. **Voice dictation** — relies on the browser's speech recognition service, which sends audio to its vendor. The interface says so where you dictate. Use the keyboard for anything confidential.
 
-> ⚠️ **Operating prerequisite.** Engagements are stored as **unencrypted** JSON. Disk encryption (BitLocker / LUKS) is a **prerequisite**, not an option — that is what protects data at rest.
+> ℹ️ **Encryption at rest.** As of 2026-08-06, every engagement is encrypted on disk by default — no environment variable to set. Full-disk encryption (BitLocker / LUKS) is still recommended as defence in depth, but it is no longer the only protection.
 
 > ℹ️ **Scope of automatic masking.** The anonymisation module currently covers **IP addresses, e-mails and domain names**. It does **not** detect personal or organisation names. Do not rely on it to redact a client name.
 
@@ -278,7 +281,7 @@ It lets you demo the tool **without ever opening a real client engagement** — 
 - **Frameworks**: ISO/IEC 27001:2022 (including all 93 Annex A controls), DORA, NIS2, GDPR, NIST CSF 2.0, EU AI Act.
 - **Methods**: EBIOS RM (ANSSI), DPIA (CNIL), E3R remediation sequence (ANSSI), ANSSI third-party criticality ratio.
 - **Architecture**: React 19 + Vite + Tailwind v4 (strict TypeScript) / FastAPI + Python 3.12, flat JSON/YAML storage, Docker Compose packaging.
-- **Quality**: **624 backend tests (pytest) and 150 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain, atomic writes.
+- **Quality**: **690 backend tests (pytest) and 177 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain, atomic writes.
 
 > **Respect for standards copyright**: bundled frameworks contain only **identifiers and short reworded titles**. No ISO/AFNOR normative text is reproduced.
 
@@ -303,8 +306,8 @@ cd web && npm install && npm run dev                        # frontend
 ### Tests
 
 ```bash
-py -3 -m pytest api/tests -q      # 624 backend tests
-cd web && npx vitest run          # 150 frontend tests
+py -3 -m pytest api/tests -q      # 690 backend tests
+cd web && npx vitest run          # 177 frontend tests
 cd web && npx tsc --noEmit        # strict typing
 ```
 
@@ -313,6 +316,7 @@ cd web && npx tsc --noEmit        # strict typing
 | Variable | Purpose |
 |---|---|
 | `GREENSHIELD_API_SECRET` | Session token signing secret. **Set it in deployment**: otherwise a secret is generated and kept locally on first start. |
+| `GREENSHIELD_STORAGE_KEY` | Engagement encryption key (Fernet). **Optional**: a key is generated and kept locally on first start if absent. Set it to enforce an external key (e.g. centralised key management). |
 | `GREENSHIELD_DATA_DIR` | Engagement directory. Defaults to `%APPDATA%\GreenShield\projects`. |
 
 ## ⚖️ Licence & usage

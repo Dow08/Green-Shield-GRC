@@ -78,7 +78,7 @@ def test_le_scan_technique_fonctionne_sur_la_demo(registre):
 def test_recreer_la_demo_repart_d_un_etat_propre(registre):
     projects.create_demo_project()
     chemin = registre / projects.DEMO_ID / "project.json"
-    pollue = json.loads(chemin.read_text(encoding="utf-8"))
+    pollue = projects._read_state(chemin)
     pollue["name"] = "modifié pendant la démo"
     chemin.write_text(json.dumps(pollue), encoding="utf-8")
 
@@ -162,3 +162,28 @@ def test_la_demo_ne_remonte_aucun_manque_bloquant(registre):
     projects.create_demo_project()
     revue = projects.get_revue_export(projects.DEMO_ID)
     assert revue["pret_pour_export"] is True, revue["manques"]
+
+
+def test_la_demo_illustre_les_trois_cas_du_registre_de_preuves():
+    """La démo doit montrer une pièce reçue, une en attente, une refusée —
+    et prouver que l'outil suit la relance sans inventer de conformité."""
+    from modules import demo_fixture, demandes_preuves as dp
+    state = demo_fixture.construire("demo_green_shield")
+    s = dp.synthese(state)
+    assert s["total"] == 3
+    assert s["recues"] == 1
+    assert s["refusees"] == 1
+    assert s["en_attente"] == 1
+    # La demande d'infogérance traîne : elle doit ressortir « à relancer ».
+    assert s["a_relancer"] == 1
+
+
+def test_la_demo_signale_la_demande_en_attente_sans_bloquer_l_export():
+    from modules import demo_fixture, revue_export
+    state = demo_fixture.construire("demo_green_shield")
+    r = revue_export.revue(state)
+    socle = [m for m in r["manques"] if m["phase"] == 0]
+    assert len(socle) == 1
+    assert socle[0]["gravite"] == "recommande"
+    # Un document non fourni n'interdit pas de livrer le rapport.
+    assert r["pret_pour_export"] is True

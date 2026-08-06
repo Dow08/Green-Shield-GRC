@@ -3,6 +3,7 @@ import type { ManualControl, ProjectState } from "../../types";
 import { BadgesControles } from "../BadgesControles";
 import { SoaPanel } from "../SoaPanel";
 import { PreuveLibraryPanel } from "../PreuveLibraryPanel";
+import { BoutonDictee } from "../BoutonDictee";
 
 interface Props {
   activeProject: ProjectState;
@@ -204,7 +205,19 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">Séquence de remédiation cyber E3R de l'ANSSI</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <span className="block text-[10px] font-bold text-[var(--rose)] mb-1">E1 - Endiguement (Isolement d'urgence)</span>
+                      <span className="flex items-center justify-between text-[10px] font-bold text-[var(--rose)] mb-1">
+                        E1 - Endiguement (Isolement d'urgence)
+                        {/* Champ de stratégie de remédiation : décrit ce que le
+                            consultant préconise, pas une vulnérabilité du client. */}
+                        <BoutonDictee
+                          libelle="Endiguement"
+                          onTexte={(t) => {
+                            const actuel = activeProject.steps.resilience?.e3r?.endiguement || "";
+                            const e3r = { ...activeProject.steps.resilience?.e3r, endiguement: actuel ? `${actuel} ${t}` : t };
+                            updateStepData("resilience", "e3r", e3r);
+                          }}
+                        />
+                      </span>
                       <textarea
                         rows={2}
                         value={activeProject.steps.resilience?.e3r?.endiguement || ""}
@@ -216,7 +229,17 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       />
                     </div>
                     <div>
-                      <span className="block text-[10px] font-bold text-[var(--g1)] mb-1">R - Reconstruction (IaC &amp; Durcissement)</span>
+                      <span className="flex items-center justify-between text-[10px] font-bold text-[var(--g1)] mb-1">
+                        R - Reconstruction (IaC &amp; Durcissement)
+                        <BoutonDictee
+                          libelle="Reconstruction"
+                          onTexte={(t) => {
+                            const actuel = activeProject.steps.resilience?.e3r?.reconstruction || "";
+                            const e3r = { ...activeProject.steps.resilience?.e3r, reconstruction: actuel ? `${actuel} ${t}` : t };
+                            updateStepData("resilience", "e3r", e3r);
+                          }}
+                        />
+                      </span>
                       <textarea
                         rows={2}
                         value={activeProject.steps.resilience?.e3r?.reconstruction || ""}

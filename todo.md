@@ -69,7 +69,7 @@ Issues identifiées lors de l'audit complet du 31/07/2026.
 - [x] **SEC-01 (CRITIQUE) — Sécuriser l'API FastAPI par Token Authentifié** : Fait. Middleware `auth.py` (Bearer Token) injecté globalement, intercepté par le frontend.
 - [x] **DEV-01 (MAJEUR) — Refactoriser le contrôleur monolithique `projects.py`** : Scinder les routes en sous-modules (`crud`, `export`, etc.) pour réduire la complexité cyclomatique.
 - [x] **DEV-02 (MAJEUR) — Asynchroniser la génération de rapports lourds** : Encapsuler `report_docx.py` / `report_html.py` dans un worker `BackgroundTasks` ou `asyncio.to_thread`.
-- [ ] **SEC-02 (MAJEUR) — Stockage en clair des données** : Ajouter une couche de chiffrement symétrique (AES) optionnelle au repos sur les fichiers `project.json`.
+- [x] **SEC-02 (MAJEUR) — Stockage en clair des données** : Fait le 06/08/2026. Chiffrement Fernet **actif par défaut** (pas optionnel) sur `project.json` et les instantanés de phase, clé générée et persistée hors dépôt au premier démarrage (`GREENSHIELD_STORAGE_KEY` reste disponible pour imposer une clé externe).
 - [x] **SEC-03 (MINEUR) — Stockage de la clé API LLM** : Basculer la clé API Gemini de `localStorage` vers `sessionStorage` ou la chiffrer.
 - [x] **SEC-04 (MINEUR) — Rate Limiting / Anti-DoS** : Appliquer `slowapi` sur `/api/copilot/ask` et les exports pour brider le débit.
 - [x] **DEV-03 (MINEUR) — Dualité génération ID** : Centraliser la méthode de génération d'ID (`_next_bs_id`) des assets/constats.

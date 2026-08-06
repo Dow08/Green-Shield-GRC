@@ -48,13 +48,44 @@ export interface SnapshotInfo {
   octets: number;
 }
 
-export type CopilotSource = "online" | "offline" | "offline_fallback";
+// `local` est distinct de `online` : un modèle Ollama tourne sur le poste et
+// ne produit aucune sortie réseau. Les confondre laisserait croire à une fuite
+// de données qui n'a pas eu lieu.
+export type CopilotSource = "online" | "local" | "offline" | "offline_fallback";
+
+export type FournisseurLLM = "ollama" | "gemini" | "anthropic" | "openai" | "kimi";
 
 export interface CopilotAskResult {
   status: string;
   response: string;
   source: CopilotSource;
+  fournisseur?: FournisseurLLM;
   context?: CopilotContext;
+}
+
+export interface ModeleInstalle {
+  nom: string;
+  taille_go: number;
+}
+
+export interface MaterielInfo {
+  systeme: string;
+  ram_go: number | null;
+  coeurs: number | null;
+  gpu: { nom: string; vram_go: number } | null;
+  modeles_installes: ModeleInstalle[];
+  modele_recommande: string | null;
+  conseil: string;
+  estimation: boolean;
+}
+
+export interface MesureModele {
+  ok: boolean;
+  modele: string;
+  duree_s?: number;
+  duree_chargement_s?: number;
+  extrait?: string;
+  verdict: string;
 }
 
 export interface TiersCritique {
@@ -581,3 +612,68 @@ export interface ProjectState {
     };
   };
 }
+
+// --- Registre des demandes de preuves (socle de mission) ---
+export type StatutDemande = "demandee" | "relancee" | "recue" | "refusee";
+
+export interface ControleLie {
+  referentiel_id: string;
+  control_id: string;
+}
+
+export interface DemandePreuve {
+  id: string;
+  libelle: string;
+  destinataire: string;
+  statut: StatutDemande;
+  date_demande: string;
+  date_relance: string;
+  date_reponse: string;
+  echeance: string;
+  note: string;
+  controles_lies: ControleLie[];
+  preuve_id: string;
+}
+
+export interface SyntheseDemandes {
+  total: number;
+  en_attente: number;
+  recues: number;
+  refusees: number;
+  a_relancer: number;
+  plus_ancienne_jours: number | null;
+  delai_relance_jours: number;
+}
+
+export interface ControleSansJustificatif {
+  referentiel_id: string;
+  control_id: string;
+  titre: string;
+}
+
+export interface RegistreDemandesPreuves {
+  demandes: DemandePreuve[];
+  synthese: SyntheseDemandes;
+  controles_sans_justificatif: ControleSansJustificatif[];
+}
+
+// --- Roue NIST CSF (rattachement des contrôles aux 6 fonctions) ---
+export interface FonctionNist {
+  code: "GV" | "ID" | "PR" | "DE" | "RS" | "RC";
+  libelle: string;
+  rattaches: number;
+  couverts: number;
+  // Part couverte des contrôles rattachés (0-100), ou null si aucun n'est
+  // rattaché — l'absence de donnée n'est pas un taux de zéro.
+  taux: number | null;
+  codes: string[];
+}
+
+export interface CarteNist {
+  mode: "direct" | "indicatif";
+  referentiels: string[];
+  fonctions: FonctionNist[];
+  total_rattaches: number;
+  note: string;
+}
+

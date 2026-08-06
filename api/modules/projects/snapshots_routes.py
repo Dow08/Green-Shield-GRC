@@ -36,7 +36,7 @@ from .. import tprm
 
 router = APIRouter(prefix="/api")
 
-from . import PROJECTS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate
+from . import PROJECTS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate, _chiffrer, _dechiffrer
 
 def _nda_template(client: str) -> str:
     """Gabarit de NDA à compléter — un modèle, pas un constat sur le client."""
@@ -478,7 +478,7 @@ def restore_snapshot(p_id: str, nom: str, current_user: User = Depends(get_curre
         raise HTTPException(status_code=400, detail="Nom d'instantané invalide")
 
     try:
-        restaure = snapshots.lire(p_dir, nom)
+        restaure = snapshots.lire(p_dir, nom, dechiffrer=_dechiffrer)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
     except json.JSONDecodeError:
@@ -486,7 +486,7 @@ def restore_snapshot(p_id: str, nom: str, current_user: User = Depends(get_curre
 
     try:
         courant = _read_state(state_file)
-        snapshots.creer(p_dir, courant, "avant-restauration")
+        snapshots.creer(p_dir, courant, "avant-restauration", chiffrer=_chiffrer)
 
         restaure = schema_migration.migrate(restaure)
         restaure["id"] = p_id

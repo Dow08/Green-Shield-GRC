@@ -18,7 +18,7 @@ from . import aipd as aipd_module
 from . import soa as soa_module
 from . import tprm
 
-CURRENT_SCHEMA_VERSION = 12
+CURRENT_SCHEMA_VERSION = 13
 
 
 def _to_v2(state: dict) -> dict:
@@ -255,6 +255,23 @@ def _to_v12(state: dict) -> dict:
     return state
 
 
+def _to_v13(state: dict) -> dict:
+    """v12 → v13 : registre des demandes de preuves dans le socle de mission.
+
+    Le suivi des documents réclamés au client relève de la conduite de mission,
+    pas du contenu de l'audit : il rejoint donc `socle` aux côtés des entretiens
+    et du temps consommé, et non les phases.
+
+    Les missions existantes reçoivent un registre vide. Rien n'est déduit des
+    preuves déjà présentes : une preuve enregistrée ne prouve pas qu'une demande
+    a été formulée, et inventer un historique de relances contredirait la règle
+    « zéro invention ».
+    """
+    socle = state.setdefault("socle", {})
+    socle.setdefault("demandes_preuves", [])
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
@@ -268,6 +285,7 @@ _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (10, _to_v10),
     (11, _to_v11),
     (12, _to_v12),
+    (13, _to_v13),
 ]
 
 

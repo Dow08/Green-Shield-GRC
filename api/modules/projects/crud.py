@@ -18,6 +18,7 @@ from ..schemas import (
     coerce,
     CreateProjectRequest, UpdateRgpdRequest, AddTiersRequest,
     UpdateExigenceTiersRequest, AddTempsRequest, CopilotMissionRequest,
+    AddDemandePreuveRequest, UpdateDemandePreuveRequest,
     ImportFrameworkRequest, DocxExportRequest,
 )
 
@@ -72,6 +73,8 @@ from .. import aipd
 from .. import archive
 from .. import auditcraft_grc
 from .. import ai_gateway
+from .. import demandes_preuves
+from .. import nist_csf_map
 from .. import controles_techniques
 from .. import audit_log
 from .. import demo_fixture
@@ -94,7 +97,7 @@ from .. import ids
 
 router = APIRouter(prefix="/api")
 
-from . import PROJECTS_DIR, FRAMEWORKS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate
+from . import PROJECTS_DIR, FRAMEWORKS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate, _chiffrer, _dechiffrer
 
 def _nda_template(client: str) -> str:
     """Gabarit de NDA à compléter — un modèle, pas un constat sur le client."""
@@ -692,7 +695,7 @@ def update_project(p_id: str, state: dict, current_user: User = Depends(get_curr
     if (p_dir / "project.json").is_file():
         phase_validee = _phase_nouvellement_validee(p_dir / "project.json", state)
         if phase_validee:
-            snapshots.creer(p_dir, state, f"phase-{phase_validee}-validee")
+            snapshots.creer(p_dir, state, f"phase-{phase_validee}-validee", chiffrer=_chiffrer)
             
     _write_json_atomic(p_dir / "project.json", state)
     
@@ -886,7 +889,7 @@ def purge_donnees_personnelles(p_id: str, current_user: User = Depends(get_curre
 
     p_dir = PROJECTS_DIR / p_id
     p_dir.mkdir(parents=True, exist_ok=True)
-    snapshots.creer(p_dir, state, "avant-purge-rgpd")
+    snapshots.creer(p_dir, state, "avant-purge-rgpd", chiffrer=_chiffrer)
     state, efface = retention.purger(state)
     state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     state["progress"] = calculate_progress(state)
@@ -1001,7 +1004,7 @@ def recalculer_tprm(p_id: str, current_user: User = Depends(get_current_user), d
     p, state = _get_project_db_or_disk(p_id, db)
     if not state:
         raise HTTPException(status_code=404, detail="Projet introuvable")
-    snapshots.creer(p_dir, state, "avant-recalcul-tprm")
+    snapshots.creer(p_dir, state, "avant-recalcul-tprm", chiffrer=_chiffrer)
     state, recalcules = tprm.recalculer_mission(state)
     state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     state["progress"] = calculate_progress(state)
@@ -1073,7 +1076,7 @@ async def import_project_archive(
 
     p_dir = PROJECTS_DIR / p_id
     try:
-        archive.ecrire_fichiers(fichiers, p_dir)
+        archive.ecrire_fichiers(fichiers, p_dir, chiffrer=_chiffrer)
         for sous in archive.SOUS_DOSSIERS:
             (p_dir / sous).mkdir(parents=True, exist_ok=True)
         # Une mission importée peut venir d'une version antérieure du schéma :
@@ -1342,3 +1345,132 @@ def run_project_copilot(p_id: str, data: dict, current_user: User = Depends(get_
         "response": response_text,
         "source": source
     }
+
+# --- Registre des demandes de preuves ---------------------------------------
+# Suivi des documents réclamés au client. Vit dans le socle : c'est un fait de
+# conduite de mission, pas un constat d'audit (cf. demandes_preuves.py).
+
+@router.get("/projects/{p_id}/demandes-preuves")
+def get_demandes_preuves(p_id: str, current_user: User = Depends(get_current_user),
+                         db: Session = Depends(get_db)) -> dict:
+    """Registre et sa synthèse, plus les contrôles conformes sans justificatif."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    return {
+        "demandes": demandes_preuves.liste(state),
+        "synthese": demandes_preuves.synthese(state),
+        "controles_sans_justificatif": demandes_preuves.controles_sans_preuve_ni_demande(state),
+    }
+
+
+@router.post("/projects/{p_id}/demandes-preuves")
+def add_demande_preuve(p_id: str, data: AddDemandePreuveRequest,
+                       current_user: User = Depends(get_current_user),
+                       db: Session = Depends(get_db)) -> dict:
+    """Enregistre un document réclamé au client."""
+    data = coerce(AddDemandePreuveRequest, data)
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    registre = state.setdefault("socle", {}).setdefault("demandes_preuves", [])
+    demande = {
+        "id": ids.next_id("DEM", registre),
+        "libelle": data.libelle.strip(),
+        "destinataire": (data.destinataire or "").strip(),
+        "statut": "demandee",
+        "date_demande": data.date_demande or date.today().isoformat(),
+        "date_relance": "",
+        "date_reponse": "",
+        "echeance": data.echeance or "",
+        "note": (data.note or "").strip(),
+        "controles_lies": data.controles_lies or [],
+        "preuve_id": "",
+    }
+    registre.append(demande)
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    update_project_db(p_id, state, db)
+    # Le libellé peut nommer un document interne du client : on ne journalise
+    # que l'identifiant, comme pour les autres écritures de mission.
+    audit_log.record("demande_preuve.add", target=p_id, detail=demande["id"])
+    return state
+
+
+@router.patch("/projects/{p_id}/demandes-preuves/{demande_id}")
+def update_demande_preuve(p_id: str, demande_id: str, data: UpdateDemandePreuveRequest,
+                          current_user: User = Depends(get_current_user),
+                          db: Session = Depends(get_db)) -> dict:
+    """Fait évoluer une demande : relance, réception ou refus du client."""
+    data = coerce(UpdateDemandePreuveRequest, data)
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    registre = (state.get("socle") or {}).get("demandes_preuves") or []
+    demande = next((d for d in registre if d.get("id") == demande_id), None)
+    if demande is None:
+        raise HTTPException(status_code=404, detail="Demande introuvable")
+
+    aujourdhui = date.today().isoformat()
+    demande["statut"] = data.statut
+    # Chaque transition horodate son propre champ : la date de relance sert à
+    # recompter le délai d'attente, celle de réponse à clore le suivi.
+    if data.statut == "relancee":
+        demande["date_relance"] = aujourdhui
+    elif data.statut in ("recue", "refusee"):
+        demande["date_reponse"] = aujourdhui
+    if data.note is not None:
+        demande["note"] = data.note.strip()
+    if data.preuve_id is not None:
+        demande["preuve_id"] = data.preuve_id
+
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    update_project_db(p_id, state, db)
+    audit_log.record("demande_preuve.update", target=p_id,
+                     detail=f"{demande_id} statut={data.statut}")
+    return state
+
+
+@router.delete("/projects/{p_id}/demandes-preuves/{demande_id}")
+def delete_demande_preuve(p_id: str, demande_id: str,
+                          current_user: User = Depends(get_current_user),
+                          db: Session = Depends(get_db)) -> dict:
+    """Supprime une demande saisie par erreur."""
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    registre = (state.get("socle") or {}).get("demandes_preuves") or []
+    restant = [d for d in registre if d.get("id") != demande_id]
+    if len(restant) == len(registre):
+        raise HTTPException(status_code=404, detail="Demande introuvable")
+    state["socle"]["demandes_preuves"] = restant
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    update_project_db(p_id, state, db)
+    audit_log.record("demande_preuve.delete", target=p_id, detail=demande_id)
+    return state
+
+@router.get("/projects/{p_id}/nist-csf")
+def get_nist_csf(p_id: str, current_user: User = Depends(get_current_user),
+                 db: Session = Depends(get_db)) -> dict:
+    """Roue NIST CSF de la mission : rattachement des contrôles aux 6 fonctions.
+
+    Rattachement direct si la mission évalue NIST, indicatif (via le catalogue
+    de mesures) sinon — cf. nist_csf_map.py.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    return nist_csf_map.carte(state)
+

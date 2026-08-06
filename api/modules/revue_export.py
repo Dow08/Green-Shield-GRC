@@ -20,6 +20,7 @@ from datetime import date
 
 from . import aipd as aipd_module
 from . import soa as soa_module
+from . import demandes_preuves
 
 # Libellés des phases, alignés sur le stepper de l'interface.
 PHASES = {
@@ -157,6 +158,9 @@ def revue(state: dict) -> dict:
                             "champ": f"Mesure {rid} — sans échéance", "gravite": "recommande"})
 
     manques += _sections_vides(state)
+    # Documents réclamés au client et jamais reçus : un manque de conduite de
+    # mission, signalé sans bloquer l'export (cf. demandes_preuves.py).
+    manques += demandes_preuves.manques_pour_revue(state)
 
     bloquants = [m for m in manques if m["gravite"] == "bloquant"]
     return {

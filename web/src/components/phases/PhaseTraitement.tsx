@@ -4,6 +4,7 @@ import { Bot, CheckCircle2, FileDown, Plus, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import { CopilotSourceBadge } from "../CopilotSourceBadge";
 import { RevueExport } from "../RevueExport";
+import { BoutonDictee } from "../BoutonDictee";
 import type { ProjectState, Remediation } from "../../types";
 import { api } from "../../lib/api";
 import { safeGetItem } from "../../lib/storage";
@@ -73,8 +74,17 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                 {/* SYNTHÈSE EXÉCUTIVE — chapitre 1 du rapport, seul champ que
                     l'outil ne permettait pas de saisir jusqu'au 30/07/2026. */}
                 <div>
-                  <div className="text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-[var(--soft)] mb-1.5 uppercase tracking-wide">
                     A. Synthèse à destination de la direction
+                    {/* Le jugement du consultant, formulé pour le Comex — pas un
+                        constat technique ni une donnée nominative. */}
+                    <BoutonDictee
+                      libelle="Synthèse à la direction"
+                      onTexte={(t) => {
+                        const actuel = activeProject.steps.restitution?.exec_summary || "";
+                        updateStepData("restitution", "exec_summary", actuel ? `${actuel} ${t}` : t);
+                      }}
+                    />
                   </div>
                   <label htmlFor="exec-summary" className="block text-[10px] text-[var(--faint)] mb-1">
                     Premier chapitre du rapport d'audit. Jamais rédigée automatiquement : elle engage

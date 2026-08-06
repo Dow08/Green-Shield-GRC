@@ -365,6 +365,30 @@ def _socle() -> dict:
             "date_fin_mission": _jour(210),
             "purge_effectuee_le": "",
         },
+        # Registre des demandes de preuves : les trois cas réels d'un audit —
+        # une pièce reçue (rattachée à sa preuve), une en attente depuis trop
+        # longtemps (donc à relancer), une refusée par le client. Illustre que
+        # l'outil suit la relance sans jamais transformer une absence en
+        # conformité.
+        "demandes_preuves": [
+            {"id": "DEM-01", "libelle": "PSSI signée en comité exécutif",
+             "destinataire": "RSSI", "statut": "recue",
+             "date_demande": _jour(-60), "date_relance": "", "date_reponse": _jour(-52),
+             "echeance": "", "note": "Reçue lors du premier comité de suivi.",
+             "controles_lies": [{"referentiel_id": "iso27001", "control_id": "ISO-A.5"}],
+             "preuve_id": "PRV-01"},
+            {"id": "DEM-02", "libelle": "Contrat d'infogérance et son annexe sécurité",
+             "destinataire": "Direction des achats", "statut": "relancee",
+             "date_demande": _jour(-30), "date_relance": _jour(-12), "date_reponse": "",
+             "echeance": _jour(-5), "note": "Bloque la vérification du contrôle DORA sur la sous-traitance TIC.",
+             "controles_lies": [{"referentiel_id": "dora", "control_id": "DORA-ICT"}],
+             "preuve_id": ""},
+            {"id": "DEM-03", "libelle": "Journaux d'accès du système de paiement (30 jours)",
+             "destinataire": "Exploitation", "statut": "refusee",
+             "date_demande": _jour(-45), "date_relance": "", "date_reponse": _jour(-38),
+             "echeance": "", "note": "Refusé pour raison de confidentialité : contrôle documenté sur déclaratif à la place.",
+             "controles_lies": [], "preuve_id": ""},
+        ],
     }
 
 

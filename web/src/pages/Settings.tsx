@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning, AlertTriangle, Image, X } from "lucide-react";
+import { Save, Settings as SettingsIcon, ShieldCheck, Key, User, CloudLightning, AlertTriangle, Image, X, Mic } from "lucide-react";
 import { safeGetItem, safeSetItem } from "../lib/storage";
 import { api } from "../lib/api";
 import { ReferentielsPanel } from "../components/ReferentielsPanel";
-import type { Framework } from "../types";
+import { CopilotEnginePanel } from "../components/CopilotEnginePanel";
+import type { Framework, FournisseurLLM } from "../types";
 
 // Formats acceptés par les générateurs de livrables (report_docx.py,
 // report_html.py) — même liste des deux côtés, cf. charte.py::_type_image.
@@ -24,6 +25,9 @@ export function Settings() {
   const [company, setCompany] = useState("");
   const [email, setEmail] = useState("");
   const [apiKey, setApiKey] = useState("");
+  const [fournisseur, setFournisseur] = useState<FournisseurLLM | "">("");
+  const [modele, setModele] = useState("");
+  const [dictee, setDictee] = useState(false);
   // Base64 brut (sans le préfixe data:...;base64,) : c'est la forme attendue
   // par charte.logo_bytes() côté serveur.
   const [logoBase64, setLogoBase64] = useState("");
@@ -51,6 +55,14 @@ export function Settings() {
     if (savedEmail) setEmail(savedEmail);
     if (savedKey) setApiKey(savedKey);
     if (savedLogo) setLogoBase64(savedLogo);
+    const savedFournisseur = safeGetItem("copilot_fournisseur");
+    const savedModele = safeGetItem("copilot_modele");
+    // Une clé enregistrée sans fournisseur vient d'une version antérieure au
+    // choix multi-fournisseurs : c'était forcément Gemini.
+    if (savedFournisseur) setFournisseur(savedFournisseur as FournisseurLLM);
+    else if (savedKey) setFournisseur("gemini");
+    if (savedModele) setModele(savedModele);
+    setDictee(safeGetItem("dictee_activee") === "1");
     api.frameworks.list().then(setFrameworks).catch(() => setFrameworks([]));
     
     // Fetch auth status to get current license if needed
@@ -99,6 +111,9 @@ export function Settings() {
       safeSetItem("consultant_company", company),
       safeSetItem("consultant_email", email),
       safeSetItem("copilot_api_key", apiKey),
+      safeSetItem("copilot_fournisseur", fournisseur),
+      safeSetItem("copilot_modele", modele),
+      safeSetItem("dictee_activee", dictee ? "1" : "0"),
       safeSetItem("consultant_logo", logoBase64),
     ].every(Boolean);
     setSaved(ok);
@@ -251,25 +266,42 @@ export function Settings() {
           {licenseError && <p className="text-[10px] font-bold text-[var(--rose)] mt-1">{licenseError}</p>}
         </div>
 
-        {/* API COPILOTE KEY */}
+        {/* DICTÉE VOCALE — opt-in explicite, cf. lib/dictee.ts */}
         <div className="glass p-5 flex flex-col gap-3">
-          <div className="text-xs font-bold text-[var(--g3)] uppercase tracking-wide flex items-center gap-1.5 mb-1">
-            <Key size={14} /> Clé d'API du Copilote Cyber (LLM)
+          <div className="text-xs font-bold text-[var(--g3)] uppercase tracking-wide flex items-center gap-1.5">
+            <Mic size={14} /> Dictée vocale
           </div>
-          <p className="text-[11px] text-[var(--soft)] leading-normal">
-            Saisissez votre clé API Gemini ou OpenAI pour activer le Copilote cyber génératif en ligne. Sans clé, l'application utilise l'intelligence experte locale pré-configurée (100% hors-ligne).
-          </p>
-          <div className="text-xs">
-            <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Clé d'API Privée (Souveraine)</label>
+          <label className="flex items-start gap-3 cursor-pointer">
             <input
-              type="password"
-              placeholder="AIzaSy..."
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] font-mono focus:outline-none focus:border-[var(--g3)]"
+              type="checkbox"
+              checked={dictee}
+              onChange={(e) => setDictee(e.target.checked)}
+              className="mt-0.5 h-4 w-4 flex-shrink-0 accent-[var(--g1)]"
             />
-          </div>
+            <span className="text-[11px] leading-relaxed text-[var(--soft)]">
+              Afficher un micro à côté des champs texte pour dicter au lieu de saisir.
+              <strong className="block mt-1 text-amber-500">
+                La reconnaissance vocale du navigateur transmet votre voix à son éditeur (Google
+                sur Chrome). C'est la seule fonction de GREEN SHIELD qui sorte des données sans
+                clé d'API.
+              </strong>
+              <span className="block mt-1 text-[var(--faint)]">
+                Le micro reste absent des champs porteurs de données client : nom du client,
+                périmètre, entretiens, constats, preuves et violations.
+              </span>
+            </span>
+          </label>
         </div>
+
+        {/* MOTEUR DU COPILOTE — local ou en ligne */}
+        <CopilotEnginePanel
+          fournisseur={fournisseur}
+          onFournisseurChange={setFournisseur}
+          modele={modele}
+          onModeleChange={setModele}
+          apiKey={apiKey}
+          onApiKeyChange={setApiKey}
+        />
 
         {/* RÉFÉRENTIELS PERSONNELS (F2) — enrichissement au fil des missions */}
         <ReferentielsPanel
@@ -282,7 +314,13 @@ export function Settings() {
         <div className="glass-2 p-4 border-[rgba(46,230,160,0.2)] border flex items-start gap-3">
           <ShieldCheck size={20} className="text-[var(--g1)] flex-shrink-0 mt-0.5" />
           <div className="text-xs text-[var(--soft)] leading-relaxed">
-            <strong className="text-[var(--ink)]">Données confinées sur votre machine :</strong> Conformément à la charte de confidentialité de GREEN SHIELD, toutes les informations de votre profil et de vos clés d'API sont sauvegardées localement de manière sécurisée dans l'espace de stockage de votre propre navigateur (`localStorage`). Aucune donnée n'est transmise ou collectée par des serveurs tiers externes.
+            <strong className="text-[var(--ink)]">Où vont vos données :</strong> votre profil, votre logo et votre clé d'API restent dans le stockage local de ce navigateur ; ils ne sont jamais enregistrés côté serveur. Vos missions vivent sur ce poste, hors du dépôt de l'application.{" "}
+            <strong className="text-[var(--ink)]">
+              En revanche, si vous choisissez un fournisseur en ligne ci-dessus, la question posée
+              au Copilote et le contexte de la mission concernée sont bien transmis à ce
+              fournisseur.
+            </strong>{" "}
+            Un modèle local (Ollama) est le seul mode sans aucune sortie réseau.
           </div>
         </div>
 

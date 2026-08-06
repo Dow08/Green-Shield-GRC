@@ -244,3 +244,30 @@ class ConnectorScanRequest(BaseModel):
     """Lancement d'un scan via connecteur."""
     connector_id: str = Field(..., min_length=1, max_length=100)
     credentials: Optional[dict] = None
+
+class AddDemandePreuveRequest(BaseModel):
+    """Enregistrement d'un document réclamé au client."""
+    libelle: str = Field(..., min_length=1, max_length=200)
+    destinataire: Optional[str] = Field(default="", max_length=120)
+    date_demande: Optional[str] = None
+    echeance: Optional[str] = None
+    note: Optional[str] = Field(default="", max_length=500)
+    # Contrôles que la pièce viendrait justifier : c'est ce lien qui fait le
+    # pont avec la Déclaration d'Applicabilité et la bibliothèque de preuves.
+    controles_lies: Optional[list[dict]] = None
+
+
+class UpdateDemandePreuveRequest(BaseModel):
+    """Changement de statut d'une demande (relance, réception, refus)."""
+    statut: str
+    note: Optional[str] = Field(default=None, max_length=500)
+    # Renseigné à la réception : rattache la demande à la preuve créée.
+    preuve_id: Optional[str] = None
+
+    @field_validator("statut")
+    @classmethod
+    def statut_valide(cls, v: str) -> str:
+        from .demandes_preuves import STATUTS
+        if v not in STATUTS:
+            raise ValueError(f"statut invalide : {v}")
+        return v

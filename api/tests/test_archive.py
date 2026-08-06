@@ -110,6 +110,70 @@ def test_ecriture_restaure_les_fichiers_sur_disque(mission, tmp_path):
     assert not (destination / "project.json").exists()
 
 
+# --- Chiffrement au repos (P0) ---------------------------------------------
+#
+# `export_archive`/`ecrire_fichiers` reçoivent des callables `dechiffrer`/
+# `chiffrer` optionnels : le mot de passe d'archive reste la seule protection
+# à l'intérieur du zip (portable), la clé du poste ne doit jamais y transiter.
+
+def _chiffrer_test(donnees: bytes) -> bytes:
+    return b"CHIFFRE:" + donnees
+
+
+def _dechiffrer_test(donnees: bytes) -> bytes:
+    assert donnees.startswith(b"CHIFFRE:")
+    return donnees[len(b"CHIFFRE:"):]
+
+
+def test_export_dechiffre_project_json_avant_de_l_embarquer(mission):
+    (mission / "project.json").write_bytes(_chiffrer_test(json.dumps({"id": "acme"}).encode("utf-8")))
+    donnees = archive.export_archive(mission, MDP, dechiffrer=_dechiffrer_test)
+    with pyzipper.AESZipFile(io.BytesIO(donnees)) as zf:
+        zf.setpassword(MDP.encode("utf-8"))
+        contenu = zf.read("project.json")
+    assert json.loads(contenu) == {"id": "acme"}
+
+
+def test_export_dechiffre_les_instantanes_avant_de_les_embarquer(mission):
+    (mission / "project.json").write_bytes(_chiffrer_test(json.dumps({"id": "acme"}).encode("utf-8")))
+    (mission / "snapshots").mkdir()
+    (mission / "snapshots" / "20260101-000000_test.json").write_bytes(
+        _chiffrer_test(json.dumps({"id": "acme", "snap": True}).encode("utf-8"))
+    )
+    donnees = archive.export_archive(mission, MDP, dechiffrer=_dechiffrer_test)
+    with pyzipper.AESZipFile(io.BytesIO(donnees)) as zf:
+        zf.setpassword(MDP.encode("utf-8"))
+        contenu = zf.read("snapshots/20260101-000000_test.json")
+    assert json.loads(contenu) == {"id": "acme", "snap": True}
+
+
+def test_export_ne_touche_pas_les_fichiers_hors_project_json_et_snapshots(mission):
+    """targets/ et reports/ ne sont pas chiffrés au repos : `dechiffrer` ne
+    doit pas leur être appliqué, sous peine de corrompre un binaire ou un
+    fichier texte quelconque déposé par le consultant."""
+    (mission / "project.json").write_bytes(_chiffrer_test(json.dumps({"id": "acme"}).encode("utf-8")))
+    donnees = archive.export_archive(mission, MDP, dechiffrer=_dechiffrer_test)
+    with pyzipper.AESZipFile(io.BytesIO(donnees)) as zf:
+        zf.setpassword(MDP.encode("utf-8"))
+        assert zf.read("targets/sshd_config").decode("utf-8").strip() == "Port 22"
+
+
+def test_ecriture_rechiffre_les_instantanes_restaures(mission, tmp_path):
+    (mission / "snapshots").mkdir()
+    (mission / "snapshots" / "20260101-000000_test.json").write_text(
+        json.dumps({"id": "acme"}), encoding="utf-8"
+    )
+    donnees = archive.export_archive(mission, MDP)
+    _, fichiers = archive.lire_archive(donnees, MDP)
+
+    destination = tmp_path / "restauree"
+    archive.ecrire_fichiers(fichiers, destination, chiffrer=_chiffrer_test)
+
+    brut = (destination / "snapshots" / "20260101-000000_test.json").read_bytes()
+    assert brut.startswith(b"CHIFFRE:")
+    assert json.loads(_dechiffrer_test(brut)) == {"id": "acme"}
+
+
 # --- Refus : mot de passe -------------------------------------------------
 
 def test_mauvais_mot_de_passe_est_refuse(mission):

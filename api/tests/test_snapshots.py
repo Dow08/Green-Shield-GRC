@@ -35,7 +35,7 @@ def mission(tmp_path, monkeypatch):
 
 
 def _etat(p_dir: Path) -> dict:
-    return json.loads((p_dir / "project.json").read_text(encoding="utf-8"))
+    return projects._read_state(p_dir / "project.json")
 
 
 # --- Module snapshots ------------------------------------------------------
@@ -67,6 +67,35 @@ def test_lire_restitue_l_etat_enregistre(mission):
 def test_lire_un_instantane_absent_leve_une_erreur(mission):
     with pytest.raises(FileNotFoundError):
         snapshots.lire(mission, "20260101-000000_inexistant.json")
+
+
+# --- Chiffrement au repos (P0) : `chiffrer`/`dechiffrer` optionnels --------
+
+def _chiffrer_test(donnees: bytes) -> bytes:
+    return b"CHIFFRE:" + donnees
+
+
+def _dechiffrer_test(donnees: bytes) -> bytes:
+    assert donnees.startswith(b"CHIFFRE:")
+    return donnees[len(b"CHIFFRE:"):]
+
+
+def test_creer_sans_chiffrer_ecrit_du_json_clair(mission):
+    nom = snapshots.creer(mission, {"id": "acme"}, "test")
+    contenu = (mission / "snapshots" / nom).read_bytes()
+    assert json.loads(contenu.decode("utf-8")) == {"id": "acme"}
+
+
+def test_creer_avec_chiffrer_protege_le_fichier_sur_disque(mission):
+    nom = snapshots.creer(mission, {"id": "acme"}, "test", chiffrer=_chiffrer_test)
+    contenu = (mission / "snapshots" / nom).read_bytes()
+    assert contenu.startswith(b"CHIFFRE:")
+    assert json.loads(_dechiffrer_test(contenu)) == {"id": "acme"}
+
+
+def test_lire_avec_dechiffrer_restitue_l_etat(mission):
+    nom = snapshots.creer(mission, {"id": "acme", "marqueur": "v1"}, "test", chiffrer=_chiffrer_test)
+    assert snapshots.lire(mission, nom, dechiffrer=_dechiffrer_test)["marqueur"] == "v1"
 
 
 def test_l_historique_est_elague_au_dela_du_plafond(mission, monkeypatch):

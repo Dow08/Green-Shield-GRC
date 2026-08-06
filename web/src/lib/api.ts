@@ -4,6 +4,8 @@ import type {
   RevueExportResult, SnapshotInfo, EcheanceRgpdMission, CouvertureTechnique,
   FrameworkDetail, Exigence, ReferenceObligationAIPD,
   PratiqueControle, EtatControlesTechniques,
+  MaterielInfo, MesureModele,
+  RegistreDemandesPreuves, ControleLie, StatutDemande, CarteNist,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -110,7 +112,12 @@ async function get<T>(path: string): Promise<T> {
   let errorMsg: string | undefined;
 
   try {
-    const res = await fetch(path, { headers: getHeaders() });
+    // `no-store` : ces routes décrivent un état vivant (missions en cours,
+    // matériel du poste, modèles installés). Sans cette consigne, le
+    // navigateur ressert sa copie et l'utilisateur voit un état périmé après
+    // avoir cliqué — constaté en recette le 05/08/2026 sur la détection
+    // matérielle, qui renvoyait la réponse précédente.
+    const res = await fetch(path, { headers: getHeaders(), cache: "no-store" });
     status = res.status;
     await handleResponse(res);
     return res.json() as Promise<T>;
@@ -184,6 +191,37 @@ async function put<T>(path: string, body: unknown): Promise<T> {
       id: logId,
       timestamp: new Date().toLocaleTimeString("fr-FR"),
       method: "PUT",
+      url: path,
+      status,
+      durationMs: Math.round(performance.now() - startTime),
+      error: errorMsg,
+    });
+  }
+}
+
+async function patch<T>(path: string, body: unknown): Promise<T> {
+  const logId = crypto.randomUUID();
+  const startTime = performance.now();
+  let status: number | undefined;
+  let errorMsg: string | undefined;
+
+  try {
+    const res = await fetch(path, {
+      method: "PATCH",
+      headers: getHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify(body),
+    });
+    status = res.status;
+    await handleResponse(res);
+    return res.json() as Promise<T>;
+  } catch (err: any) {
+    errorMsg = err.message || String(err);
+    throw err;
+  } finally {
+    addApiLog({
+      id: logId,
+      timestamp: new Date().toLocaleTimeString("fr-FR"),
+      method: "PATCH",
       url: path,
       status,
       durationMs: Math.round(performance.now() - startTime),
@@ -389,6 +427,25 @@ export const api = {
     // Vue « impression » (PDF via le navigateur) — authentifiée, cf.
     // `openPrintableReport`.
     openPdf: (id: string, docType: string) => openPrintableReport(id, docType),
+
+    // Registre des demandes de preuves (socle de mission). Chaque mutation
+    // renvoie la mission entière, comme le suivi du temps.
+    demandesPreuves: (id: string) =>
+      get<RegistreDemandesPreuves>(`/api/projects/${id}/demandes-preuves`),
+    addDemandePreuve: (
+      id: string,
+      data: { libelle: string; destinataire?: string; echeance?: string; note?: string; controles_lies?: ControleLie[] },
+    ) => post<ProjectState>(`/api/projects/${id}/demandes-preuves`, data),
+    updateDemandePreuve: (
+      id: string,
+      demandeId: string,
+      data: { statut: StatutDemande; note?: string; preuve_id?: string },
+    ) => patch<ProjectState>(`/api/projects/${id}/demandes-preuves/${demandeId}`, data),
+    deleteDemandePreuve: (id: string, demandeId: string) =>
+      deleteReq<ProjectState>(`/api/projects/${id}/demandes-preuves/${demandeId}`),
+
+    // Roue NIST CSF : rattachement des contrôles aux six fonctions.
+    nistCsf: (id: string) => get<CarteNist>(`/api/projects/${id}/nist-csf`),
   },
   
   frameworks: {
@@ -410,7 +467,14 @@ export const api = {
 
   copilot: {
     context: () => get<CopilotContext>("/api/copilot/context"),
-    ask: (data: { prompt: string; key: string }) => post<CopilotAskResult>("/api/copilot/ask", data),
+    ask: (data: { prompt: string; key: string; fournisseur?: string; modele?: string }) =>
+      post<CopilotAskResult>("/api/copilot/ask", data),
+    // Capacités du poste et modèle local recommandé. Lecture seule, instantané.
+    materiel: () => get<MaterielInfo>("/api/copilot/materiel"),
+    // Chronométrage réel d'un modèle local. Peut durer plusieurs minutes au
+    // premier appel (chargement du modèle) : prévenir l'utilisateur avant.
+    testerModele: (modele: string) =>
+      post<MesureModele>("/api/copilot/materiel/test", { modele }),
   },
 
   collecte: {
