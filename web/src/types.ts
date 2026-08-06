@@ -689,6 +689,23 @@ export interface CarteNist {
   note: string;
 }
 
+// --- Radar de maturité NIST CSF (auto-évaluation déclarative du consultant —
+// distincte de la roue de rattachement ci-dessus, ne jamais confondre les deux) ---
+export interface FonctionMaturite {
+  code: "GV" | "ID" | "PR" | "DE" | "RS" | "RC";
+  libelle: string;
+  tier: 1 | 2 | 3 | 4 | null;
+  tier_nom: string | null;
+  tier_description: string | null;
+  justification: string;
+}
+
+export interface ProfilMaturiteNist {
+  fonctions: FonctionMaturite[];
+  nb_evaluees: number;
+  note: string;
+}
+
 // --- Authentification ---
 export interface LoginResult {
   access_token: string;

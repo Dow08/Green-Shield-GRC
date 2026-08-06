@@ -271,3 +271,9 @@ class UpdateDemandePreuveRequest(BaseModel):
         if v not in STATUTS:
             raise ValueError(f"statut invalide : {v}")
         return v
+
+
+class UpdateMaturiteNistRequest(BaseModel):
+    """Tier auto-déclaré d'une fonction NIST CSF (1-4), ou null pour réinitialiser."""
+    tier: Optional[int] = Field(default=None, ge=1, le=4)
+    justification: Optional[str] = Field(default="", max_length=500)

@@ -112,6 +112,7 @@ jobs:
             Aucune installation requise : téléchargez, double-cliquez, votre
             navigateur s'ouvre sur l'application. Tout reste local (`127.0.0.1`).
 
-            > Les missions sont stockées en clair dans `%APPDATA%\GreenShield`.
-            > Le chiffrement du disque (BitLocker) reste un prérequis
-            > d'exploitation — voir le README.
+            > Les missions sont chiffrées au repos par défaut (clé générée et
+            > conservée localement dans `%APPDATA%\GreenShield`). Le
+            > chiffrement du disque (BitLocker) reste recommandé en défense
+            > en profondeur — voir le README.

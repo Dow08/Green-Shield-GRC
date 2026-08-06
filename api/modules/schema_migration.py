@@ -18,7 +18,7 @@ from . import aipd as aipd_module
 from . import soa as soa_module
 from . import tprm
 
-CURRENT_SCHEMA_VERSION = 13
+CURRENT_SCHEMA_VERSION = 14
 
 
 def _to_v2(state: dict) -> dict:
@@ -272,6 +272,23 @@ def _to_v13(state: dict) -> dict:
     return state
 
 
+def _to_v14(state: dict) -> dict:
+    """v13 → v14 : radar de maturité NIST CSF (auto-évaluation Tier 1-4).
+
+    Auto-évaluation déclarative du consultant, fonction par fonction du CSF
+    2.0 — orthogonale au rattachement de contrôles (roue NIST, nist_csf_map.py)
+    qui mesure la couverture réelle, pas la maturité perçue. Vit dans `grc`
+    (aux côtés de `referentiels_actifs`/`parcours`, pas de `socle`) : c'est un
+    jugement GRC sur la posture du client, pas une bookkeeping de conduite de
+    mission. Chaque fonction démarre à `tier: None` : aucun niveau n'est
+    présumé avant déclaration explicite du consultant.
+    """
+    radar = state.setdefault("grc", {}).setdefault("maturite_nist", {})
+    for code in ("GV", "ID", "PR", "DE", "RS", "RC"):
+        radar.setdefault(code, {"tier": None, "justification": ""})
+    return state
+
+
 # Chaîne ordonnée : version cible -> fonction qui y amène.
 _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (2, _to_v2),
@@ -286,6 +303,7 @@ _MIGRATIONS: list[tuple[int, Callable[[dict], dict]]] = [
     (11, _to_v11),
     (12, _to_v12),
     (13, _to_v13),
+    (14, _to_v14),
 ]
 
 

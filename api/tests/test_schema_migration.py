@@ -185,3 +185,26 @@ def test_mission_v10_gagne_la_bibliotheque_de_preuves_vide():
     assert migree["steps"]["evaluation"]["manual_controls"] == [
         {"id": "A.5", "referentiel_id": None, "referentiel_name": None}
     ]
+
+
+def test_mission_v13_gagne_le_radar_de_maturite_nist_vide():
+    """v13 → v14 : le radar de maturité NIST CSF démarre sans aucun tier
+    déclaré — aucun niveau de maturité n'est présumé avant que le consultant
+    ne le déclare explicitement."""
+    v13 = {
+        "schema_version": 13, "socle": {}, "consulting": {},
+        "grc": {"referentiels_actifs": ["iso27001"], "parcours": {}},
+        "steps": {},
+    }
+    migree = schema_migration.migrate(dict(v13))
+    assert migree["schema_version"] == schema_migration.CURRENT_SCHEMA_VERSION
+    assert migree["grc"]["maturite_nist"] == {
+        "GV": {"tier": None, "justification": ""},
+        "ID": {"tier": None, "justification": ""},
+        "PR": {"tier": None, "justification": ""},
+        "DE": {"tier": None, "justification": ""},
+        "RS": {"tier": None, "justification": ""},
+        "RC": {"tier": None, "justification": ""},
+    }
+    # Ne touche pas aux référentiels déjà actifs.
+    assert migree["grc"]["referentiels_actifs"] == ["iso27001"]

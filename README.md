@@ -10,7 +10,7 @@ Un environnement d'audit moderne, hors-ligne et modulaire, qui guide une mission
 
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Python%203.12-009688)
-![Tests](https://img.shields.io/badge/tests-690%20back%20%2F%20177%20front-success)
+![Tests](https://img.shields.io/badge/tests-700%20back%20%2F%20183%20front-success)
 ![Licence](https://img.shields.io/badge/licence-PolyForm%20Noncommercial-lightgrey)
 
 </div>
@@ -142,7 +142,7 @@ Elle permet de démontrer l'outil **sans jamais ouvrir une mission cliente réel
 - **Référentiels** : ISO/IEC 27001:2022 (dont les 93 contrôles de l'Annexe A), DORA, NIS2, RGPD, NIST CSF 2.0, EU AI Act.
 - **Méthodes** : EBIOS RM (ANSSI), AIPD/PIA (CNIL), séquence de remédiation E3R (ANSSI), ratio de criticité tiers ANSSI.
 - **Architecture** : React 19 + Vite + Tailwind v4 (TypeScript strict) / FastAPI + Python 3.12, données en fichiers JSON/YAML à plat, empaquetage Docker Compose.
-- **Qualité** : **690 tests backend (pytest) et 177 tests frontend (vitest)**, schéma de mission versionné avec chaîne de migration rejouable, écritures atomiques.
+- **Qualité** : **700 tests backend (pytest) et 183 tests frontend (vitest)**, schéma de mission versionné avec chaîne de migration rejouable, écritures atomiques.
 
 > **Respect du droit d'auteur des normes** : les référentiels embarqués ne contiennent que des **identifiants et intitulés courts reformulés**. Aucun texte normatif ISO/AFNOR n'est reproduit.
 
@@ -170,8 +170,8 @@ cd web && npm install && npm run dev
 ### Tests
 
 ```bash
-py -3 -m pytest api/tests -q      # 690 tests backend
-cd web && npx vitest run          # 177 tests frontend
+py -3 -m pytest api/tests -q      # 700 tests backend
+cd web && npx vitest run          # 183 tests frontend
 cd web && npx tsc --noEmit        # typage strict
 ```
 
@@ -281,7 +281,7 @@ It lets you demo the tool **without ever opening a real client engagement** — 
 - **Frameworks**: ISO/IEC 27001:2022 (including all 93 Annex A controls), DORA, NIS2, GDPR, NIST CSF 2.0, EU AI Act.
 - **Methods**: EBIOS RM (ANSSI), DPIA (CNIL), E3R remediation sequence (ANSSI), ANSSI third-party criticality ratio.
 - **Architecture**: React 19 + Vite + Tailwind v4 (strict TypeScript) / FastAPI + Python 3.12, flat JSON/YAML storage, Docker Compose packaging.
-- **Quality**: **690 backend tests (pytest) and 177 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain, atomic writes.
+- **Quality**: **700 backend tests (pytest) and 183 frontend tests (vitest)**, versioned engagement schema with a replayable migration chain, atomic writes.
 
 > **Respect for standards copyright**: bundled frameworks contain only **identifiers and short reworded titles**. No ISO/AFNOR normative text is reproduced.
 
@@ -306,8 +306,8 @@ cd web && npm install && npm run dev                        # frontend
 ### Tests
 
 ```bash
-py -3 -m pytest api/tests -q      # 690 backend tests
-cd web && npx vitest run          # 177 frontend tests
+py -3 -m pytest api/tests -q      # 700 backend tests
+cd web && npx vitest run          # 183 frontend tests
 cd web && npx tsc --noEmit        # strict typing
 ```
 

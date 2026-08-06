@@ -408,7 +408,20 @@ def construire(project_id: str) -> dict:
         "updated_at": maintenant,
         "is_demo": True,
         "socle": _socle(),
-        "grc": {"active": True, "referentiels_actifs": list(REFERENTIELS), "parcours": {}},
+        "grc": {
+            "active": True, "referentiels_actifs": list(REFERENTIELS), "parcours": {},
+            # Radar de maturité NIST CSF : profil volontairement partiel
+            # (Détecter/Répondre non évalués) — la démo montre un état
+            # honnête, jamais une mission fictivement complète à 100 %.
+            "maturite_nist": {
+                "GV": {"tier": 2, "justification": "Politique cyber existante mais non formalisée en comité de risque."},
+                "ID": {"tier": 3, "justification": "Inventaire des actifs à jour, revu trimestriellement."},
+                "PR": {"tier": 2, "justification": "MFA déployé sur les accès à privilèges seulement."},
+                "DE": {"tier": None, "justification": ""},
+                "RS": {"tier": None, "justification": ""},
+                "RC": {"tier": 3, "justification": "PRA testé annuellement, sauvegardes vérifiées."},
+            },
+        },
         "consulting": {"active": False},
         "steps": {
             "cadrage": {

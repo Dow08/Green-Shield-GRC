@@ -7,6 +7,7 @@ import type {
   MaterielInfo, MesureModele,
   RegistreDemandesPreuves, ControleLie, StatutDemande, CarteNist,
   SuggestionPreuve, LoginResult, UserProfile, MessageResponse,
+  FonctionMaturite, ProfilMaturiteNist,
 } from "../types";
 import { safeGetItem } from "./storage";
 import type { Workflow } from "../types/workflow";
@@ -447,6 +448,12 @@ export const api = {
 
     // Roue NIST CSF : rattachement des contrôles aux six fonctions.
     nistCsf: (id: string) => get<CarteNist>(`/api/projects/${id}/nist-csf`),
+
+    // Radar de maturité NIST CSF : auto-évaluation déclarative (Tier 1-4),
+    // distincte de la roue de rattachement ci-dessus.
+    maturiteNist: (id: string) => get<ProfilMaturiteNist>(`/api/projects/${id}/maturite-nist`),
+    definirMaturiteNist: (id: string, code: FonctionMaturite["code"], data: { tier: 1 | 2 | 3 | 4 | null; justification?: string }) =>
+      put<ProjectState>(`/api/projects/${id}/maturite-nist/${code}`, data),
   },
   
   frameworks: {

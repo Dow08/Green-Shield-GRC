@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Loader2, Info } from "lucide-react";
 import { api } from "../lib/api";
 import type { CarteNist, FonctionNist } from "../types";
+import { polaire } from "../lib/svgPolar";
 
 interface Props {
   projectId: string;
@@ -29,11 +30,6 @@ function couleur(taux: number | null): string {
 }
 
 const ORDRE_EXTERIEUR: FonctionNist["code"][] = ["ID", "PR", "DE", "RS", "RC"];
-
-function polaire(cx: number, cy: number, r: number, deg: number): [number, number] {
-  const a = ((deg - 90) * Math.PI) / 180;
-  return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
-}
 
 function segmentDonut(cx: number, cy: number, ri: number, ro: number, a0: number, a1: number): string {
   const [x0o, y0o] = polaire(cx, cy, ro, a0);

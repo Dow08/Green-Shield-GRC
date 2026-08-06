@@ -4,6 +4,24 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [06/08/2026] — Radar de maturité NIST CSF (Jalon 5, enfin construit)
+
+En vérifiant l'exe reconstruit, j'ai montré au consultant la roue de rattachement NIST CSF (livrée plus tôt cette session) en pensant répondre à sa question sur « la carte dont on avait discuté sur le NIST CSF ». Il a eu raison de dire non : ce dont il parlait — le **radar de maturité NIST CSF** — figure explicitement dans `docs/spec-refonte-grc-consulting.md` (dashboard, Jalon 5) et avait été **délibérément exclu** du périmètre le 30/07/2026 quand NIST CSF est devenu le 6ᵉ parcours (`todo.md` : « Le radar de maturité visuel évoqué au Jalon 5 reste hors périmètre de cette tâche »). Il n'existait donc nulle part dans le code.
+
+Différence de fond avec la roue existante : la roue (`nist_csf_map.py`) mesure une **couverture calculée** (contrôles réellement rattachés). Le radar mesure un **niveau de maturité auto-déclaré par le consultant** (Tier 1-4, vocabulaire officiel NIST CSF — Partial / Risk Informed / Repeatable / Adaptive), un jugement professionnel qu'aucune donnée de mission ne peut deviner. D'où deux modules et deux composants distincts (`maturite_nist.py` / `RadarMaturiteNist.tsx`), jamais fusionnés avec `nist_csf_map.py` / `NistCsfWheel.tsx`, montés côte à côte avec des libellés qui se renvoient explicitement l'un à l'autre — pour ne pas rejouer la confusion qui a déclenché ce chantier.
+
+Source citée, non inventée : `references/nist-csf.md` (table des 4 Tiers) et `scripts/scoring_maturite_nist_csf.py` (échelle 0-4, `tier_label()`), tous deux dans le skill `grc-agent-hermes` de l'utilisateur, hors de ce dépôt. Granularité retenue : par fonction (6), pas par sous-catégorie (77 dans le script source) — cohérent avec les 5 exigences représentatives déjà choisies pour `nist_csf.yaml` (même logique MVP).
+
+`schema_version` **14** : `grc.maturite_nist` — chaque fonction démarre à `{"tier": None, "justification": ""}`, jamais un niveau présumé. Disponible sur toute mission, indépendamment des référentiels actifs (le CSF est un cadre agnostique de pilotage CODIR ; gater le radar sur `nist_csf` actif l'aurait rendu invisible sur la démo, qui n'active qu'ISO 27001 + DORA).
+
+Nouvelles routes `GET`/`PUT /api/projects/{id}/maturite-nist[/{code}]` dans un fichier dédié (`api/modules/projects/maturite_routes.py`), sur le modèle des routes existantes (`get_nist_csf` pour le calculé, `add_demande_preuve` pour le CRUD structuré) — `crud.py` (1476 lignes) n'a pas grossi. Saisie par contrôle segmenté à 4 boutons nommés plutôt qu'un slider (déjà utilisé pour la maturité TPRM) : les Tiers sont des catégories qualitatives à reconnaître et défendre devant un client, pas une quantité continue. Tracé SVG : un sommet n'existe que pour une fonction effectivement évaluée, jamais à r=0 pour une fonction non renseignée (règle « zéro invention » appliquée au dessin lui-même, pas seulement aux données) ; `polaire()` extrait de `NistCsfWheel.tsx` vers `web/src/lib/svgPolar.ts`, partagé entre les deux visualisations.
+
+Export/import volontairement hors périmètre v1 (comme la roue elle-même, absente de tous les exports Word/HTML/Markdown) — extension naturelle si demandée.
+
+**10 tests ajoutés côté backend** (`test_maturite_nist.py`, dont un test explicite « zéro invention » : mission sans maturité déclarée → aucun tier fabriqué ; un test de valeur hors barème corrompue), **6 côté frontend** (`RadarMaturiteNist.test.tsx`). Vérifié en conditions réelles dans le navigateur sur la mission de démo : le radar affiche le profil partiel attendu (GV/ID/PR/RC renseignés, DE/RS « non évalué »), la saisie d'un Tier persiste après rechargement complet de la page, testée puis annulée pour ne pas polluer la démo. **700 tests backend, 183 tests frontend.**
+
+---
+
 ## [06/08/2026] — Chiffrement au repos actif par défaut (P0 de l'audit du 06/08/2026)
 
 Audit applicatif complet (7 dimensions, gabarit `prompt-audit-application.md`) mené à la demande de l'utilisateur : score global 3,85/5, un seul constat bloquant avant terrain. `project.json` n'était chiffré (Fernet) que si l'opérateur définissait manuellement `GREENSHIELD_STORAGE_KEY` — sans elle, chaque mission (données client, entretiens RGPD, scénarios de risque) vivait en clair sur disque. Contradiction directe avec le positionnement « souverain / 100 % local » du produit : rien dans l'UI ni la documentation n'indiquait ce défaut.
