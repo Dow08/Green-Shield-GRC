@@ -26,13 +26,9 @@ jobs:
           persist-credentials: false
 
       - name: Run Zizmor
-        uses: woodruffw/zizmor-action@c2957b64082218e2ffbbdf1796be5f319ee85172 # v1.4.1
-        with:
-          # Exporte les résultats au format SARIF
-          sarif-file: zizmor.sarif
-
-      - name: Upload SARIF file to GitHub Security
-        uses: github/codeql-action/upload-sarif@a65a038433a26f4363cf9f029e3b9ceac831ad5d # v3.28.10
-        with:
-          sarif_file: zizmor.sarif
-          category: zizmor
+        # Le projet a déménagé de woodruffw/zizmor-action (dépôt introuvable
+        # depuis, vraisemblablement un transfert d'organisation) vers
+        # zizmorcore/zizmor-action. La nouvelle action gère elle-même l'upload
+        # SARIF vers l'onglet Security (advanced-security: true par défaut) :
+        # plus besoin de l'étape d'upload séparée.
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
