@@ -452,13 +452,21 @@ def _phase_nouvellement_validee(state_file: Path, nouveau: dict) -> str | None:
 
 
 @router.get("/projects/{p_id}/snapshots")
-def list_snapshots(p_id: str, current_user: User = Depends(get_current_user)) -> list[dict]:
-    """Historique versionné d'une mission (F9)."""
+def list_snapshots(p_id: str, current_user: User = Depends(get_current_user),
+                    limit: int | None = None, offset: int = 0) -> list[dict]:
+    """Historique versionné d'une mission (F9).
+
+    `limit`/`offset` optionnels (V-09, audit combiné du 06/08/2026) : mêmes
+    conventions que `list_projects` — omis, comportement inchangé.
+    """
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = PROJECTS_DIR / p_id
     if not p_dir.is_dir():
         raise HTTPException(status_code=404, detail="Projet introuvable")
-    return snapshots.lister(p_dir)
+    tous = snapshots.lister(p_dir)
+    if limit is None:
+        return tous[offset:] if offset else tous
+    return tous[offset:offset + limit]
 
 
 @router.post("/projects/{p_id}/snapshots/{nom}/restore")

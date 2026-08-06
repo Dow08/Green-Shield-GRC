@@ -4,6 +4,18 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [06/08/2026] — V-08 et V-09 de l'audit combiné corrigés (assainissement de chemin unifié, pagination optionnelle)
+
+Derniers constats Mineurs de l'audit combiné du 06/08/2026 — les 9 points sont désormais tous traités.
+
+**V-08 — double implémentation de l'assainissement de chemin.** `create_project` dérivait l'identifiant de mission d'un texte libre (`name`) via son propre filtre de caractères (`c.isalnum() or c == "_"`), un sous-ensemble figé du jeu de caractères réellement autorisé par `path_safety.safe_path_component` (qui accepte aussi `-`) — point de divergence latent si le validateur évoluait un jour (longueur, noms réservés Windows...) sans que ce site le suive. Le slug reste généré ici (c'est la seule génération d'identifiant à partir d'un texte libre du projet, `path_safety` ne fait que valider), mais passe désormais par `path_safety.safe_path_component()` avant utilisation, qui redevient l'unique source de vérité sur ce qu'est un identifiant de mission valide.
+
+**V-09 — listes non paginées.** `GET /api/projects`, `/api/rgpd/echeances` et `/api/projects/{p_id}/snapshots` renvoyaient systématiquement la collection complète. `limit`/`offset` optionnels ajoutés aux trois, avec le même contrat partout : omis, comportement strictement inchangé (liste complète), pour ne rien casser côté appelants existants — backend (plusieurs sites appellent `list_projects()` sans argument, y compris en position positionnelle depuis `copilot_grc.py`) comme frontend (aucun des trois n'envoie de paramètre de pagination aujourd'hui). **Piège évité** : la tentation naturelle était `limit: int | None = Query(default=None, ge=1)` pour la validation automatique FastAPI — mais exactement le même piège que V-04 (audit du même jour) : un objet `Query(...)` non résolu fuite tel quel dans les appels positionnels directs des tests, au lieu de sa valeur par défaut réelle. Résolu en gardant de simples valeurs par défaut Python (`None`/`0`), sans `Query(...)`.
+
+**9 tests ajoutés** : `test_projects_security.py` (4, V-08 et pagination de `list_projects`), `test_snapshots.py` (3, pagination), `test_retention.py` (2, pagination des échéances RGPD). **757 tests backend.**
+
+---
+
 ## [06/08/2026] — V-02 à V-07 de l'audit combiné corrigés (révocation de session, plafonds d'upload, rate limiting dédié, validation `modele` Gemini, en-têtes de sécurité)
 
 Suite directe de la correction de V-01 (XSS, entrée précédente) : les six constats Majeur/Mineur restants de l'audit combiné Software Architecture / Pentest, traités dans l'ordre demandé.

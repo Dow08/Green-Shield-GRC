@@ -154,6 +154,29 @@ def test_la_route_liste_l_historique(mission):
     assert len(projects.list_snapshots("acme")) == 1
 
 
+# --- Pagination (V-09, audit combiné du 06/08/2026) -------------------------
+
+def test_liste_paginee_avec_limit(mission):
+    for motif in ("un", "deux", "trois"):
+        snapshots.creer(mission, {"id": "acme"}, motif)
+    assert len(projects.list_snapshots("acme")) == 3
+    assert len(projects.list_snapshots("acme", limit=2)) == 2
+
+
+def test_liste_paginee_avec_offset(mission):
+    for motif in ("un", "deux", "trois"):
+        snapshots.creer(mission, {"id": "acme"}, motif)
+    complet = projects.list_snapshots("acme")
+    assert projects.list_snapshots("acme", offset=1) == complet[1:]
+
+
+def test_liste_sans_limit_ni_offset_reste_inchangee(mission):
+    """Comportement par défaut préservé : aucun appelant existant ne casse."""
+    for motif in ("un", "deux"):
+        snapshots.creer(mission, {"id": "acme"}, motif)
+    assert projects.list_snapshots("acme") == projects.list_snapshots("acme", limit=None, offset=0)
+
+
 def test_restaurer_remet_la_mission_dans_son_etat_anterieur(mission):
     nom = snapshots.creer(mission, {"id": "acme", "steps": {"cadrage": {"scope": "AVANT"}}}, "test")
 

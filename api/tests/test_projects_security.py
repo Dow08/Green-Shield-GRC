@@ -290,6 +290,55 @@ def test_export_soa_docx_repond_404_sans_declaration_d_applicabilite(legit_proje
     assert exc_info.value.status_code == 404
 
 
+# --- V-08 (audit combiné du 06/08/2026) : le slug généré par create_project
+# reste soumis au validateur unique path_safety.safe_path_component --------
+
+def test_create_project_genere_un_identifiant_valide_par_path_safety(isolated_dirs):
+    from modules.schemas import CreateProjectRequest
+    resultat = projects.create_project(CreateProjectRequest(
+        name="Mission Été 2026", client="Acme Corp", type="grc", framework_id="iso27001",
+    ))
+    # Ne doit pas lever : le slug généré satisfait bien le même validateur
+    # que tout autre identifiant de mission dans l'application.
+    from modules import path_safety
+    assert path_safety.safe_path_component(resultat["id"], "identifiant de mission") == resultat["id"]
+
+
+def test_create_project_avec_nom_vide_de_caracteres_valides_utilise_le_repli(isolated_dirs):
+    from modules.schemas import CreateProjectRequest
+    resultat = projects.create_project(CreateProjectRequest(
+        name="!!!", client="Acme Corp", type="grc", framework_id="iso27001",
+    ))
+    assert resultat["id"].startswith("project_")
+
+
+# --- V-09 (audit combiné du 06/08/2026) : pagination optionnelle sur les listes
+
+def test_list_projects_sans_pagination_renvoie_tout(isolated_dirs):
+    for i in range(3):
+        p_dir = projects.PROJECTS_DIR / f"mission{i}"
+        p_dir.mkdir()
+        (p_dir / "project.json").write_text(
+            json.dumps({"id": f"mission{i}", "name": f"M{i}", "client": "C", "steps": {}}),
+            encoding="utf-8",
+        )
+    assert len(projects.list_projects()) == 3
+
+
+def test_list_projects_avec_limit_et_offset(isolated_dirs):
+    for i in range(3):
+        p_dir = projects.PROJECTS_DIR / f"mission{i}"
+        p_dir.mkdir()
+        (p_dir / "project.json").write_text(
+            json.dumps({"id": f"mission{i}", "name": f"M{i}", "client": "C", "steps": {}}),
+            encoding="utf-8",
+        )
+    complet = projects.list_projects()
+    assert len(projects.list_projects(limit=2)) == 2
+    assert projects.list_projects(offset=1) == complet[1:]
+    assert projects.list_projects(limit=None, offset=0) == complet
+
+
 def test_export_soa_docx_fonctionne_quand_la_soa_existe(legit_project):
     from modules import soa as soa_module
     state_file = projects.PROJECTS_DIR / legit_project / "project.json"

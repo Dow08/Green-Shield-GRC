@@ -485,11 +485,22 @@ Engagements : Les parties s'engagent à ne divulguer aucun document technique, s
     return state
 
 @router.get("/projects")
-def list_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
+def list_projects(current_user: User = Depends(get_current_user), db: Session = Depends(get_db),
+                   limit: int | None = None, offset: int = 0) -> list[dict]:
     """Liste toutes les missions connues (base + disque).
 
     Outil mono-poste : pas de filtrage par `owner_id`, voir
     `_get_project_db_or_disk`.
+
+    `limit`/`offset` optionnels (V-09, audit combiné du 06/08/2026) : sans
+    volume réel aujourd'hui pour en avoir besoin, mais ajoutés en amont
+    plutôt que d'attendre qu'une mission récurrente sur plusieurs années
+    rende la liste complète coûteuse. `limit` omis = comportement inchangé
+    (liste complète), pour ne rien casser côté appelants existants — y
+    compris les nombreux appels directs de cette fonction dans les tests,
+    sans passer par la résolution FastAPI (`Query(...)` y laisserait fuiter
+    l'objet sentinelle au lieu de la valeur par défaut réelle, même piège que
+    `Depends(...)` déjà rencontré sur V-04).
     """
     current_user, db = _resolve_test_deps(current_user, db)
     db_projects = []
@@ -498,7 +509,7 @@ def list_projects(current_user: User = Depends(get_current_user), db: Session = 
             db_projects = db.query(Project).all()
         except Exception:
             db_projects = []
-    
+
     res = {p.id: p.to_dict() for p in db_projects}
     if PROJECTS_DIR.exists():
         for d in PROJECTS_DIR.iterdir():
@@ -508,7 +519,10 @@ def list_projects(current_user: User = Depends(get_current_user), db: Session = 
                     res[d.name] = st
                 except Exception:
                     pass
-    return sorted(list(res.values()), key=lambda x: x.get("updated_at") or "", reverse=True)
+    toutes = sorted(list(res.values()), key=lambda x: x.get("updated_at") or "", reverse=True)
+    if limit is None:
+        return toutes[offset:] if offset else toutes
+    return toutes[offset:offset + limit]
 
 def get_project_db(project_id: str, db: Session | None = None) -> dict | None:
     """Helper synchrone pour les connecteurs/autres modules."""
@@ -567,10 +581,17 @@ def create_project(data: CreateProjectRequest, current_user: User = Depends(get_
     framework_ids = data.framework_ids or [data.framework_id]
     framework_id = framework_ids[0]
         
+    # Le slug est dérivé d'un texte libre (name), donc généré ici et nulle
+    # part ailleurs — mais sa VALIDITÉ comme segment de chemin doit rester
+    # celle de path_safety, seule source de vérité (V-08, audit combiné du
+    # 06/08/2026) : ce filtre recopiait auparavant un sous-ensemble figé du
+    # jeu de caractères autorisé, un point de divergence latent si
+    # safe_path_component évoluait un jour (longueur, noms réservés...).
     project_id = "".join(c for c in name.lower().replace(" ", "_") if c.isalnum() or c == "_")
     if not project_id:
          project_id = f"project_{int(datetime.now().timestamp())}"
-         
+    project_id = path_safety.safe_path_component(project_id, "identifiant de mission")
+
     if db.query(Project).filter(Project.id == project_id).first():
         raise HTTPException(status_code=400, detail="Un projet avec ce nom existe déjà")
         
@@ -838,8 +859,12 @@ def _phase_nouvellement_validee(state_file: Path, nouveau: dict) -> str | None:
 # ses propres obligations, celles-là mêmes qu'il audite chez ses clients.
 
 @router.get("/rgpd/echeances")
-def list_echeances_rgpd(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> list[dict]:
-    """Situation de conservation de toutes les missions, échues en tête."""
+def list_echeances_rgpd(current_user: User = Depends(get_current_user), db: Session = Depends(get_db),
+                         limit: int | None = None, offset: int = 0) -> list[dict]:
+    """Situation de conservation de toutes les missions, échues en tête.
+
+    `limit`/`offset` optionnels (V-09) : mêmes conventions que `list_projects`.
+    """
     resultat = []
     for state in list_projects():
         ech = retention.echeance(state)
@@ -852,7 +877,9 @@ def list_echeances_rgpd(current_user: User = Depends(get_current_user), db: Sess
         })
     ordre = {"echue": 0, "en_conservation": 1, "mission_en_cours": 2, "date_invalide": 3, "purgee": 4}
     resultat.sort(key=lambda r: (ordre.get(r["statut"], 9), r.get("jours_restants") or 0))
-    return resultat
+    if limit is None:
+        return resultat[offset:] if offset else resultat
+    return resultat[offset:offset + limit]
 
 
 @router.put("/projects/{p_id}/rgpd")

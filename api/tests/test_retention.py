@@ -228,6 +228,23 @@ def test_les_echeances_comptent_les_donnees_restantes(registre):
     assert echeances[0]["donnees_personnelles"] == 4
 
 
+# --- Pagination (V-09, audit combiné du 06/08/2026) -------------------------
+
+def test_les_echeances_paginees_avec_limit(registre):
+    autre = registre / "echue"
+    autre.mkdir()
+    m = mission_avec_personnes()
+    m["id"] = "echue"
+    (autre / "project.json").write_text(json.dumps(m), encoding="utf-8")
+
+    assert len(projects.list_echeances_rgpd()) == 2
+    assert len(projects.list_echeances_rgpd(limit=1)) == 1
+
+
+def test_les_echeances_sans_pagination_restent_inchangees(registre):
+    assert projects.list_echeances_rgpd() == projects.list_echeances_rgpd(limit=None, offset=0)
+
+
 def test_la_purge_sur_mission_introuvable_renvoie_404(tmp_path, monkeypatch):
     monkeypatch.setattr(projects, "PROJECTS_DIR", tmp_path)
     monkeypatch.setattr(projects.crud, "PROJECTS_DIR", tmp_path, raising=False)
