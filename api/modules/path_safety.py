@@ -52,3 +52,31 @@ def safe_filename(filename: str | None) -> str:
         # Le client a envoyé un chemin, pas un simple nom : on l'a neutralisé.
         audit_log.record("upload.sanitized", target=name, outcome="ok", detail=repr(filename)[:80])
     return name
+
+
+async def lire_upload_borne(file, taille_max: int, champ: str = "fichier") -> bytes:
+    """Lit un flux d'upload par blocs et refuse au-delà de `taille_max`, plutôt
+    que de charger un flux non borné en mémoire (audit combiné du 06/08/2026,
+    V-02/V-07) : `await file.read()` sans plafond peut épuiser la RAM ou le
+    disque avant qu'un contrôle de taille en aval n'ait la moindre chance de
+    s'exécuter.
+
+    Rejette dès que le seuil est franchi, sans attendre la fin du flux — pour
+    ne pas payer le coût d'un flux volumineux avant de le refuser.
+    """
+    morceaux: list[bytes] = []
+    taille = 0
+    while True:
+        bloc = await file.read(1024 * 1024)
+        if not bloc:
+            break
+        taille += len(bloc)
+        if taille > taille_max:
+            audit_log.record("upload.trop_volumineux", target=champ, outcome="denied",
+                             detail=f">{taille_max // (1024 * 1024)} Mo")
+            raise HTTPException(
+                status_code=413,
+                detail=f"{champ} trop volumineux (limite {taille_max // (1024 * 1024)} Mo)",
+            )
+        morceaux.append(bloc)
+    return b"".join(morceaux)

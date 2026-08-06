@@ -8,11 +8,14 @@ test_workflow_loader.py et test_collecte_technique.py.
 """
 from __future__ import annotations
 
+import asyncio
+import io
 import sys
 from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
+from starlette.datastructures import UploadFile
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -90,3 +93,46 @@ def test_rejette_none():
 def test_rejette_un_nom_reduit_a_une_traversee_pure():
     with pytest.raises(HTTPException):
         path_safety.safe_filename("../..")
+
+
+# --- lire_upload_borne (audit combiné du 06/08/2026, V-02/V-07) -----------
+
+def test_lire_upload_borne_conserve_le_contenu_sous_le_plafond():
+    upload = UploadFile(io.BytesIO(b"Port 22\n"), filename="sshd_config")
+    contenu = asyncio.run(path_safety.lire_upload_borne(upload, taille_max=1024))
+    assert contenu == b"Port 22\n"
+
+
+def test_lire_upload_borne_refuse_un_flux_trop_volumineux():
+    upload = UploadFile(io.BytesIO(b"A" * 5000), filename="gros.bin")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(path_safety.lire_upload_borne(upload, taille_max=1024))
+    assert exc_info.value.status_code == 413
+
+
+def test_lire_upload_borne_message_erreur_inclut_le_nom_du_champ():
+    upload = UploadFile(io.BytesIO(b"A" * 5000), filename="gros.bin")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(path_safety.lire_upload_borne(upload, taille_max=1024, champ="archive"))
+    assert "archive" in exc_info.value.detail
+
+
+def test_lire_upload_borne_rejette_des_le_franchissement_du_seuil_sans_lire_le_flux_entier():
+    """Refuse dès qu'un bloc dépasse le plafond, sans consommer tout le flux
+    en mémoire au préalable — c'est tout l'intérêt face à un flux volumineux."""
+    class FluxTraceur:
+        def __init__(self, blocs):
+            self._blocs = list(blocs)
+            self.appels = 0
+
+        async def read(self, taille=-1):
+            self.appels += 1
+            if not self._blocs:
+                return b""
+            return self._blocs.pop(0)
+
+    flux = FluxTraceur([b"A" * 600, b"B" * 600, b"C" * 600])
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(path_safety.lire_upload_borne(flux, taille_max=1024))
+    assert exc_info.value.status_code == 413
+    assert flux.appels == 2

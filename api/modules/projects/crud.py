@@ -99,6 +99,12 @@ from .. import ids
 router = APIRouter(prefix="/api")
 _log = logging.getLogger("greenshield.projects.crud")
 
+# Audit combiné 06/08/2026 (V-02/V-07) : plafonds de taille pour les deux
+# points d'entrée qui acceptent un flux d'upload brut avant toute validation
+# de contenu — voir path_safety.lire_upload_borne.
+TAILLE_MAX_UPLOAD_FICHIER = 20 * 1024 * 1024
+TAILLE_MAX_UPLOAD_ARCHIVE = 220 * 1024 * 1024
+
 from . import PROJECTS_DIR, FRAMEWORKS_DIR, _write_json_atomic, _read_state, calculate_progress, get_framework_by_id, _rempli, _tprm_rate, _chiffrer, _dechiffrer
 
 def _nda_template(client: str) -> str:
@@ -748,9 +754,13 @@ async def upload_file(p_id: str, file: UploadFile = File(...),
     if not p_dir.exists():
         raise HTTPException(status_code=404, detail="Projet introuvable")
 
+    # Audit combiné 06/08/2026 (V-02) : `shutil.copyfileobj` sur le flux brut
+    # écrivait sans plafond — un client pouvait saturer le disque avec un seul
+    # upload. Les fichiers cibles réels (sshd_config, nginx.conf...) pèsent
+    # quelques Ko ; 20 Mo laisse une large marge sans ouvrir la porte à un DoS.
+    contenu = await path_safety.lire_upload_borne(file, TAILLE_MAX_UPLOAD_FICHIER, "fichier")
     target_path = p_dir / "targets" / safe_filename
-    with target_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    target_path.write_bytes(contenu)
 
     p, state = _get_project_db_or_disk(p_id, db)
     if not state:
@@ -1061,8 +1071,12 @@ async def import_project_archive(
 
     L'archive est une entrée non fiable : `archive.lire_archive` valide la
     structure, plafonne la décompression et refuse toute traversée de chemin.
+    Le flux brut est lui-même plafonné avant lecture complète (V-07, audit
+    combiné 06/08/2026) : sans ça, `await file.read()` chargeait un fichier
+    de taille arbitraire en mémoire avant que `lire_archive` n'ait la moindre
+    chance de rejeter une taille excessive.
     """
-    donnees = await file.read()
+    donnees = await path_safety.lire_upload_borne(file, TAILLE_MAX_UPLOAD_ARCHIVE, "archive")
     try:
         state, fichiers = archive.lire_archive(donnees, password)
     except archive.ArchiveInvalide as exc:

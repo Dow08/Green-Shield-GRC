@@ -74,6 +74,10 @@ export default function App() {
   const isAuthenticated = authState === "connecte";
 
   const handleLogout = () => {
+    // Révocation côté serveur en best-effort (V-03) : la déconnexion locale
+    // ne doit jamais rester bloquée par un réseau coupé ou un jeton déjà
+    // expiré — `clearSession()` s'exécute dans tous les cas.
+    api.auth.logout().catch(() => {});
     clearSession();
     setAuthState("deconnecte");
     setView("home");

@@ -26,6 +26,7 @@ en mémoire le temps de l'appel et repart avec la réponse.
 from __future__ import annotations
 
 import json
+import re
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
@@ -94,7 +95,18 @@ def _appeler_ollama(system_context: str, user_prompt: str, modele: str, timeout:
     return body["message"]["content"]
 
 
+# Seul fournisseur où `modele` s'interpole dans l'URL (les autres le passent
+# dans le corps JSON, où `json.dumps` échappe déjà tout). Sans validation, un
+# `modele` contenant "/", "?" ou "#" pouvait dévier la requête vers un autre
+# chemin/paramètre de la même API — potentiellement en emportant la clé dans
+# l'URL modifiée (V-05, audit combiné du 06/08/2026). Couvre les formats de
+# nom de modèle Gemini réels ("gemini-2.0-flash", "gemini-1.5-pro-latest").
+_MODELE_GEMINI_VALIDE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
 def _appeler_gemini(api_key: str, system_context: str, user_prompt: str, modele: str, timeout: int) -> str | None:
+    if not _MODELE_GEMINI_VALIDE.match(modele):
+        return None
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{modele}:generateContent"
     body = _poster_json(
         f"{url}?key={quote(api_key)}",

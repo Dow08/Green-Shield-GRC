@@ -144,6 +144,20 @@ def test_upload_legitime_fonctionne_toujours(legit_project):
     assert (projects.PROJECTS_DIR / legit_project / "targets" / "sshd_config").read_text() == "Port 22\n"
 
 
+# --- V-02 (audit combiné du 06/08/2026) : plafond de taille sur l'upload ---
+# `shutil.copyfileobj` écrivait le flux brut sans aucune limite : un client
+# pouvait saturer le disque avec un seul upload de fichier cible.
+
+def test_upload_trop_volumineux_est_rejete(legit_project, monkeypatch):
+    monkeypatch.setattr(projects.crud, "TAILLE_MAX_UPLOAD_FICHIER", 1024)
+    upload = UploadFile(io.BytesIO(b"A" * 5000), filename="trop_gros.bin")
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(projects.upload_file(legit_project, upload))
+    assert exc_info.value.status_code == 413
+    # Rien n'a été écrit sur disque : ni le fichier, ni une trace dans l'état.
+    assert not (projects.PROJECTS_DIR / legit_project / "targets" / "trop_gros.bin").exists()
+
+
 # --- V-04 : import_framework -------------------------------------------
 
 def test_v04_import_framework_avec_traversee_est_rejete(isolated_dirs):

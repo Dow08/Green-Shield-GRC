@@ -29,6 +29,15 @@ import main
 from modules import auth
 from modules.database.models import User
 
+# Le limiteur de débit partagé (`auth.limiter`) est désactivé pour toute la
+# suite : la quasi-totalité des tests appellent les fonctions de route
+# directement (pattern établi dans ce projet), sans passer par un vrai objet
+# `Request` HTTP — or slowapi lève une erreur s'il ne trouve pas de `Request`
+# dans les arguments dès qu'il est activé (audit du 06/08/2026, V-04). Les
+# tests dédiés du rate limiting (test_rate_limiting.py) le réactivent
+# ponctuellement via TestClient.
+auth.limiter.enabled = False
+
 
 def _mock_current_user():
     """Utilisateur factice pour les tests — contourne l'authentification JWT

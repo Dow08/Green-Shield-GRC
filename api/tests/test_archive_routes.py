@@ -140,6 +140,16 @@ def test_import_ne_laisse_pas_de_mission_partielle_en_cas_d_echec(registre, monk
     assert not (registre / "acme").exists(), "mission partielle laissée sur disque"
 
 
+def test_import_avec_flux_brut_trop_volumineux_est_rejete(registre, monkeypatch):
+    """V-07 (audit combiné du 06/08/2026) : `await file.read()` chargeait le
+    flux brut en mémoire sans plafond, avant même que `archive.lire_archive`
+    ait la moindre chance de contrôler la taille décompressée."""
+    monkeypatch.setattr(projects.crud, "TAILLE_MAX_UPLOAD_ARCHIVE", 1024)
+    with pytest.raises(HTTPException) as exc:
+        _importer(b"A" * 5000)
+    assert exc.value.status_code == 413
+
+
 def test_import_d_une_archive_a_identifiant_malveillant_est_rejete(registre):
     """L'identifiant vient de l'archive : il reste une donnée non fiable."""
     tampon = io.BytesIO()

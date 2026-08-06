@@ -13,6 +13,18 @@ class User(Base):
     is_premium = Column(Boolean, default=False)
 
 
+# V-03 (audit combiné du 06/08/2026) : sans liste de révocation, un jeton JWT
+# reste valable jusqu'à son expiration naturelle (24h) même après /logout —
+# la déconnexion n'avait d'effet que côté client (jeton oublié, pas invalidé).
+# Chaque jeton émis porte désormais un `jti` unique ; /logout y ajoute une
+# ligne ici, get_current_user la consulte à chaque requête authentifiée.
+class RevokedToken(Base):
+    __tablename__ = "revoked_tokens"
+
+    jti = Column(String, primary_key=True, index=True)
+    expires_at = Column(Integer, nullable=False)  # exp du jeton (timestamp Unix) — sert à purger les entrées obsolètes
+
+
 # NOTE AUDIT 01/08/2026 : le modèle Project assure le lien de propriété
 # (owner_id) entre un utilisateur et ses missions. L'état complet de la
 # mission reste dans les fichiers JSON (cohérent avec le fonctionnement

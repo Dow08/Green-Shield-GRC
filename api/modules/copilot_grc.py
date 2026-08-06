@@ -15,10 +15,10 @@ partir des chiffres agrégés réels.
 """
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from modules.database.models import User
 from sqlalchemy.orm import Session
-from modules.auth import get_current_user
+from modules.auth import get_current_user, limiter
 from modules.database.session import get_db
 
 from . import ai_gateway, audit_log, materiel, projects
@@ -154,7 +154,8 @@ def get_copilot_context(current_user: User = Depends(get_current_user), db: Sess
 
 
 @router.post("/copilot/ask")
-def ask_copilot(data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+@limiter.limit("20/minute")
+def ask_copilot(data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db), request: Request = None) -> dict:
     prompt = data.get("prompt", "")
     api_key = (data.get("key") or "").strip()
     fournisseur = (data.get("fournisseur") or "").strip().lower()

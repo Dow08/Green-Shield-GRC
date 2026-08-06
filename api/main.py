@@ -48,6 +48,29 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+# En-têtes de sécurité HTTP, indépendants de nginx (V-06, audit combiné du
+# 06/08/2026). `web/nginx.conf` ne protège que le déploiement Docker : ce
+# même FastAPI est aussi servi en direct par l'exécutable de bureau
+# (PyInstaller, desktop.py) et en développement (`uvicorn`), sans reverse
+# proxy devant — ces deux modes n'avaient jusqu'ici AUCUN de ces en-têtes.
+# Mêmes valeurs que nginx.conf, pour un comportement identique quel que soit
+# le mode d'exécution.
+_CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; object-src 'none'; base-uri 'self'; "
+        "frame-ancestors 'none'; form-action 'self';")
+
+
+@app.middleware("http")
+async def ajouter_en_tetes_securite(request: Request, call_next):
+    reponse = await call_next(request)
+    reponse.headers["X-Frame-Options"] = "DENY"
+    reponse.headers["X-Content-Type-Options"] = "nosniff"
+    reponse.headers["Referrer-Policy"] = "no-referrer"
+    reponse.headers["Content-Security-Policy"] = _CSP
+    return reponse
+
+
 # Enregistrement des routes projets/frameworks/collecte technique/copilote GRC (sécurisées)
 app.include_router(auth_router)
 app.include_router(projects_router)

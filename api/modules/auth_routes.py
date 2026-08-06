@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Security, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
 from .database.session import get_db
 from .database.models import User
-from .auth import get_password_hash, verify_password, create_access_token, get_current_user, validate_password, limiter, ACCESS_TOKEN_EXPIRE_MINUTES
+from .auth import (
+    get_password_hash, verify_password, create_access_token, get_current_user,
+    validate_password, limiter, ACCESS_TOKEN_EXPIRE_MINUTES, security, revoke_current_token,
+)
 from .schemas import RegisterRequest, LoginRequest, LoginResponse, ActivateLicenseRequest, UserProfileResponse
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -49,6 +53,21 @@ def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
         is_premium=user.is_premium,
         email=user.email,
     )
+
+@router.post("/logout")
+def logout(
+    credentials: HTTPAuthorizationCredentials = Security(security),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Révoque le jeton d'accès en cours (V-03, audit combiné du 06/08/2026).
+
+    Sans liste de révocation, un jeton volé restait valable jusqu'à son
+    expiration naturelle (24h) même après une "déconnexion" — qui ne faisait
+    qu'oublier le jeton côté client, sans le rendre inutilisable.
+    """
+    revoke_current_token(credentials.credentials, db)
+    return {"message": "Déconnecté"}
 
 @router.post("/activate")
 def activate_license(data: ActivateLicenseRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -497,5 +497,9 @@ export const api = {
     register: (data: { email: string; password: string }) => post<MessageResponse>("/api/auth/register", data),
     activate: (data: { license_key: string }) => post<MessageResponse>("/api/auth/activate", data),
     me: () => get<UserProfile>("/api/auth/me"),
+    // Révoque le jeton côté serveur (V-03, audit du 06/08/2026) — sans cet
+    // appel, `clearSession()` ne fait qu'oublier le jeton localement, qui
+    // reste valable jusqu'à son expiration naturelle (24h).
+    logout: () => post<MessageResponse>("/api/auth/logout", {}),
   },
 };

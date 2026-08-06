@@ -29,7 +29,7 @@ from sqlalchemy.orm import Session
 
 from . import data_paths
 from .database.session import get_db
-from .database.models import User
+from .database.models import User, RevokedToken
 
 _log = logging.getLogger("greenshield.auth")
 
@@ -132,9 +132,55 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
         expire = datetime.now(timezone.utc) + expires_delta
     else:
         expire = datetime.now(timezone.utc) + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
+    # jti (V-03) : identifiant unique par jeton, indépendant de l'utilisateur —
+    # révoquer une session ne doit invalider QUE ce jeton-là, pas toutes les
+    # sessions actives du même compte.
+    to_encode.update({"exp": expire, "jti": secrets.token_hex(16)})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+
+def _decode_token(token: str) -> dict:
+    """Valide la signature et l'expiration d'un jeton. Ne vérifie PAS la
+    révocation (voir `is_token_revoked`) — factorisé car utilisé à la fois par
+    `get_current_user` et par `/logout`, qui décode son propre jeton pour en
+    extraire le `jti` à révoquer."""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expiré")
+    except jwt.PyJWTError:
+        raise HTTPException(status_code=401, detail="Token invalide")
+    if not payload.get("sub"):
+        raise HTTPException(status_code=401, detail="Token invalide")
+    return payload
+
+
+def is_token_revoked(jti: str, db: Session) -> bool:
+    return db.query(RevokedToken).filter(RevokedToken.jti == jti).first() is not None
+
+
+def revoke_token(jti: str, expires_at: int, db: Session) -> None:
+    """Ajoute un jeton à la liste de révocation.
+
+    Purge au passage les entrées déjà expirées naturellement : `jwt.decode`
+    les rejetterait de toute façon (ExpiredSignatureError), inutile de les
+    garder — la table de révocation ne grossit donc jamais sans limite.
+    """
+    maintenant = int(datetime.now(timezone.utc).timestamp())
+    db.query(RevokedToken).filter(RevokedToken.expires_at < maintenant).delete()
+    if not db.query(RevokedToken).filter(RevokedToken.jti == jti).first():
+        db.add(RevokedToken(jti=jti, expires_at=expires_at))
+    db.commit()
+
+
+def revoke_current_token(token: str, db: Session) -> None:
+    """Décode le jeton fourni et le révoque. Utilisé par `POST /api/auth/logout`."""
+    payload = _decode_token(token)
+    jti = payload.get("jti")
+    exp = payload.get("exp")
+    if jti and exp:
+        revoke_token(jti, int(exp), db)
 
 
 def get_current_user(
@@ -148,16 +194,12 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
-    token = credentials.credentials
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Token invalide")
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expiré")
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Token invalide")
+    payload = _decode_token(credentials.credentials)
+    email: str = payload["sub"]
+
+    jti = payload.get("jti")
+    if jti and is_token_revoked(jti, db):
+        raise HTTPException(status_code=401, detail="Session révoquée. Reconnectez-vous.")
 
     user = db.query(User).filter(User.email == email).first()
     if user is None:

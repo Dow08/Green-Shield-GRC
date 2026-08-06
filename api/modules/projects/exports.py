@@ -9,10 +9,10 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP
 from pathlib import Path
 from urllib.parse import quote
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response, Depends
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Response, Depends, Request
 import yaml
 from ..database.models import User
-from ..auth import get_current_user
+from ..auth import get_current_user, limiter
 from .. import aipd
 from .. import archive
 from .. import auditcraft_grc
@@ -488,7 +488,8 @@ def _tprm_tiers(state: dict) -> list[dict]:
 # d'URL : une URL finit dans les journaux d'accès et l'historique.
 
 @router.post("/projects/{p_id}/archive")
-def export_project_archive(p_id: str, data: dict, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_archive(p_id: str, data: dict, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = PROJECTS_DIR / p_id
     if not (p_dir / "project.json").is_file():
@@ -524,7 +525,8 @@ def export_project_archive(p_id: str, data: dict, current_user: User = Depends(g
 import asyncio
 
 @router.get("/projects/{p_id}/report.html")
-async def export_project_html(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "", current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+async def export_project_html(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Rapport de mission au format HTML, à la mise en page validée.
 
     Format de restitution principal : autonome (aucune ressource externe, donc
@@ -557,7 +559,8 @@ def _servir_rapport_html(p_id: str, nom: str, html: str, action_journal: str) ->
 
 
 @router.get("/projects/{p_id}/report/synthese.html")
-def export_project_html_synthese(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "", current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_html_synthese(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Synthèse de fin de mission sur une page — pour une restitution en direction."""
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     state_file = PROJECTS_DIR / p_id / "project.json"
@@ -569,7 +572,8 @@ def export_project_html_synthese(p_id: str, auditeur: str = "", cabinet: str = "
 
 
 @router.get("/projects/{p_id}/report/tableau-restitution.html")
-def export_project_html_tableau(p_id: str, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_html_tableau(p_id: str, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Écran de clôture : ce qui a été diagnostiqué face à ce qui reste à faire."""
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     state_file = PROJECTS_DIR / p_id / "project.json"
@@ -581,7 +585,8 @@ def export_project_html_tableau(p_id: str, current_user: User = Depends(get_curr
 
 
 @router.get("/projects/{p_id}/report/registre-conformite.html")
-def export_project_html_registre(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "", current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_html_registre(p_id: str, auditeur: str = "", cabinet: str = "", logo: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Registre de conformité : écarts organisationnels avec preuve et registre des tiers."""
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     state_file = PROJECTS_DIR / p_id / "project.json"
@@ -593,7 +598,8 @@ def export_project_html_registre(p_id: str, auditeur: str = "", cabinet: str = "
 
 
 @router.get("/projects/{p_id}/report/cartographie-risque.html")
-def export_project_html_cartographie(p_id: str, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_html_cartographie(p_id: str, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Cartographie du risque : matrice gravité × vraisemblance et classement des tiers."""
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     state_file = PROJECTS_DIR / p_id / "project.json"
@@ -663,7 +669,8 @@ def _servir_docx(p_id: str, filename: str, content: bytes, action_journal: str) 
 
 
 @router.post("/projects/{p_id}/report.docx")
-async def export_project_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+async def export_project_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Rapport d'audit au format Word natif (.docx), ouvrable sans avertissement.
 
     Chemin distinct de /export/{doc_type} : cette route-là capturerait sinon un
@@ -682,7 +689,8 @@ async def export_project_docx(p_id: str, data: dict = {}, current_user: User = D
 
 
 @router.post("/projects/{p_id}/nda.docx")
-def export_project_nda_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_nda_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Accord de confidentialité (NDA) au format Word — prêt à envoyer signer."""
     p_id, state = _lire_state_pour_docx(p_id)
     filename, content = report_docx.build_nda_docx(
@@ -692,7 +700,8 @@ def export_project_nda_docx(p_id: str, data: dict = {}, current_user: User = Dep
 
 
 @router.post("/projects/{p_id}/ebios.docx")
-def export_project_ebios_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_ebios_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Analyse de risques EBIOS RM au format Word."""
     p_id, state = _lire_state_pour_docx(p_id)
     filename, content = report_docx.build_ebios_docx(
@@ -702,7 +711,8 @@ def export_project_ebios_docx(p_id: str, data: dict = {}, current_user: User = D
 
 
 @router.post("/projects/{p_id}/pssi.docx")
-def export_project_pssi_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_pssi_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """PSSI & Plan de reprise (PRI) au format Word."""
     p_id, state = _lire_state_pour_docx(p_id)
     filename, content = report_docx.build_pssi_docx(
@@ -712,7 +722,8 @@ def export_project_pssi_docx(p_id: str, data: dict = {}, current_user: User = De
 
 
 @router.post("/projects/{p_id}/aipd.docx")
-def export_project_aipd_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_aipd_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """AIPD / PIA (RGPD) au format Word."""
     p_id, state = _lire_state_pour_docx(p_id)
     filename, content = report_docx.build_aipd_docx(
@@ -722,7 +733,8 @@ def export_project_aipd_docx(p_id: str, data: dict = {}, current_user: User = De
 
 
 @router.post("/projects/{p_id}/soa.docx")
-def export_project_soa_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user)) -> Response:
+@limiter.limit("30/minute")
+def export_project_soa_docx(p_id: str, data: dict = {}, current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     """Déclaration d'Applicabilité (SoA) au format Word — ISO 27001 uniquement.
 
     Répond 404 plutôt que de générer un document vide et trompeur si la
@@ -740,7 +752,8 @@ def export_project_soa_docx(p_id: str, data: dict = {}, current_user: User = Dep
 
 
 @router.get("/projects/{p_id}/export/{doc_type}")
-def export_project_document(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "", current_user: User = Depends(get_current_user)) -> dict:
+@limiter.limit("30/minute")
+def export_project_document(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> dict:
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = PROJECTS_DIR / p_id
     if not p_dir.exists():
@@ -781,7 +794,8 @@ import markdown
 from fastapi.responses import HTMLResponse
 
 @router.get("/projects/{p_id}/pdf/{doc_type}")
-def export_project_pdf(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "", current_user: User = Depends(get_current_user)) -> HTMLResponse:
+@limiter.limit("30/minute")
+def export_project_pdf(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> HTMLResponse:
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = PROJECTS_DIR / p_id
     if not p_dir.exists():

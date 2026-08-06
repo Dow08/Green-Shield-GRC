@@ -72,6 +72,47 @@ def test_call_gemini_transmet_la_cle_dans_l_url(monkeypatch):
     assert "ma-cle-secrete" in captured["url"]
 
 
+# --- V-05 (audit combiné du 06/08/2026) : validation de `modele` dans l'URL Gemini
+# `modele` est le seul cas où une valeur transite dans l'URL plutôt que dans un
+# corps JSON échappé — sans validation, un modèle contenant "/", "?" ou "#"
+# pouvait dévier la requête vers un autre chemin/paramètre de la même API.
+
+def test_modele_gemini_avec_caractere_de_chemin_est_refuse(monkeypatch):
+    def ne_doit_pas_etre_appele(request, timeout):
+        raise AssertionError("urlopen ne doit pas être appelé avec un modèle invalide")
+
+    monkeypatch.setattr(ai_gateway, "urlopen", ne_doit_pas_etre_appele)
+    assert ai_gateway.appeler_llm("gemini", "k", "ctx", "prompt", modele="../v1/other") is None
+
+
+def test_modele_gemini_avec_point_d_interrogation_est_refuse(monkeypatch):
+    def ne_doit_pas_etre_appele(request, timeout):
+        raise AssertionError("urlopen ne doit pas être appelé avec un modèle invalide")
+
+    monkeypatch.setattr(ai_gateway, "urlopen", ne_doit_pas_etre_appele)
+    assert ai_gateway.appeler_llm("gemini", "k", "ctx", "prompt", modele="gemini-2.0-flash?x=1") is None
+
+
+def test_modele_gemini_legitime_fonctionne_toujours(monkeypatch):
+    captured = {}
+
+    def fake_urlopen(request, timeout):
+        captured["url"] = request.full_url
+        return _FakeResponse({"candidates": [{"content": {"parts": [{"text": "ok"}]}}]})
+
+    monkeypatch.setattr(ai_gateway, "urlopen", fake_urlopen)
+    result = ai_gateway.appeler_llm("gemini", "k", "ctx", "prompt", modele="gemini-1.5-pro-latest")
+    assert result == "ok"
+    assert "gemini-1.5-pro-latest:generateContent" in captured["url"]
+
+
+def test_modele_gemini_par_defaut_reste_valide(monkeypatch):
+    """Le modèle par défaut (utilisé quand le client n'en fournit aucun) doit
+    lui-même satisfaire la validation — sinon le Copilote basculerait à tort
+    hors-ligne sur le cas d'usage le plus courant."""
+    assert ai_gateway._MODELE_GEMINI_VALIDE.match(ai_gateway.modele_par_defaut("gemini"))
+
+
 # --- Passerelle multi-fournisseurs (05/08/2026) -----------------------------
 # Les réponses simulées reproduisent le format réel documenté de chaque API :
 # une erreur de forme ici signifierait que le code parse la mauvaise structure.
