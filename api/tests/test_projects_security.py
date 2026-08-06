@@ -137,7 +137,7 @@ def test_upload_avec_p_id_traverse_est_rejete(isolated_dirs):
     assert exc_info.value.status_code == 400
 
 
-def test_upload_legitime_fonctionne_toujours(legit_project):
+def test_upload_legitime_fonctionne_bien_toujours(legit_project):
     upload = UploadFile(io.BytesIO(b"Port 22\n"), filename="sshd_config")
     result = asyncio.run(projects.upload_file(legit_project, upload))
     assert result["steps"]["collecte"]["files"] == ["sshd_config"]

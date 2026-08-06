@@ -40,7 +40,7 @@ def limiteur_actif():
     auth.limiter.enabled = False
 
 
-def test_route_d_export_est_limitee_en_debit(limiteur_actif):
+def test_une_route_export_est_limitee_en_debit(limiteur_actif):
     """30/minute sur les routes d'export (ex: tableau de restitution HTML) —
     la mission n'a pas besoin d'exister : le plafond se déclenche avant même
     que la route ne cherche le projet."""
