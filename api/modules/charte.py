@@ -233,51 +233,6 @@ def logo_data_uri(logo_base64: str = "") -> str:
     return LOGO_DATA_URI
 
 
-# --- Feuille de style d'impression ------------------------------------------
-# Les livrables sont du Markdown enrichi de HTML : ils s'ouvrent dans Word et
-# s'impriment en PDF depuis le navigateur (cf. F6 — aucune dépendance native).
-# Le style ne s'applique qu'à l'impression pour ne pas gêner la relecture à
-# l'écran.
-FEUILLE_STYLE = """<style>
-:root { --gs-vert: #2ee6a0; --gs-sombre: #04150e; --gs-encre: #111; }
-
-.gs-entete {
-  display: flex; align-items: center; gap: 14px;
-  border-bottom: 3px solid var(--gs-vert); padding-bottom: 10px; margin-bottom: 18px;
-}
-.gs-entete img { width: 46px; height: 46px; }
-.gs-entete .gs-marque { font-size: 15pt; font-weight: 700; color: var(--gs-sombre); letter-spacing: .5px; }
-.gs-entete .gs-cabinet { font-size: 9pt; color: #4a6157; }
-.gs-meta { font-size: 9pt; color: #4a6157; margin-left: auto; text-align: right; }
-
-.gs-confidentiel {
-  border: 2px solid #c2185b; color: #c2185b; font-weight: 700;
-  padding: 8px; text-align: center; margin: 14px 0;
-  text-transform: uppercase; letter-spacing: 1px; font-size: 9pt;
-}
-
-.gs-pied {
-  margin-top: 28px; padding-top: 10px; border-top: 1px solid #ddd;
-  font-size: 8pt; color: #6b7f78; text-align: center;
-}
-
-.gs-pied-note { font-size: 7pt; color: #8a9a94; font-style: italic; }
-
-@media print {
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: var(--gs-encre); line-height: 1.5; padding: 1.6cm; }
-  h1 { font-size: 22pt; color: var(--gs-sombre); border-bottom: 2px solid var(--gs-vert); padding-bottom: 5px; }
-  h2 { font-size: 15pt; color: #0c2317; margin-top: 18pt; }
-  h3 { font-size: 12pt; color: #1a4227; }
-  table { width: 100%; border-collapse: collapse; margin-top: 12px; page-break-inside: avoid; }
-  th { background-color: #eef5f2; border: 1px solid #ccd8d3; padding: 7px; font-weight: 700; font-size: 9.5pt; }
-  td { border: 1px solid #ddd; padding: 7px; font-size: 9.5pt; }
-  .gs-entete { page-break-after: avoid; }
-  .gs-pied { position: running(pied); }
-}
-</style>
-"""
-
-
 # L'application sert n'importe quel consultant, jamais un seul cabinet : ne
 # jamais retomber en silence sur un nom d'entreprise ou de personne écrit en
 # dur (retour utilisateur du 30/07/2026 — le NDA affichait "DP Cyber
@@ -317,43 +272,3 @@ def pied_markdown(empreinte: str, cabinet: str = "") -> str:
             f"Empreinte SHA-256 de l'état de la mission à l'édition : `{empreinte}`\n\n"
             "*Toute modification ultérieure de la mission, même rétablie, produit "
             "une empreinte différente.*\n")
-
-
-def entete(titre_document: str, client: str, date_edition: str, reference: str,
-          cabinet: str = "") -> str:
-    """En-tête de livrable : logo, marque, client et référence du document."""
-    return f'''{FEUILLE_STYLE}
-<div class="gs-entete">
-  <img src="{LOGO_DATA_URI}" alt="GREEN SHIELD" />
-  <div>
-    <div class="gs-marque">GREEN SHIELD</div>
-    <div class="gs-cabinet">{cabinet or _CABINET_DEFAUT} — Audit &amp; Conseil Cybersécurité</div>
-  </div>
-  <div class="gs-meta">
-    <div><strong>{titre_document}</strong></div>
-    <div>{client}</div>
-    <div>{date_edition}</div>
-    <div>Réf. {reference}</div>
-  </div>
-</div>
-<div class="gs-confidentiel">Document confidentiel — diffusion restreinte</div>
-'''
-
-
-def pied(empreinte: str, cabinet: str = "") -> str:
-    """Pied de livrable : rappel de confidentialité et empreinte d'intégrité.
-
-    L'empreinte porte sur l'**état complet de la mission au moment de l'édition**,
-    horodatage de dernière modification compris. Elle ne revient donc pas à sa
-    valeur d'origine si une donnée est modifiée puis rétablie (constaté en
-    recette le 29/07/2026). C'est le comportement voulu — elle atteste une
-    version de la mission, pas seulement le texte du document — mais il faut le
-    dire, sinon le lecteur croit vérifier autre chose que ce qu'il vérifie.
-    """
-    return f'''
-<div class="gs-pied">
-  GREEN SHIELD — {cabinet or _CABINET_DEFAUT} · Document confidentiel, ne pas diffuser sans autorisation écrite.<br />
-  Empreinte SHA-256 de l'état de la mission à l'édition : <code>{empreinte}</code><br />
-  <span class="gs-pied-note">Toute modification ultérieure de la mission, même rétablie, produit une empreinte différente.</span>
-</div>
-'''

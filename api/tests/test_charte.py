@@ -77,54 +77,6 @@ def test_logo_data_uri_reflete_le_meme_comportement():
     assert charte.logo_data_uri("invalide") == charte.LOGO_DATA_URI
 
 
-# --- En-tête ---------------------------------------------------------------
-
-def test_l_entete_porte_la_marque_et_le_cabinet():
-    html = charte.entete("RAPPORT", "Acme Corp", "29/07/2026", "acme", cabinet="Cabinet Test")
-    assert "GREEN SHIELD" in html
-    assert "Cabinet Test" in html
-
-
-def test_l_entete_signale_l_absence_de_cabinet_configure():
-    """L'application sert n'importe quel consultant : sans cabinet saisi dans
-    Réglages, elle ne doit jamais retomber sur un nom écrit en dur (retour
-    utilisateur du 30/07/2026)."""
-    html = charte.entete("RAPPORT", "Acme Corp", "29/07/2026", "acme")
-    assert "DP Cyber Consulting" not in html
-    assert "Cabinet non renseigné" in html
-
-
-def test_l_entete_reprend_le_document_le_client_et_la_reference():
-    html = charte.entete("AIPD / PIA (RGPD)", "Acme Corp", "29/07/2026", "acme")
-    assert "AIPD / PIA (RGPD)" in html
-    assert "Acme Corp" in html
-    assert "29/07/2026" in html
-    assert "acme" in html
-
-
-def test_l_entete_affiche_la_mention_de_confidentialite():
-    html = charte.entete("RAPPORT", "Acme", "29/07/2026", "acme")
-    assert "gs-confidentiel" in html
-    assert "confidentiel" in html.lower()
-
-
-def test_l_entete_embarque_la_feuille_de_style_d_impression():
-    html = charte.entete("RAPPORT", "Acme", "29/07/2026", "acme")
-    assert "@media print" in html
-
-
-# --- Pied de page ----------------------------------------------------------
-
-def test_le_pied_porte_l_empreinte_d_integrite():
-    html = charte.pied("a" * 64)
-    assert "a" * 64 in html
-    assert "SHA-256" in html
-
-
-def test_le_pied_rappelle_la_restriction_de_diffusion():
-    assert "ne pas diffuser" in charte.pied("x" * 64).lower()
-
-
 # --- Application aux livrables réels ---------------------------------------
 
 def _mission() -> dict:

@@ -4,6 +4,16 @@ Ce document retrace l'ensemble des actions menées sur le projet afin d'assurer 
 
 ---
 
+## [07/08/2026] — Nettoyage : suppression du code mort dans charte.py
+
+Après V-08/V-09, revue ciblée du code mort déjà identifié en cours de session (audit du 30/07/2026 sur les exports Markdown) mais jamais retiré : `charte.entete()` et `charte.pied()` produisaient un en-tête/pied HTML+CSS complet, remplacés depuis le 30/07/2026 par `entete_markdown()`/`pied_markdown()` (les exports Markdown ne rendaient correctement nulle part avec du HTML/CSS embarqué — GitHub retire les styles, un navigateur affiche les tableaux Markdown en texte brut). Confirmé par grep qu'aucun appelant de production ne les utilisait plus (`report_builder.py` n'appelle que les variantes `_markdown`) — seuls les tests de `test_charte.py` les exerçaient encore. `FEUILLE_STYLE` (la constante CSS qu'`entete()` était seule à utiliser) supprimée avec eux. `entete_markdown`/`pied_markdown`/`_CABINET_DEFAUT`, qui vivaient dans le même fichier, conservés intacts.
+
+**Piège rencontré, corrigé avant commit** : première tentative par troncature du fichier à un numéro de ligne fixe — a supprimé `entete_markdown`/`pied_markdown` par erreur (mal positionnés dans le fichier par rapport à l'hypothèse de départ), cassant 90 tests (`AttributeError: module 'modules.charte' has no attribute 'entete_markdown'`). Repéré immédiatement à l'exécution de la suite complète, jamais committé — restauré via `git checkout` et refait avec des bornes de lignes vérifiées explicitement avant écriture plutôt que supposées.
+
+**7 tests obsolètes retirés** (`test_charte.py`, section « En-tête »/« Pied de page »). **750 tests backend, 183 tests frontend.**
+
+---
+
 ## [06/08/2026] — V-08 et V-09 de l'audit combiné corrigés (assainissement de chemin unifié, pagination optionnelle)
 
 Derniers constats Mineurs de l'audit combiné du 06/08/2026 — les 9 points sont désormais tous traités.
