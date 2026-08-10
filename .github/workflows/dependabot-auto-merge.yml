@@ -19,7 +19,11 @@ jobs:
           github-token: "${{ secrets.GITHUB_TOKEN }}"
 
       - name: Enable auto-merge for GitHub Actions updates
-        if: steps.metadata.outputs.package-ecosystem == 'github-actions'
+        # `fetch-metadata` lit l'écosystème dans le nom de branche sans le
+        # retoucher (`dependabot/github_actions/...`) : la valeur porte un
+        # underscore, pas le tiret de la clé `package-ecosystem` du fichier
+        # dependabot.yml. Les deux graphies sont acceptées par prudence.
+        if: contains(fromJSON('["github_actions", "github-actions"]'), steps.metadata.outputs.package-ecosystem)
         run: gh pr merge --auto --squash "$PR_URL"
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
