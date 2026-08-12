@@ -5,7 +5,7 @@
 
 > Document de cadrage produit selon la méthodologie "Brainstormer-Planificateur" (Prompt 1).
 > Aucune ligne de code n'est écrite avant validation explicite de ce document par Dorian.
-> Source des workflows : skill `grc-agent-hermes` (`C:\Users\Dow\Desktop\Cour GRC\`), croisé avec [REFERENTIEL.md](../REFERENTIEL.md) et [fiche-metier-consultant-grc.md](fiche-metier-consultant-grc.md).
+> Source des workflows : skill `grc-agent-hermes` (`C:\Users\Dow\Desktop\Cour GRC\`), croisé avec [REFERENTIEL.md](internal/REFERENTIEL.md) et [fiche-metier-consultant-grc.md](fiche-metier-consultant-grc.md).
 
 ---
 
@@ -466,7 +466,7 @@ Contrôle de couverture mené à partir du glossaire de 25 concepts et du corpus
 
 ### 14.3 Réutilisation du glossaire comme aide contextuelle
 
-Le glossaire des 25 concepts (définition · application · importance · source) constitue la matière du **module d'aide contextuelle** déjà prévu comme intention dans [REFERENTIEL.md](../REFERENTIEL.md) (« expliquer à quoi correspond chaque case de manière pédagogique »). Ses sources (EUR-Lex, cyber.gouv.fr, CNIL, ANSSI, NIST) alimentent directement le `sources[]` de §13.5.
+Le glossaire des 25 concepts (définition · application · importance · source) constitue la matière du **module d'aide contextuelle** déjà prévu comme intention dans [REFERENTIEL.md](internal/REFERENTIEL.md) (« expliquer à quoi correspond chaque case de manière pédagogique »). Ses sources (EUR-Lex, cyber.gouv.fr, CNIL, ANSSI, NIST) alimentent directement le `sources[]` de §13.5.
 
 > ⚠️ **Réserve de rigueur** : la colonne « Objectif Pédagogique » du glossaire est marquée *(Inferred)* par son auteur — donc **déduite, non sourcée**. Dans une application qui promet le zéro-invention, elle doit être soit validée explicitement, soit affichée comme interprétation, jamais présentée au même niveau que les définitions sourcées.
 

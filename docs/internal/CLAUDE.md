@@ -4,12 +4,12 @@ Contexte pour toute session Claude Code future sur ce dépôt. Préférences, co
 
 ## Le projet
 
-GREEN SHIELD est une plateforme locale, modulaire et souveraine (100 % hors-ligne) d'audit de sécurité et d'accompagnement GRC, pour un consultant cybersécurité solo (Dorian, DP Cyber Consulting). Positionnement assumé : **cockpit de conduite de mission pour consultant externe**, pas une plateforme GRC de plus (cf. [docs/audit-critique-plan.md](docs/audit-critique-plan.md), F1).
+GREEN SHIELD est une plateforme locale, modulaire et souveraine (100 % hors-ligne) d'audit de sécurité et d'accompagnement GRC, pour un consultant cybersécurité solo (Dorian, DP Cyber Consulting). Positionnement assumé : **cockpit de conduite de mission pour consultant externe**, pas une plateforme GRC de plus (cf. [docs/audit-critique-plan.md](../audit-critique-plan.md), F1).
 
 **Documents de référence — ne pas dupliquer, lire avant de proposer une évolution structurante :**
 - [REFERENTIEL.md](REFERENTIEL.md) — spec technique + guide de handoff, vision d'ensemble
-- [docs/spec-refonte-grc-consulting.md](docs/spec-refonte-grc-consulting.md) — spec fonctionnelle détaillée (les 6 phases, TPRM, EBIOS RM, E3R...)
-- [docs/audit-critique-plan.md](docs/audit-critique-plan.md) — revue adversariale du spec, plan de build par jalons, **10 règles permanentes** (§7) et frictions non résolues F13-F19 (§6bis)
+- [docs/spec-refonte-grc-consulting.md](../spec-refonte-grc-consulting.md) — spec fonctionnelle détaillée (les 6 phases, TPRM, EBIOS RM, E3R...)
+- [docs/audit-critique-plan.md](../audit-critique-plan.md) — revue adversariale du spec, plan de build par jalons, **10 règles permanentes** (§7) et frictions non résolues F13-F19 (§6bis)
 - [TRACKING.md](TRACKING.md) — journal de bord chronologique des évolutions réalisées
 - [todo.md](todo.md) — prochaines tâches connues, à jour
 

@@ -1,6 +1,6 @@
 # TODO — GREEN SHIELD
 
-Tâches connues et non fictives : chaque ligne cite sa source (friction identifiée dans [docs/audit-critique-plan.md](docs/audit-critique-plan.md) §6bis, ou constat direct de session). Rien n'est inventé — cocher au fur et à mesure, ajouter la date de complétion dans [TRACKING.md](TRACKING.md).
+Tâches connues et non fictives : chaque ligne cite sa source (friction identifiée dans [docs/audit-critique-plan.md](../audit-critique-plan.md) §6bis, ou constat direct de session). Rien n'est inventé — cocher au fur et à mesure, ajouter la date de complétion dans [TRACKING.md](TRACKING.md).
 
 ## Hygiène immédiate
 
@@ -15,7 +15,7 @@ Tâches connues et non fictives : chaque ligne cite sa source (friction identifi
 ## Frictions non résolues de l'audit critique (§6bis)
 
 - [x] **F14 — Export/Import d'une mission** livré le 29/07/2026 : archive ZIP chiffrée AES-256 (`api/modules/archive.py`), routes `POST /api/projects/{id}/archive` et `POST /api/projects/import-archive`, panneau `ArchivePanel.tsx`. Couvre aussi le reste de **F15** (chiffrement du vecteur le plus exposé). Import durci contre le Zip Slip, la bombe de décompression et archives malformées.
-- [x] **F15 — Chiffrement au repos documenté** le 29/07/2026 : section « Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md), avec les commandes de vérification (`manage-bde -status` / `lsblk -f`). Reste à faire une fois F14 livré : **chiffrer l'archive d'export**, qui est le vecteur le plus exposé.
+- [x] **F15 — Chiffrement au repos documenté** le 29/07/2026 : section « Prérequis d'exploitation (non négociables) » en tête de [README.md](../../README.md), avec les commandes de vérification (`manage-bde -status` / `lsblk -f`). Reste à faire une fois F14 livré : **chiffrer l'archive d'export**, qui est le vecteur le plus exposé.
 - [x] **F16 — Jeu de démonstration** livré le 29/07/2026 : bouton « Mission de démo » dans le registre, `POST /api/projects/demo`. Mission entièrement fictive (« Cabinet Fictif SAS »), marquée `is_demo`, garnie de temps consommé et d'une configuration SSH volontairement vulnérable pour que le scan technique ait de quoi montrer.
 - [x] **F17 — Conservation et purge des données personnelles** livré le 29/07/2026 : `schema_version` 4 (`socle.rgpd_consultant`), `api/modules/retention.py`, routes de politique / purge / échéances, panneau `RgpdPanel.tsx`. Le délai court depuis la **fin** de mission. La purge efface les personnes interrogées mais **jamais les constats d'audit** (minimisation, pas destruction) et prend un instantané de secours avant.
 - [x] **F18 — Licence** tranchée le 29/07/2026 : **PolyForm Noncommercial 1.0.0** (cohérence avec RED SHIELD), texte canonique récupéré depuis le dépôt officiel PolyForm et vérifié mot pour mot. Annoncée dans le README avec un tableau des usages autorisés. **F3 vérifié au passage** : les référentiels ne contiennent que des identifiants et intitulés courts reformulés (132 caractères au plus), jamais de texte normatif ISO.

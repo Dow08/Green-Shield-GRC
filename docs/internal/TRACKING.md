@@ -348,7 +348,7 @@ Le test de cette règle attaque `_nom_sur` directement plutôt que de passer par
 - **Tests :** `test_audit_log.py` (8) + `test_audit_log_integration.py` (9). Vérifié de bout en bout contre un vrai serveur sur un répertoire de données jetable.
 
 ### 2. Chiffrement au repos documenté (F15, P0)
-- Section « ⚠️ Prérequis d'exploitation (non négociables) » en tête de [README.md](README.md) : chiffrement de disque (avec les commandes de vérification `manage-bde -status` / `lsblk -f`), restriction réseau au loopback, aucune donnée client dans git. Tableau « où vivent les données » ajouté.
+- Section « ⚠️ Prérequis d'exploitation (non négociables) » en tête de [README.md](../../README.md) : chiffrement de disque (avec les commandes de vérification `manage-bde -status` / `lsblk -f`), restriction réseau au loopback, aucune donnée client dans git. Tableau « où vivent les données » ajouté.
 - README également remis à jour : les 4 modules sont désormais listés comme actifs (la table annonçait encore 3 modules « 🔜 »), section Tests et index de documentation ajoutés.
 
 ### 3. Intégration continue (P1)
