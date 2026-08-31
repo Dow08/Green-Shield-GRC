@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: TruffleHog OSS
-        uses: trufflesecurity/trufflehog@bc3a3ae6e097580bdef61492c78f79a4651319df # main
+        uses: trufflesecurity/trufflehog@74dcf3f1bdeb0f6ad28061e49bcd29f297634a67 # main
         with:
           extra_args: --debug --only-verified
 
