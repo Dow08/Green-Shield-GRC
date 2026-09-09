@@ -333,6 +333,7 @@ export interface RedouteEvent {
   event: string;
   gravity: number; // 1-4
   impact: string;
+  source: string; // traçabilité : d'où vient ce constat (QCM, entretien, scan technique...)
 }
 
 export interface RiskSource {
@@ -575,6 +576,9 @@ export interface ProjectState {
       pssi_active: boolean;
       governance_active: boolean;
       vulnerabilities_active: boolean;
+      notes_pssi?: string;
+      notes_governance?: string;
+      notes_vulnerabilities?: string;
       rgpd_register: RGPDRegister[];
       aipd_required: boolean;
       aipd: AIPDData;

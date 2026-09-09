@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { BookOpen, Plus, Trash2, Save, Loader2, Lock, AlertTriangle } from "lucide-react";
+import { BookOpen, Pencil, Plus, Trash2, Save, Loader2, Lock, AlertTriangle } from "lucide-react";
 import type { Framework, FrameworkDetail, Exigence } from "../types";
 
 interface Props {
@@ -26,6 +26,7 @@ export function ReferentielsPanel({ frameworks, onCharger, onEnregistrer }: Prop
   const [exigences, setExigences] = useState<Exigence[]>([]);
   const [personnel, setPersonnel] = useState(true);
   const [nouvelle, setNouvelle] = useState<Exigence>({ id: "", title: "", description: "" });
+  const [editingExigenceId, setEditingExigenceId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ type: "ok" | "erreur"; texte: string } | null>(null);
 
@@ -52,12 +53,27 @@ export function ReferentielsPanel({ frameworks, onCharger, onEnregistrer }: Prop
       setMessage({ type: "erreur", texte: "Une exigence a besoin d'un identifiant et d'un intitulé." });
       return;
     }
-    if (exigences.some((e) => e.id === nouvelle.id.trim())) {
+    if (editingExigenceId === null && exigences.some((e) => e.id === nouvelle.id.trim())) {
       setMessage({ type: "erreur", texte: `L'exigence « ${nouvelle.id} » existe déjà dans ce référentiel.` });
       return;
     }
     setMessage(null);
-    setExigences([...exigences, { ...nouvelle, id: nouvelle.id.trim(), title: nouvelle.title.trim() }]);
+    if (editingExigenceId !== null) {
+      setExigences(exigences.map((e) => (e.id === editingExigenceId ? { ...nouvelle, id: nouvelle.id.trim(), title: nouvelle.title.trim() } : e)));
+      setEditingExigenceId(null);
+    } else {
+      setExigences([...exigences, { ...nouvelle, id: nouvelle.id.trim(), title: nouvelle.title.trim() }]);
+    }
+    setNouvelle({ id: "", title: "", description: "" });
+  };
+
+  const commencerEditionExigence = (ex: Exigence) => {
+    setEditingExigenceId(ex.id);
+    setNouvelle({ id: ex.id, title: ex.title, description: ex.description ?? "" });
+  };
+
+  const annulerEditionExigence = () => {
+    setEditingExigenceId(null);
     setNouvelle({ id: "", title: "", description: "" });
   };
 
@@ -175,19 +191,40 @@ export function ReferentielsPanel({ frameworks, onCharger, onEnregistrer }: Prop
                   <span className="text-[var(--ink)]">{ex.title}</span>
                   {ex.description && <p className="text-[10px] text-[var(--soft)] mt-0.5">{ex.description}</p>}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setExigences(exigences.filter((e) => e.id !== ex.id))}
-                  aria-label={`Retirer l'exigence ${ex.id}`}
-                  className="text-[var(--rose)] hover:bg-white/5 p-1 rounded shrink-0"
-                >
-                  <Trash2 size={12} />
-                </button>
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => commencerEditionExigence(ex)}
+                    aria-label={`Modifier l'exigence ${ex.id}`}
+                    className="text-[var(--soft)] hover:bg-white/5 p-1 rounded"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExigences(exigences.filter((e) => e.id !== ex.id));
+                      if (editingExigenceId === ex.id) annulerEditionExigence();
+                    }}
+                    aria-label={`Retirer l'exigence ${ex.id}`}
+                    className="text-[var(--rose)] hover:bg-white/5 p-1 rounded"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
 
+        {editingExigenceId !== null && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[var(--g1)]">Modification de {editingExigenceId}</span>
+            <button type="button" onClick={annulerEditionExigence} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+              Annuler l'édition
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-[auto_1fr_1fr_auto] gap-2">
           <input
             type="text"
@@ -218,7 +255,7 @@ export function ReferentielsPanel({ frameworks, onCharger, onEnregistrer }: Prop
             onClick={ajouterExigence}
             className="bg-white/[0.06] border border-[var(--stroke)] text-[var(--ink)] font-bold rounded-xl px-3 py-1.5 text-xs hover:bg-white/[0.1] flex items-center gap-1"
           >
-            <Plus size={13} /> Ajouter
+            {editingExigenceId !== null ? <><Pencil size={13} /> Mettre à jour</> : <><Plus size={13} /> Ajouter</>}
           </button>
         </div>
       </div>

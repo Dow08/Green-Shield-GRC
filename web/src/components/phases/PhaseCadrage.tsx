@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Plus, Target, Trash2 } from "lucide-react";
+import { CheckCircle2, Pencil, Plus, Target, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import { useDismissOnOutsideOrEscape } from "../../lib/useDismissOnOutsideOrEscape";
 import type { AssetMetier, AssetSupport, ProjectState } from "../../types";
@@ -18,10 +18,12 @@ interface Props {
 export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject }: Props) {
   const [showMetierMenu, setShowMetierMenu] = useState(false);
   const [showCustomMetier, setShowCustomMetier] = useState(false);
+  const [editingMetierIndex, setEditingMetierIndex] = useState<number | null>(null);
   const [customMetierData, setCustomMetierData] = useState({ name: "", description: "", is_personal_data: false });
   const metierMenuRef = useDismissOnOutsideOrEscape<HTMLDivElement>(showMetierMenu, () => setShowMetierMenu(false));
   const [showSupportMenu, setShowSupportMenu] = useState(false);
   const [showCustomSupport, setShowCustomSupport] = useState(false);
+  const [editingSupportIndex, setEditingSupportIndex] = useState<number | null>(null);
   const [customSupportData, setCustomSupportData] = useState({ name: "", type: "Logiciel", description: "", owner: "DSI" });
   const supportMenuRef = useDismissOnOutsideOrEscape<HTMLDivElement>(showSupportMenu, () => setShowSupportMenu(false));
 
@@ -117,6 +119,8 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                           <button
                             type="button"
                             onClick={() => {
+                              setEditingMetierIndex(null);
+                              setCustomMetierData({ name: "", description: "", is_personal_data: false });
                               setShowCustomMetier(true);
                               setShowMetierMenu(false);
                             }}
@@ -142,18 +146,36 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                             </span>
                           )}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...(activeProject.steps.cadrage?.assets_metier || [])];
-                            list.splice(idx, 1);
-                            updateStepData("cadrage", "assets_metier", list);
-                          }}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                          aria-label={`Supprimer la valeur métier ${m.name}`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingMetierIndex(idx);
+                              setCustomMetierData({
+                                name: m.name,
+                                description: m.description,
+                                is_personal_data: m.is_personal_data
+                              });
+                              setShowCustomMetier(true);
+                            }}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Modifier la valeur métier ${m.name}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...(activeProject.steps.cadrage?.assets_metier || [])];
+                              list.splice(idx, 1);
+                              updateStepData("cadrage", "assets_metier", list);
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer la valeur métier ${m.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -165,7 +187,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       animate={{ opacity: 1, height: "auto" }}
                       className="glass p-3 border border-dashed border-[var(--stroke)] rounded-xl mt-2 flex flex-col gap-2.5 text-xs animate-fade-in"
                     >
-                      <div className="font-bold text-[var(--g1)]">Saisie de Valeur Métier Personnalisée</div>
+                      <div className="font-bold text-[var(--g1)]">{editingMetierIndex !== null ? "Modifier la Valeur Métier" : "Saisie de Valeur Métier Personnalisée"}</div>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <input
                           type="text"
@@ -194,7 +216,11 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => setShowCustomMetier(false)}
+                          onClick={() => {
+                            setShowCustomMetier(false);
+                            setEditingMetierIndex(null);
+                            setCustomMetierData({ name: "", description: "", is_personal_data: false });
+                          }}
                           className="px-3 py-1 border border-white/5 rounded-lg text-[10px] text-[var(--soft)] hover:bg-white/5"
                         >
                           Annuler
@@ -204,19 +230,29 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                           onClick={() => {
                             if (!customMetierData.name.trim()) return;
                             const list = [...(activeProject.steps.cadrage?.assets_metier || [])];
-                            list.push({
-                              id: nextId("VM", list.map((a) => a.id)),
-                              name: customMetierData.name,
-                              description: customMetierData.description,
-                              is_personal_data: customMetierData.is_personal_data
-                            });
+                            if (editingMetierIndex !== null) {
+                              list[editingMetierIndex] = {
+                                ...list[editingMetierIndex],
+                                name: customMetierData.name,
+                                description: customMetierData.description,
+                                is_personal_data: customMetierData.is_personal_data
+                              };
+                            } else {
+                              list.push({
+                                id: nextId("VM", list.map((a) => a.id)),
+                                name: customMetierData.name,
+                                description: customMetierData.description,
+                                is_personal_data: customMetierData.is_personal_data
+                              });
+                            }
                             updateStepData("cadrage", "assets_metier", list);
                             setCustomMetierData({ name: "", description: "", is_personal_data: false });
                             setShowCustomMetier(false);
+                            setEditingMetierIndex(null);
                           }}
                           className="px-3.5 py-1 bg-[var(--g1)] text-[#04150e] font-bold rounded-lg text-[10px] hover:opacity-90"
                         >
-                          Enregistrer
+                          {editingMetierIndex !== null ? "Mettre à jour" : "Enregistrer"}
                         </button>
                       </div>
                     </motion.div>
@@ -267,6 +303,8 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                           <button
                             type="button"
                             onClick={() => {
+                              setEditingSupportIndex(null);
+                              setCustomSupportData({ name: "", type: "Logiciel", description: "", owner: "DSI" });
                               setShowCustomSupport(true);
                               setShowSupportMenu(false);
                             }}
@@ -288,18 +326,37 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                           <span className="text-[10px] text-[var(--soft)] bg-white/5 rounded px-1.5 py-0.5 ml-2">{s.type}</span>
                           <p className="text-[11px] text-[var(--soft)] mt-1 ml-1">{s.description} · <span className="font-bold text-[var(--ink)]">Propriétaire :</span> {s.owner}</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...(activeProject.steps.cadrage?.assets_support || [])];
-                            list.splice(idx, 1);
-                            updateStepData("cadrage", "assets_support", list);
-                          }}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                          aria-label={`Supprimer le bien support ${s.name}`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingSupportIndex(idx);
+                              setCustomSupportData({
+                                name: s.name,
+                                type: s.type,
+                                description: s.description,
+                                owner: s.owner
+                              });
+                              setShowCustomSupport(true);
+                            }}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Modifier le bien support ${s.name}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...(activeProject.steps.cadrage?.assets_support || [])];
+                              list.splice(idx, 1);
+                              updateStepData("cadrage", "assets_support", list);
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer le bien support ${s.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -311,7 +368,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       animate={{ opacity: 1, height: "auto" }}
                       className="glass p-3 border border-dashed border-[var(--stroke)] rounded-xl mt-2 flex flex-col gap-2.5 text-xs animate-fade-in"
                     >
-                      <div className="font-bold text-[var(--g1)]">Saisie de Bien Support Personnalisé</div>
+                      <div className="font-bold text-[var(--g1)]">{editingSupportIndex !== null ? "Modifier le Bien Support" : "Saisie de Bien Support Personnalisé"}</div>
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                         <input
                           type="text"
@@ -349,7 +406,11 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => setShowCustomSupport(false)}
+                          onClick={() => {
+                            setShowCustomSupport(false);
+                            setEditingSupportIndex(null);
+                            setCustomSupportData({ name: "", type: "Logiciel", description: "", owner: "DSI" });
+                          }}
                           className="px-3 py-1 border border-white/5 rounded-lg text-[10px] text-[var(--soft)] hover:bg-white/5"
                         >
                           Annuler
@@ -359,20 +420,31 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                           onClick={() => {
                             if (!customSupportData.name.trim()) return;
                             const list = [...(activeProject.steps.cadrage?.assets_support || [])];
-                            list.push({
-                              id: nextId("BS", list.map((a) => a.id)),
-                              name: customSupportData.name,
-                              type: customSupportData.type,
-                              description: customSupportData.description,
-                              owner: customSupportData.owner
-                            });
+                            if (editingSupportIndex !== null) {
+                              list[editingSupportIndex] = {
+                                ...list[editingSupportIndex],
+                                name: customSupportData.name,
+                                type: customSupportData.type,
+                                description: customSupportData.description,
+                                owner: customSupportData.owner
+                              };
+                            } else {
+                              list.push({
+                                id: nextId("BS", list.map((a) => a.id)),
+                                name: customSupportData.name,
+                                type: customSupportData.type,
+                                description: customSupportData.description,
+                                owner: customSupportData.owner
+                              });
+                            }
                             updateStepData("cadrage", "assets_support", list);
                             setCustomSupportData({ name: "", type: "Logiciel", description: "", owner: "DSI" });
                             setShowCustomSupport(false);
+                            setEditingSupportIndex(null);
                           }}
                           className="px-3.5 py-1 bg-[var(--g1)] text-[#04150e] font-bold rounded-lg text-[10px] hover:opacity-90"
                         >
-                          Enregistrer
+                          {editingSupportIndex !== null ? "Mettre à jour" : "Enregistrer"}
                         </button>
                       </div>
                     </motion.div>

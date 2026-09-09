@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { FileClock, Plus, Trash2, BellRing, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
+import { FileClock, Pencil, Plus, Trash2, BellRing, CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { api } from "../lib/api";
 import type { ProjectState, RegistreDemandesPreuves, DemandePreuve, StatutDemande } from "../types";
 
@@ -39,6 +39,7 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
   const [libelle, setLibelle] = useState("");
   const [destinataire, setDestinataire] = useState("");
   const [echeance, setEcheance] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const recharger = useCallback(async () => {
     try {
@@ -74,13 +75,38 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
       setErreur("Indiquez le document réclamé.");
       return;
     }
-    await appliquer(
-      api.projects.addDemandePreuve(projectId, {
-        libelle: libelle.trim(),
-        destinataire: destinataire.trim(),
-        echeance: echeance || undefined,
-      }),
-    );
+    if (editingId) {
+      await appliquer(
+        api.projects.updateDemandePreuve(projectId, editingId, {
+          libelle: libelle.trim(),
+          destinataire: destinataire.trim(),
+          echeance: echeance || undefined,
+        }),
+      );
+      setEditingId(null);
+    } else {
+      await appliquer(
+        api.projects.addDemandePreuve(projectId, {
+          libelle: libelle.trim(),
+          destinataire: destinataire.trim(),
+          echeance: echeance || undefined,
+        }),
+      );
+    }
+    setLibelle("");
+    setDestinataire("");
+    setEcheance("");
+  };
+
+  const commencerEdition = (d: DemandePreuve) => {
+    setEditingId(d.id);
+    setLibelle(d.libelle);
+    setDestinataire(d.destinataire || "");
+    setEcheance(d.echeance || "");
+  };
+
+  const annulerEdition = () => {
+    setEditingId(null);
     setLibelle("");
     setDestinataire("");
     setEcheance("");
@@ -89,8 +115,10 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
   const changerStatut = (d: DemandePreuve, statut: StatutDemande) =>
     appliquer(api.projects.updateDemandePreuve(projectId, d.id, { statut }));
 
-  const supprimer = (d: DemandePreuve) =>
-    appliquer(api.projects.deleteDemandePreuve(projectId, d.id));
+  const supprimer = (d: DemandePreuve) => {
+    if (editingId === d.id) annulerEdition();
+    return appliquer(api.projects.deleteDemandePreuve(projectId, d.id));
+  };
 
   if (chargement) {
     return (
@@ -205,15 +233,26 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
                     />
                   </>
                 )}
-                <button
-                  type="button"
-                  onClick={() => supprimer(d)}
-                  disabled={busy}
-                  aria-label={`Supprimer la demande ${d.libelle}`}
-                  className="ml-auto rounded-lg p-1 text-[var(--rose)] transition hover:bg-white/5 disabled:opacity-40"
-                >
-                  <Trash2 size={12} />
-                </button>
+                <div className="ml-auto flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => commencerEdition(d)}
+                    disabled={busy}
+                    aria-label={`Modifier la demande ${d.libelle}`}
+                    className="rounded-lg p-1 text-[var(--soft)] transition hover:bg-white/5 disabled:opacity-40"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => supprimer(d)}
+                    disabled={busy}
+                    aria-label={`Supprimer la demande ${d.libelle}`}
+                    className="rounded-lg p-1 text-[var(--rose)] transition hover:bg-white/5 disabled:opacity-40"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
               </div>
             </div>
           );
@@ -245,6 +284,14 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
 
       {/* Ajout */}
       <div className="border-t border-[var(--stroke)] pt-3 flex flex-col gap-2">
+        {editingId !== null && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[var(--g1)]">Modification de la demande</span>
+            <button type="button" onClick={annulerEdition} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+              Annuler l'édition
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <input
             type="text"
@@ -275,7 +322,8 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
             disabled={busy}
             className="ml-auto flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-[var(--g1)] to-[var(--g3)] px-4 py-2 text-xs font-bold text-[#04150e] transition hover:opacity-90 disabled:opacity-40"
           >
-            {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Ajouter
+            {busy ? <Loader2 size={13} className="animate-spin" /> : editingId !== null ? <Pencil size={13} /> : <Plus size={13} />}
+            {editingId !== null ? "Mettre à jour" : "Ajouter"}
           </button>
         </div>
       </div>

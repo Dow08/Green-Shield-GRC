@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Bot, CheckCircle2, FileDown, Plus, Trash2 } from "lucide-react";
+import { Bot, CheckCircle2, FileDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import { CopilotSourceBadge } from "../CopilotSourceBadge";
 import { RevueExport } from "../RevueExport";
@@ -33,6 +33,17 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
     id: "", axe: "Protection", measure: "", priority: "Élevé",
     responsable: "", echeance: "", statut: "À faire", cout_estime: "", risque_lie: "",
   });
+  const [editingRemediationIndex, setEditingRemediationIndex] = useState<number | null>(null);
+  const [nouvelleMesureCyberdepart, setNouvelleMesureCyberdepart] = useState("");
+
+  const mesuresCyberdepart: string[] = activeProject.steps.traitement?.quick_wins || [];
+
+  const ajouterMesureCyberdepart = () => {
+    const mesure = nouvelleMesureCyberdepart.trim();
+    if (!mesure) return;
+    updateStepData("traitement", "quick_wins", [...mesuresCyberdepart, mesure]);
+    setNouvelleMesureCyberdepart("");
+  };
 
   // Téléchargement Word : POST + blob (pas un simple lien) depuis le
   // 30/07/2026, pour que le logo personnalisé du cabinet (Réglages) puisse
@@ -114,18 +125,38 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                             <span className="font-bold text-[var(--ink)]">{r.measure}</span>
                             <span className={`ml-2 text-[9px] font-extrabold rounded-full px-1.5 py-0.5 ${r.priority === "Critique" ? "bg-[rgba(255,111,145,0.15)] text-[var(--rose)]" : "bg-white/5 text-[var(--soft)]"}`}>{r.priority}</span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const list = [...(activeProject.steps.traitement?.remediations || [])];
-                              list.splice(idx, 1);
-                              updateStepData("traitement", "remediations", list);
-                            }}
-                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                            aria-label={`Supprimer la mesure ${r.measure}`}
-                          >
-                            <Trash2 size={13} />
-                          </button>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditingRemediationIndex(idx);
+                                setNewRemediation(r);
+                              }}
+                              className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                              aria-label={`Modifier la mesure ${r.measure}`}
+                            >
+                              <Pencil size={13} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const list = [...(activeProject.steps.traitement?.remediations || [])];
+                                list.splice(idx, 1);
+                                updateStepData("traitement", "remediations", list);
+                                if (editingRemediationIndex === idx) {
+                                  setEditingRemediationIndex(null);
+                                  setNewRemediation({
+                                    id: "", axe: "Protection", measure: "", priority: "Élevé",
+                                    responsable: "", echeance: "", statut: "À faire", cout_estime: "", risque_lie: "",
+                                  });
+                                }
+                              }}
+                              className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                              aria-label={`Supprimer la mesure ${r.measure}`}
+                            >
+                              <Trash2 size={13} />
+                            </button>
+                          </div>
                         </div>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-[var(--soft)]">
                           {r.responsable
@@ -147,6 +178,24 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
 
                   {/* Add Remediation Form */}
                   <div className="flex flex-col gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
+                    {editingRemediationIndex !== null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-[var(--g1)]">Modification de la mesure {newRemediation.id}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingRemediationIndex(null);
+                            setNewRemediation({
+                              id: "", axe: "Protection", measure: "", priority: "Élevé",
+                              responsable: "", echeance: "", statut: "À faire", cout_estime: "", risque_lie: "",
+                            });
+                          }}
+                          className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline"
+                        >
+                          Annuler l'édition
+                        </button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                       <input
                         type="text" placeholder="ID (ex: REM-05)" value={newRemediation.id}
@@ -215,16 +264,22 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                           onClick={() => {
                             if (!newRemediation.id.trim() || !newRemediation.measure.trim()) return;
                             const list = [...(activeProject.steps.traitement?.remediations || [])];
-                            list.push(newRemediation);
+                            if (editingRemediationIndex !== null) {
+                              list[editingRemediationIndex] = newRemediation;
+                            } else {
+                              list.push(newRemediation);
+                            }
                             updateStepData("traitement", "remediations", list);
                             setNewRemediation({
                               id: nextId("REM", list.map((r) => r.id)), axe: "Protection", measure: "", priority: "Élevé",
                               responsable: "", echeance: "", statut: "À faire", cout_estime: "", risque_lie: "",
                             });
+                            setEditingRemediationIndex(null);
                           }}
                           className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                          aria-label={editingRemediationIndex !== null ? "Mettre à jour la mesure" : "Ajouter la mesure"}
                         >
-                          <Plus size={15} />
+                          {editingRemediationIndex !== null ? <Pencil size={15} /> : <Plus size={15} />}
                         </button>
                       </div>
                     </div>
@@ -257,12 +312,42 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                 <div className="mt-2 border-t border-white/[0.04] pt-3">
                   <div className="text-[11px] font-bold text-[var(--soft)] mb-2 uppercase tracking-wide">C. Le Cyberdépart (6 Mesures d'hygiène vitales prioritaires - ANSSI)</div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                    {activeProject.steps.traitement?.quick_wins?.map((qw: string, idx: number) => (
+                    {mesuresCyberdepart.map((qw: string, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-xl p-2.5 text-xs flex items-center gap-2">
                         <CheckCircle2 size={13} className="text-[var(--g1)] flex-shrink-0" />
-                        <span className="font-bold text-[var(--ink)]">{qw}</span>
+                        <span className="font-bold text-[var(--ink)] flex-1">{qw}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const liste = [...mesuresCyberdepart];
+                            liste.splice(idx, 1);
+                            updateStepData("traitement", "quick_wins", liste);
+                          }}
+                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg flex-shrink-0"
+                          aria-label={`Supprimer la mesure « ${qw} »`}
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     ))}
+                  </div>
+                  <div className="flex gap-2 mt-2.5">
+                    <input
+                      type="text"
+                      placeholder="Ajouter une mesure d'hygiène prioritaire"
+                      value={nouvelleMesureCyberdepart}
+                      onChange={(e) => setNouvelleMesureCyberdepart(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); ajouterMesureCyberdepart(); } }}
+                      className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 text-xs focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={ajouterMesureCyberdepart}
+                      className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                      aria-label="Ajouter la mesure"
+                    >
+                      <Plus size={15} />
+                    </button>
                   </div>
                 </div>
 

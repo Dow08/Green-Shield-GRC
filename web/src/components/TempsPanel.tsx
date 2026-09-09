@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Clock, Plus, Trash2, Loader2 } from "lucide-react";
+import { Clock, Pencil, Plus, Trash2, Loader2 } from "lucide-react";
 import { formatDuree } from "../lib/duree";
 import type { PhaseTemps, TempsEntree } from "../types";
 
@@ -20,14 +20,16 @@ interface Props {
   budget?: string;
   onAdd: (entry: { phase: PhaseTemps; minutes: number; note: string }) => Promise<void> | void;
   onDelete: (entryId: string) => Promise<void> | void;
+  onUpdate?: (entryId: string, entry: { phase: PhaseTemps; minutes: number; note: string }) => Promise<void> | void;
 }
 
-export function TempsPanel({ entrees, budget, onAdd, onDelete }: Props) {
+export function TempsPanel({ entrees, budget, onAdd, onDelete, onUpdate }: Props) {
   const [phase, setPhase] = useState<PhaseTemps>("cadrage");
   const [duree, setDuree] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const total = entrees.reduce((sum, e) => sum + (e.minutes || 0), 0);
 
@@ -45,7 +47,12 @@ export function TempsPanel({ entrees, budget, onAdd, onDelete }: Props) {
     setErreur("");
     setBusy(true);
     try {
-      await onAdd({ phase, minutes, note });
+      if (editingId && onUpdate) {
+        await onUpdate(editingId, { phase, minutes, note });
+        setEditingId(null);
+      } else {
+        await onAdd({ phase, minutes, note });
+      }
       setDuree("");
       setNote("");
     } catch (e) {
@@ -53,6 +60,19 @@ export function TempsPanel({ entrees, budget, onAdd, onDelete }: Props) {
     } finally {
       setBusy(false);
     }
+  };
+
+  const commencerEdition = (e: TempsEntree) => {
+    setEditingId(e.id);
+    setPhase(e.phase);
+    setDuree(String(e.minutes));
+    setNote(e.note || "");
+  };
+
+  const annulerEdition = () => {
+    setEditingId(null);
+    setDuree("");
+    setNote("");
   };
 
   return (
@@ -82,6 +102,14 @@ export function TempsPanel({ entrees, budget, onAdd, onDelete }: Props) {
       )}
 
       {/* Saisie */}
+      {editingId !== null && (
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-bold text-[var(--g1)]">Modification de l'entrée</span>
+          <button type="button" onClick={annulerEdition} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+            Annuler l'édition
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-2 items-center">
         <select
           value={phase}
@@ -116,7 +144,8 @@ export function TempsPanel({ entrees, budget, onAdd, onDelete }: Props) {
           disabled={busy}
           className="bg-[var(--g1)] text-[#04150e] font-bold rounded-xl px-3 py-1.5 text-xs hover:opacity-90 disabled:opacity-40 flex items-center gap-1"
         >
-          {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />} Ajouter
+          {busy ? <Loader2 size={13} className="animate-spin" /> : editingId !== null ? <Pencil size={13} /> : <Plus size={13} />}
+          {editingId !== null ? "Mettre à jour" : "Ajouter"}
         </button>
       </div>
 
@@ -138,9 +167,22 @@ export function TempsPanel({ entrees, budget, onAdd, onDelete }: Props) {
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="font-bold text-[var(--g1)]">{formatDuree(e.minutes)}</span>
+                {onUpdate && (
+                  <button
+                    type="button"
+                    onClick={() => commencerEdition(e)}
+                    aria-label={`Modifier l'entrée de temps du ${e.date}`}
+                    className="text-[var(--soft)] hover:bg-white/5 p-1 rounded"
+                  >
+                    <Pencil size={12} />
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => onDelete(e.id)}
+                  onClick={() => {
+                    onDelete(e.id);
+                    if (editingId === e.id) annulerEdition();
+                  }}
                   aria-label={`Supprimer l'entrée de temps du ${e.date}`}
                   className="text-[var(--rose)] hover:bg-white/5 p-1 rounded"
                 >

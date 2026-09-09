@@ -7,9 +7,14 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
-    port: 5173,
+    port: 5175,
+    strictPort: true,
     proxy: {
-      "/api": "http://localhost:8000",
+      // IPv4 explicite : `localhost` se résout en ::1 en premier sur cette
+      // machine, mais uvicorn n'écoute qu'en 127.0.0.1 — le proxy échouait
+      // (connexion refusée, jamais de trace côté API) avant même d'atteindre
+      // le backend, remonté au frontend comme un HTTP 500 générique.
+      "/api": "http://127.0.0.1:8000",
     },
   },
 });

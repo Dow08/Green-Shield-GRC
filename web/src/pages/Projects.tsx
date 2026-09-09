@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock, AlertTriangle, Wand2, Bot, Link2 } from "lucide-react";
 import { api } from "../lib/api";
@@ -23,6 +23,9 @@ import { PhaseResilience } from "../components/phases/PhaseResilience";
 import { PhaseTraitement } from "../components/phases/PhaseTraitement";
 import { TimelineHorizons } from "../components/TimelineHorizons";
 import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotInfo, EcheanceRgpdMission, CouvertureTechnique } from "../types";
+
+/** Inactivité au-delà de laquelle les modifications en attente sont enregistrées seules. */
+const DELAI_SAUVEGARDE_AUTO_MS = 60_000;
 
 export function Projects() {
   const [projects, setProjects] = useState<ProjectState[]>([]);
@@ -61,8 +64,17 @@ export function Projects() {
   const [echeancesPortefeuille, setEcheancesPortefeuille] = useState<EcheanceRgpdMission[]>([]);
   const [couverture, setCouverture] = useState<CouvertureTechnique | null>(null);
   const [saving, setSaving] = useState(false);
+  // Confirmation éphémère de sauvegarde : sans elle, un enregistrement réussi
+  // ne produit aucun signal (seule l'erreur en produisait un).
+  const [sauvegardeConfirmee, setSauvegardeConfirmee] = useState(false);
+  const minuteurConfirmation = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Les saisies de mission ne vivent que dans l'état React jusqu'au clic sur
+  // « Enregistrer » : sans ce témoin, fermer l'onglet ou revenir au registre
+  // perdait le travail en cours sans un mot.
+  const [modificationsEnAttente, setModificationsEnAttente] = useState(false);
   const [auditing, setAuditing] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
 
   // Help slideout state
@@ -95,6 +107,20 @@ export function Projects() {
   useEffect(() => {
     loadProjectsAndFrameworks();
   }, []);
+
+  useEffect(() => () => {
+    if (minuteurConfirmation.current) clearTimeout(minuteurConfirmation.current);
+  }, []);
+
+  // Fermeture d'onglet / rechargement : le navigateur demande confirmation.
+  useEffect(() => {
+    if (!modificationsEnAttente) return;
+    const avantFermeture = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", avantFermeture);
+    return () => window.removeEventListener("beforeunload", avantFermeture);
+  }, [modificationsEnAttente]);
+
+  const refSauvegarde = useRef<() => void>(() => {});
 
   // Échap ferme le panneau de création ouvert (convention du projet sur les
   // panneaux et sélecteurs, CLAUDE.md).
@@ -158,6 +184,7 @@ export function Projects() {
     api.projects.get(id)
       .then((proj) => {
         setActiveProject(proj);
+        setModificationsEnAttente(false);
         setCurrentStep(1);
         chargerRevue(proj.id);
         // L'état d'interface propre à chaque phase (menus ouverts, brouillons
@@ -215,18 +242,36 @@ export function Projects() {
       .catch((err) => alert("Échec de la création de la démo : " + err.message));
   };
 
-  const handleSaveProject = () => {
+  // `auto` : déclenchement par la sauvegarde automatique. L'échec y reste
+  // silencieux — une alerte bloquante toutes les 60 s pendant une panne d'API
+  // serait ingérable. Le témoin de modifications reste allumé, donc rien n'est
+  // perdu et la prochaine tentative reprendra.
+  const handleSaveProject = (auto = false) => {
     if (!activeProject) return;
     setSaving(true);
     api.projects.update(activeProject.id, activeProject)
       .then((updated) => {
         setActiveProject(updated);
+        setModificationsEnAttente(false);
         loadProjectsAndFrameworks();
         chargerRevue(updated.id);
+        if (minuteurConfirmation.current) clearTimeout(minuteurConfirmation.current);
+        setSauvegardeConfirmee(true);
+        minuteurConfirmation.current = setTimeout(() => setSauvegardeConfirmee(false), 2500);
       })
-      .catch((err) => alert("Erreur sauvegarde: " + err.message))
+      .catch((err) => { if (!auto) alert("Erreur sauvegarde: " + err.message); })
       .finally(() => setSaving(false));
   };
+  refSauvegarde.current = () => handleSaveProject(true);
+
+  // Sauvegarde automatique après une pause de saisie. Déclenchée par
+  // l'inactivité plutôt que par une horloge fixe : on n'enregistre jamais au
+  // milieu d'une frappe, et une rafale de modifications ne produit qu'un envoi.
+  useEffect(() => {
+    if (!modificationsEnAttente || saving) return;
+    const minuteur = setTimeout(() => refSauvegarde.current(), DELAI_SAUVEGARDE_AUTO_MS);
+    return () => clearTimeout(minuteur);
+  }, [modificationsEnAttente, saving, activeProject]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!activeProject || !e.target.files || e.target.files.length === 0) return;
@@ -249,6 +294,18 @@ export function Projects() {
       })
       .catch((err) => alert("Échec audit technique : " + err.message))
       .finally(() => setAuditing(false));
+  };
+
+  const handleDeleteFile = (filename: string) => {
+    if (!activeProject) return;
+    if (!confirm(`Retirer « ${filename} » de la mission ?`)) return;
+    setDeletingFile(filename);
+    api.projects.deleteFile(activeProject.id, filename)
+      .then((updated) => {
+        setActiveProject(updated);
+      })
+      .catch((err) => alert("Échec de la suppression : " + err.message))
+      .finally(() => setDeletingFile(null));
   };
 
   const handleExportDoc = (docType: string) => {
@@ -282,6 +339,15 @@ export function Projects() {
     }
   };
 
+  const handleUpdateTemps = async (entryId: string, entry: { phase: PhaseTemps; minutes: number; note: string }) => {
+    if (!activeProject) return;
+    try {
+      setActiveProject(await api.projects.updateTemps(activeProject.id, entryId, entry));
+    } catch (err) {
+      alert("Échec de la mise à jour : " + (err instanceof Error ? err.message : String(err)));
+    }
+  };
+
   const handleExportArchive = async (password: string) => {
     if (!activeProject) return;
     const blob = await api.projects.exportArchive(activeProject.id, password);
@@ -301,13 +367,19 @@ export function Projects() {
 
 
   // --- Step mutations helper ---
+  /** Édition purement locale : l'API n'a pas encore cette version de la mission. */
+  const modifierLocalement = (projet: ProjectState) => {
+    setActiveProject(projet);
+    setModificationsEnAttente(true);
+  };
+
   const updateStepData = (stepKey: string, fieldKey: string, value: unknown) => {
     if (!activeProject) return;
     // steps est hétérogène par construction (chaque étape a sa propre forme) :
     // ce pont dynamique est le seul endroit qui a besoin de s'en abstraire.
     const steps = { ...activeProject.steps } as Record<string, Record<string, unknown>>;
     steps[stepKey] = { ...steps[stepKey], [fieldKey]: value };
-    setActiveProject({ ...activeProject, steps } as ProjectState);
+    modifierLocalement({ ...activeProject, steps } as ProjectState);
   };
 
   // TPRM Calculator helper
@@ -340,7 +412,13 @@ export function Projects() {
       <header className="mb-4 flex items-center gap-3">
         {activeProject ? (
           <button 
-            onClick={() => { setActiveProject(null); loadProjectsAndFrameworks(); }}
+            onClick={() => {
+              if (modificationsEnAttente
+                && !confirm("Des modifications ne sont pas enregistrées. Quitter la mission et les perdre ?")) return;
+              setActiveProject(null);
+              setModificationsEnAttente(false);
+              loadProjectsAndFrameworks();
+            }}
             className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white/[0.045] px-3 py-1.5 text-xs font-bold text-[var(--soft)] transition hover:bg-white/[0.08]"
           >
             <ArrowLeft size={14} /> Retour
@@ -360,12 +438,29 @@ export function Projects() {
         
         {activeProject && (
           <div className="ml-auto flex items-center gap-2">
+            {sauvegardeConfirmee && (
+              <motion.span
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                role="status"
+                className="flex items-center gap-1.5 rounded-full border border-[rgba(46,230,160,0.35)] bg-[rgba(46,230,160,0.12)] px-3 py-1.5 text-xs font-bold text-[var(--g1)]"
+              >
+                <Check size={13} /> Enregistré
+              </motion.span>
+            )}
             <button
-              onClick={handleSaveProject}
+              onClick={() => handleSaveProject()}
               disabled={saving}
-              className="flex items-center gap-2 rounded-full border border-[var(--stroke)] bg-white/[0.045] px-4 py-2 text-xs font-bold text-[var(--g1)] transition hover:bg-[rgba(46,230,160,0.1)] disabled:opacity-50 animate-pulse"
+              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-bold text-[var(--g1)] transition hover:bg-[rgba(46,230,160,0.1)] disabled:opacity-50 ${
+                modificationsEnAttente
+                  ? "border-[rgba(46,230,160,0.45)] bg-[rgba(46,230,160,0.1)] animate-pulse"
+                  : "border-[var(--stroke)] bg-white/[0.045]"
+              }`}
+              title={modificationsEnAttente ? "Modifications non enregistrées" : "Aucune modification en attente"}
             >
-              <Save size={13} className={saving ? "animate-spin" : ""} /> Enregistrer l'état
+              <Save size={13} className={saving ? "animate-spin" : ""} />
+              Enregistrer l'état{modificationsEnAttente ? " •" : ""}
             </button>
           </div>
         )}
@@ -836,7 +931,7 @@ export function Projects() {
               <SoclePanel
                 key={`socle-${activeProject.id}`}
                 socle={activeProject.socle ?? {}}
-                onChange={(socle) => setActiveProject({ ...activeProject, socle })}
+                onChange={(socle) => modifierLocalement({ ...activeProject, socle })}
               />
 
               {/* SUIVI DU TEMPS CONSOMMÉ (F19) — charges consommées vs budget vendu */}
@@ -845,6 +940,7 @@ export function Projects() {
                 budget={activeProject.socle?.qualification?.budget}
                 onAdd={handleAddTemps}
                 onDelete={handleDeleteTemps}
+                onUpdate={handleUpdateTemps}
               />
 
               {/* REGISTRE DES DEMANDES DE PREUVES — suivi des documents réclamés au client */}
@@ -937,8 +1033,10 @@ export function Projects() {
                 handleSaveProject={handleSaveProject}
                 handleFileUpload={handleFileUpload}
                 handleTriggerAudit={handleTriggerAudit}
+                handleDeleteFile={handleDeleteFile}
                 uploading={uploading}
                 auditing={auditing}
+                deletingFile={deletingFile}
               />
             )}
 
@@ -974,7 +1072,7 @@ export function Projects() {
                 ONGLET 7 : PARCOURS GRC PIVOT — ISO 27001 (Jalon 1)
                 ======================================================== */}
             {currentStep === 7 && (
-              <IsoPivotView project={activeProject} onChange={setActiveProject} />
+              <IsoPivotView project={activeProject} onChange={modifierLocalement} />
             )}
 
             {/* ========================================================

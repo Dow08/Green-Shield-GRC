@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, Plus, ShieldAlert, Trash2 } from "lucide-react";
+import { AlertTriangle, Pencil, Plus, ShieldAlert, Trash2 } from "lucide-react";
 import { nextId } from "../lib/ids";
 import type { ViolationDonnees } from "../types";
 
@@ -37,6 +37,7 @@ function delaiDepasse(v: ViolationDonnees): boolean {
  */
 export function ViolationsPanel({ violations, onChange }: Props) {
   const [nouvelle, setNouvelle] = useState<ViolationDonnees>(NOUVELLE);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   return (
     <div className="flex flex-col gap-3">
@@ -58,14 +59,27 @@ export function ViolationsPanel({ violations, onChange }: Props) {
                   <span className="font-mono bg-white/5 px-1.5 py-0.5 rounded text-[var(--sky)] mr-2">{v.id}</span>
                   <span className="font-bold text-[var(--ink)]">{v.nature || "Nature non renseignée"}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => { const list = [...violations]; list.splice(idx, 1); onChange(list); }}
-                  className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg flex-shrink-0"
-                  aria-label={`Supprimer la violation ${v.id}`}
-                >
-                  <Trash2 size={13} />
-                </button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => { setEditingIndex(idx); setNouvelle(v); }}
+                    className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                    aria-label={`Modifier la violation ${v.id}`}
+                  >
+                    <Pencil size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const list = [...violations]; list.splice(idx, 1); onChange(list);
+                      if (editingIndex === idx) { setEditingIndex(null); setNouvelle(NOUVELLE); }
+                    }}
+                    className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                    aria-label={`Supprimer la violation ${v.id}`}
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
               </div>
               {enRetard && (
                 <span className="text-[var(--rose)] font-bold text-[9px] flex items-center gap-1">
@@ -87,6 +101,14 @@ export function ViolationsPanel({ violations, onChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
+        {editingIndex !== null && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[var(--g1)]">Modification de {nouvelle.id}</span>
+            <button type="button" onClick={() => { setEditingIndex(null); setNouvelle(NOUVELLE); }} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+              Annuler l'édition
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <input
             type="text" placeholder="ID (ex: VIO-01)" value={nouvelle.id}
@@ -167,13 +189,15 @@ export function ViolationsPanel({ violations, onChange }: Props) {
           type="button"
           onClick={() => {
             if (!nouvelle.id.trim() || !nouvelle.nature.trim()) return;
-            const list = [...violations, nouvelle];
+            const list = [...violations];
+            if (editingIndex !== null) { list[editingIndex] = nouvelle; } else { list.push(nouvelle); }
             onChange(list);
             setNouvelle({ ...NOUVELLE, id: nextId("VIO", list.map((v) => v.id)) });
+            setEditingIndex(null);
           }}
           className="self-end flex items-center gap-1.5 bg-[var(--g1)] text-[#04150e] px-3 py-1.5 rounded-xl hover:opacity-90 font-bold"
         >
-          <Plus size={14} /> Ajouter la violation
+          {editingIndex !== null ? <><Pencil size={14} /> Mettre à jour</> : <><Plus size={14} /> Ajouter la violation</>}
         </button>
       </div>
     </div>

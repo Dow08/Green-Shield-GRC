@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, HelpCircle, Plus, Shield, Trash2 } from "lucide-react";
+import { CheckCircle2, HelpCircle, Pencil, Plus, Shield, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import { useDismissOnOutsideOrEscape } from "../../lib/useDismissOnOutsideOrEscape";
 import type { AIPDData, ProjectState, RGPDRegister } from "../../types";
@@ -9,6 +9,34 @@ import { ViolationsPanel } from "../ViolationsPanel";
 import { BadgesControles } from "../BadgesControles";
 import { AnimatePresence } from "framer-motion";
 import { SUGGESTED_RGPD } from "../../lib/gabarits";
+
+// Gabarits de questions — jamais des réponses. Affichés comme valeur par
+// défaut du champ tant que le consultant n'a rien saisi : rien n'est écrit
+// dans la mission tant qu'il n'a pas remplacé ce texte par sa propre
+// constatation (cf. règle « zéro invention » de l'outil).
+const GABARIT_NOTES_PSSI = `Une PSSI formelle signée par la direction est disproportionnée pour une petite structure. La vraie question :
+
+1. Existe-t-il des règles écrites, même informelles (charte, mail, note interne) sur : mots de passe, usage des supports amovibles, accès aux comptes partagés ?
+2. Ces règles sont-elles connues et appliquées par les personnes qui utilisent les postes ?
+3. Qui déciderait de ces règles si on devait les écrire ?
+
+→ Remplace ce texte par ta vraie constatation.`;
+
+const GABARIT_NOTES_GOUVERNANCE = `Un Comité de Pilotage trimestriel RSSI/DSI/Direction est disproportionné ici. La vraie question :
+
+1. Référent : y a-t-il une personne, même sans titre officiel, qui est le point de contact naturel pour les sujets numériques/sécurité ?
+2. Comité : y a-t-il UN moment (réunion de bureau, AG) où ces sujets sont abordés, même informellement ?
+3. Sous-traitance : (mettre le nom de la société qui gère l'IT) a-t-elle un contrat écrit avec une clause de sécurité / RGPD (Art. 28) ? Une revue de ce qu'elle fait en sécurité a-t-elle déjà eu lieu ?
+
+→ Remplace ce texte par ta vraie constatation.`;
+
+const GABARIT_NOTES_VULNERABILITES = `Un scan automatisé régulier (Nessus/OpenVAS) est disproportionné ici. La vraie question :
+
+1. Les mises à jour Windows sont-elles automatiques sur les postes, ou dépendent-elles de quelqu'un qui doit y penser ?
+2. L'antivirus (Defender ou autre) est-il actif et à jour ?
+3. Un scan ou un test quelconque du réseau local / de la box a-t-il déjà été réalisé ?
+
+→ Remplace ce texte par ta vraie constatation.`;
 
 interface Props {
   activeProject: ProjectState;
@@ -23,6 +51,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
   const [activeHelp, setActiveHelp] = useState<string | null>(null);
   const [showRgpdMenu, setShowRgpdMenu] = useState(false);
   const [showCustomRgpd, setShowCustomRgpd] = useState(false);
+  const [editingRgpdIndex, setEditingRgpdIndex] = useState<number | null>(null);
   const [customRgpdData, setCustomRgpdData] = useState({ name: "", purpose: "", data_categories: "", retention: "5 ans" });
   const rgpdMenuRef = useDismissOnOutsideOrEscape<HTMLDivElement>(showRgpdMenu, () => setShowRgpdMenu(false));
 
@@ -52,6 +81,13 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                     <p className="text-[10px] text-[var(--soft)] flex items-center gap-1">
                       <HelpCircle size={10} className="text-[var(--g3)]" /> Cliquez pour afficher l'aide à la rédaction.
                     </p>
+                    <textarea
+                      rows={5}
+                      value={activeProject.steps.diagnostic?.notes_pssi ?? GABARIT_NOTES_PSSI}
+                      onChange={(e) => updateStepData("diagnostic", "notes_pssi", e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-lg p-2 text-[10px] text-[var(--soft)] leading-relaxed focus:outline-none focus:border-[var(--g1)] focus:text-[var(--ink)]"
+                    />
                   </div>
 
                   <div 
@@ -71,6 +107,13 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                     <p className="text-[10px] text-[var(--soft)] flex items-center gap-1">
                       <HelpCircle size={10} className="text-[var(--g3)]" /> Cliquez pour voir les rôles et structures.
                     </p>
+                    <textarea
+                      rows={5}
+                      value={activeProject.steps.diagnostic?.notes_governance ?? GABARIT_NOTES_GOUVERNANCE}
+                      onChange={(e) => updateStepData("diagnostic", "notes_governance", e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-lg p-2 text-[10px] text-[var(--soft)] leading-relaxed focus:outline-none focus:border-[var(--g1)] focus:text-[var(--ink)]"
+                    />
                   </div>
 
                   <div 
@@ -91,6 +134,13 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                     <p className="text-[10px] text-[var(--soft)] flex items-center gap-1">
                       <HelpCircle size={10} className="text-[var(--g3)]" /> Cliquez pour voir le contrôle continu.
                     </p>
+                    <textarea
+                      rows={5}
+                      value={activeProject.steps.diagnostic?.notes_vulnerabilities ?? GABARIT_NOTES_VULNERABILITES}
+                      onChange={(e) => updateStepData("diagnostic", "notes_vulnerabilities", e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-white/[0.02] border border-white/5 rounded-lg p-2 text-[10px] text-[var(--soft)] leading-relaxed focus:outline-none focus:border-[var(--g1)] focus:text-[var(--ink)]"
+                    />
                   </div>
 
                 </div>
@@ -191,6 +241,8 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                           <button
                             type="button"
                             onClick={() => {
+                              setEditingRgpdIndex(null);
+                              setCustomRgpdData({ name: "", purpose: "", data_categories: "", retention: "5 ans" });
                               setShowCustomRgpd(true);
                               setShowRgpdMenu(false);
                             }}
@@ -211,18 +263,37 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                           <span className="font-bold text-[var(--ink)]">{r.name}</span>
                           <p className="text-[11px] text-[var(--soft)] mt-1 ml-1"><span className="font-bold text-[var(--ink)]">Finalité :</span> {r.purpose} · <span className="font-bold text-[var(--ink)]">Catégories :</span> {r.data_categories} · <span className="font-bold text-[var(--ink)]">Conservation :</span> {r.retention}</p>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...(activeProject.steps.diagnostic?.rgpd_register || [])];
-                            list.splice(idx, 1);
-                            updateStepData("diagnostic", "rgpd_register", list);
-                          }}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                          aria-label={`Supprimer le traitement RGPD ${r.name}`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setEditingRgpdIndex(idx);
+                              setCustomRgpdData({
+                                name: r.name,
+                                purpose: r.purpose,
+                                data_categories: r.data_categories,
+                                retention: r.retention
+                              });
+                              setShowCustomRgpd(true);
+                            }}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Modifier le traitement RGPD ${r.name}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...(activeProject.steps.diagnostic?.rgpd_register || [])];
+                              list.splice(idx, 1);
+                              updateStepData("diagnostic", "rgpd_register", list);
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer le traitement RGPD ${r.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -234,7 +305,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                       animate={{ opacity: 1, height: "auto" }}
                       className="glass p-3 border border-dashed border-[var(--stroke)] rounded-xl mt-2 flex flex-col gap-2.5 text-xs animate-fade-in"
                     >
-                      <div className="font-bold text-[var(--g1)]">Saisie d'Activité de Traitement RGPD</div>
+                      <div className="font-bold text-[var(--g1)]">{editingRgpdIndex !== null ? "Modifier l'Activité de Traitement RGPD" : "Saisie d'Activité de Traitement RGPD"}</div>
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                         <input
                           type="text"
@@ -268,7 +339,11 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                       <div className="flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => setShowCustomRgpd(false)}
+                          onClick={() => {
+                            setShowCustomRgpd(false);
+                            setEditingRgpdIndex(null);
+                            setCustomRgpdData({ name: "", purpose: "", data_categories: "", retention: "5 ans" });
+                          }}
                           className="px-3 py-1 border border-white/5 rounded-lg text-[10px] text-[var(--soft)] hover:bg-white/5"
                         >
                           Annuler
@@ -278,20 +353,31 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                           onClick={() => {
                             if (!customRgpdData.name.trim()) return;
                             const list = [...(activeProject.steps.diagnostic?.rgpd_register || [])];
-                            list.push({
-                              id: nextId("RGPD", list.map((a) => a.id)),
-                              name: customRgpdData.name,
-                              purpose: customRgpdData.purpose,
-                              data_categories: customRgpdData.data_categories,
-                              retention: customRgpdData.retention
-                            });
+                            if (editingRgpdIndex !== null) {
+                              list[editingRgpdIndex] = {
+                                ...list[editingRgpdIndex],
+                                name: customRgpdData.name,
+                                purpose: customRgpdData.purpose,
+                                data_categories: customRgpdData.data_categories,
+                                retention: customRgpdData.retention
+                              };
+                            } else {
+                              list.push({
+                                id: nextId("RGPD", list.map((a) => a.id)),
+                                name: customRgpdData.name,
+                                purpose: customRgpdData.purpose,
+                                data_categories: customRgpdData.data_categories,
+                                retention: customRgpdData.retention
+                              });
+                            }
                             updateStepData("diagnostic", "rgpd_register", list);
                             setCustomRgpdData({ name: "", purpose: "", data_categories: "", retention: "5 ans" });
                             setShowCustomRgpd(false);
+                            setEditingRgpdIndex(null);
                           }}
                           className="px-3.5 py-1 bg-[var(--g1)] text-[#04150e] font-bold rounded-lg text-[10px] hover:opacity-90"
                         >
-                          Enregistrer
+                          {editingRgpdIndex !== null ? "Mettre à jour" : "Enregistrer"}
                         </button>
                       </div>
                     </motion.div>

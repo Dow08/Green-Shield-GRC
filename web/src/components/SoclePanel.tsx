@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Briefcase, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { Briefcase, ChevronDown, Pencil, Plus, Trash2 } from "lucide-react";
 import { nextId } from "../lib/ids";
 import type { Entretien, Socle } from "../types";
 
@@ -63,6 +63,7 @@ const CLASSE_CHAMP =
 export function SoclePanel({ socle, onChange }: Props) {
   const [ouvert, setOuvert] = useState<Bloc | null>("qualification");
   const [nouvelEntretien, setNouvelEntretien] = useState({ role: "", personne: "", date: "", synthese: "" });
+  const [editingEntretienId, setEditingEntretienId] = useState<string | null>(null);
   const [nouveauLivrable, setNouveauLivrable] = useState("");
   const [nouveauParticipant, setNouveauParticipant] = useState("");
 
@@ -76,11 +77,24 @@ export function SoclePanel({ socle, onChange }: Props) {
 
   const ajouterEntretien = () => {
     if (!nouvelEntretien.role.trim() || !nouvelEntretien.synthese.trim()) return;
-    onChange({
-      ...socle,
-      entretiens: [...entretiens, { id: nextId("ENT", entretiens.map((e) => e.id)), ...nouvelEntretien }],
-    });
+    if (editingEntretienId) {
+      onChange({
+        ...socle,
+        entretiens: entretiens.map((e) => (e.id === editingEntretienId ? { ...e, ...nouvelEntretien } : e)),
+      });
+      setEditingEntretienId(null);
+    } else {
+      onChange({
+        ...socle,
+        entretiens: [...entretiens, { id: nextId("ENT", entretiens.map((e) => e.id)), ...nouvelEntretien }],
+      });
+    }
     setNouvelEntretien({ role: "", personne: "", date: "", synthese: "" });
+  };
+
+  const commencerEditionEntretien = (e: Entretien) => {
+    setEditingEntretienId(e.id);
+    setNouvelEntretien({ role: e.role, personne: e.personne || "", date: e.date || "", synthese: e.synthese });
   };
 
   const rempli = (bloc: Bloc): number => {
@@ -168,6 +182,8 @@ export function SoclePanel({ socle, onChange }: Props) {
                       onAjout={(v) => majBloc("contractualisation", "livrables", [...listeContrat, v])}
                       onRetrait={(i) =>
                         majBloc("contractualisation", "livrables", listeContrat.filter((_, j) => j !== i))}
+                      onModifier={(i, v) =>
+                        majBloc("contractualisation", "livrables", listeContrat.map((x, j) => (j === i ? v : x)))}
                     />
                   </>
                 )}
@@ -201,6 +217,8 @@ export function SoclePanel({ socle, onChange }: Props) {
                       onAjout={(v) => majBloc("kickoff", "participants", [...listeParticipants, v])}
                       onRetrait={(i) =>
                         majBloc("kickoff", "participants", listeParticipants.filter((_, j) => j !== i))}
+                      onModifier={(i, v) =>
+                        majBloc("kickoff", "participants", listeParticipants.map((x, j) => (j === i ? v : x)))}
                     />
                   </>
                 )}
@@ -217,18 +235,43 @@ export function SoclePanel({ socle, onChange }: Props) {
                           </div>
                           <p className="text-[10px] text-[var(--soft)] mt-0.5">{e.synthese}</p>
                         </div>
-                        <button
-                          type="button"
-                          aria-label={`Retirer l'entretien ${e.role}`}
-                          onClick={() => onChange({ ...socle, entretiens: entretiens.filter((x) => x.id !== e.id) })}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg self-start flex-shrink-0"
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        <div className="flex items-center gap-1 self-start flex-shrink-0">
+                          <button
+                            type="button"
+                            aria-label={`Modifier l'entretien ${e.role}`}
+                            onClick={() => commencerEditionEntretien(e)}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label={`Retirer l'entretien ${e.role}`}
+                            onClick={() => {
+                              onChange({ ...socle, entretiens: entretiens.filter((x) => x.id !== e.id) });
+                              if (editingEntretienId === e.id) { setEditingEntretienId(null); setNouvelEntretien({ role: "", personne: "", date: "", synthese: "" }); }
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                       </div>
                     ))}
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 border border-dashed border-[var(--stroke)] rounded-lg p-2.5">
+                      {editingEntretienId !== null && (
+                        <div className="md:col-span-3 flex items-center justify-between">
+                          <span className="text-[10px] font-bold text-[var(--g1)]">Modification de l'entretien</span>
+                          <button
+                            type="button"
+                            onClick={() => { setEditingEntretienId(null); setNouvelEntretien({ role: "", personne: "", date: "", synthese: "" }); }}
+                            className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline"
+                          >
+                            Annuler l'édition
+                          </button>
+                        </div>
+                      )}
                       <div>
                         <label htmlFor="ent-role" className="block text-[10px] font-bold text-[var(--soft)] mb-1">Rôle</label>
                         <input id="ent-role" type="text" placeholder="ex : RSSI"
@@ -266,7 +309,7 @@ export function SoclePanel({ socle, onChange }: Props) {
                           onClick={ajouterEntretien}
                           className="px-3 py-1.5 bg-[var(--g1)] text-[#04150e] font-bold rounded-xl text-[11px] hover:opacity-90 flex items-center gap-1"
                         >
-                          <Plus size={12} /> Ajouter l'entretien
+                          {editingEntretienId !== null ? <><Pencil size={12} /> Mettre à jour</> : <><Plus size={12} /> Ajouter l'entretien</>}
                         </button>
                       </div>
                     </div>
@@ -289,12 +332,20 @@ interface ListeProps {
   setValeur: (v: string) => void;
   onAjout: (v: string) => void;
   onRetrait: (index: number) => void;
+  onModifier?: (index: number, v: string) => void;
 }
 
-function ListeEditable({ libelle, exemple, items, valeur, setValeur, onAjout, onRetrait }: ListeProps) {
+function ListeEditable({ libelle, exemple, items, valeur, setValeur, onAjout, onRetrait, onModifier }: ListeProps) {
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+
   const ajouter = () => {
     if (!valeur.trim()) return;
-    onAjout(valeur.trim());
+    if (editingIndex !== null && onModifier) {
+      onModifier(editingIndex, valeur.trim());
+      setEditingIndex(null);
+    } else {
+      onAjout(valeur.trim());
+    }
     setValeur("");
   };
 
@@ -307,14 +358,26 @@ function ListeEditable({ libelle, exemple, items, valeur, setValeur, onAjout, on
         {items.map((item, i) => (
           <div key={`${item}-${i}`} className="flex items-center justify-between gap-2 bg-white/[0.02] rounded-lg px-2.5 py-1">
             <span className="text-[11px] text-[var(--ink)]">{item}</span>
-            <button
-              type="button"
-              aria-label={`Retirer ${item}`}
-              onClick={() => onRetrait(i)}
-              className="text-[var(--rose)] hover:bg-white/5 p-1 rounded flex-shrink-0"
-            >
-              <Trash2 size={11} />
-            </button>
+            <div className="flex items-center gap-1 flex-shrink-0">
+              {onModifier && (
+                <button
+                  type="button"
+                  aria-label={`Modifier ${item}`}
+                  onClick={() => { setEditingIndex(i); setValeur(item); }}
+                  className="text-[var(--soft)] hover:bg-white/5 p-1 rounded"
+                >
+                  <Pencil size={11} />
+                </button>
+              )}
+              <button
+                type="button"
+                aria-label={`Retirer ${item}`}
+                onClick={() => { onRetrait(i); if (editingIndex === i) { setEditingIndex(null); setValeur(""); } }}
+                className="text-[var(--rose)] hover:bg-white/5 p-1 rounded"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
           </div>
         ))}
         <div className="flex gap-2">
@@ -330,10 +393,10 @@ function ListeEditable({ libelle, exemple, items, valeur, setValeur, onAjout, on
           <button
             type="button"
             onClick={ajouter}
-            aria-label={`Ajouter à ${libelle}`}
+            aria-label={editingIndex !== null ? `Mettre à jour ${libelle}` : `Ajouter à ${libelle}`}
             className="px-2.5 bg-white/[0.06] hover:bg-white/[0.1] rounded-xl text-[var(--g1)] flex-shrink-0"
           >
-            <Plus size={13} />
+            {editingIndex !== null ? <Pencil size={13} /> : <Plus size={13} />}
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Activity, AlertTriangle, CheckCircle2, PlusCircle, RefreshCw, Trash2 } from "lucide-react";
+import { Activity, AlertTriangle, CheckCircle2, Pencil, PlusCircle, RefreshCw, Trash2 } from "lucide-react";
 import { api } from "../../lib/api";
 import type { ExigenceTiers, ProjectState, Tiers } from "../../types";
 
@@ -36,6 +36,7 @@ const COULEUR_RATING: Record<string, string> = {
  */
 export function PhaseTprm({ activeProject, updateStepData, handleSaveProject, onProjectReplaced }: Props) {
   const [newTiers, setNewTiers] = useState(VIDE);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState("");
 
@@ -48,13 +49,28 @@ export function PhaseTprm({ activeProject, updateStepData, handleSaveProject, on
     setEnCours(true);
     setErreur("");
     try {
-      onProjectReplaced(await api.projects.addTiers(activeProject.id, newTiers));
+      if (editingIndex !== null) {
+        onProjectReplaced(await api.projects.updateTiers(activeProject.id, editingIndex, newTiers));
+      } else {
+        onProjectReplaced(await api.projects.addTiers(activeProject.id, newTiers));
+      }
       setNewTiers(VIDE);
+      setEditingIndex(null);
     } catch (e) {
       setErreur(e instanceof Error ? e.message : "Ajout impossible.");
     } finally {
       setEnCours(false);
     }
+  };
+
+  const commencerEdition = (idx: number, t: Tiers) => {
+    setEditingIndex(idx);
+    setNewTiers({ name: t.name, dependence: t.dependence, penetration: t.penetration, maturity: t.maturity, trust: t.trust });
+  };
+
+  const annulerEdition = () => {
+    setEditingIndex(null);
+    setNewTiers(VIDE);
   };
 
   const basculerExigence = async (index: number, exigence: ExigenceTiers) => {
@@ -181,23 +197,40 @@ export function PhaseTprm({ activeProject, updateStepData, handleSaveProject, on
               )}
             </div>
 
-            <button
-              type="button"
-              onClick={() => supprimer(idx)}
-              className="text-[var(--rose)] hover:bg-white/5 p-1.5 rounded-lg self-end md:self-center"
-              aria-label={`Supprimer le tiers ${t.name}`}
-            >
-              <Trash2 size={13} />
-            </button>
+            <div className="flex items-center gap-1 self-end md:self-center">
+              <button
+                type="button"
+                onClick={() => commencerEdition(idx, t)}
+                className="text-[var(--soft)] hover:bg-white/5 p-1.5 rounded-lg"
+                aria-label={`Modifier le tiers ${t.name}`}
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                type="button"
+                onClick={() => supprimer(idx)}
+                className="text-[var(--rose)] hover:bg-white/5 p-1.5 rounded-lg"
+                aria-label={`Supprimer le tiers ${t.name}`}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-4 rounded-xl text-xs">
-        <div className="md:col-span-3">
+        <div className="md:col-span-3 flex items-center justify-between">
           <label htmlFor="tprm-nom" className="block text-[11px] font-bold text-[var(--soft)] mb-1">
-            Nom du tiers / Fournisseur critique
+            {editingIndex !== null ? "Modifier le tiers" : "Nom du tiers / Fournisseur critique"}
           </label>
+          {editingIndex !== null && (
+            <button type="button" onClick={annulerEdition} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+              Annuler l'édition
+            </button>
+          )}
+        </div>
+        <div className="md:col-span-3">
           <input
             id="tprm-nom"
             type="text"
@@ -233,7 +266,7 @@ export function PhaseTprm({ activeProject, updateStepData, handleSaveProject, on
             disabled={enCours}
             className="px-4 py-2 bg-[var(--g1)] text-[#04150e] font-bold rounded-xl text-xs hover:opacity-90 flex items-center gap-1 disabled:opacity-50"
           >
-            <PlusCircle size={14} /> {estGrc ? "Ajouter au registre" : "Enregistrer et évaluer"}
+            <PlusCircle size={14} /> {editingIndex !== null ? "Mettre à jour" : estGrc ? "Ajouter au registre" : "Enregistrer et évaluer"}
           </button>
         </div>
       </div>

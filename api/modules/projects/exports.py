@@ -795,7 +795,7 @@ from fastapi.responses import HTMLResponse
 
 @router.get("/projects/{p_id}/pdf/{doc_type}")
 @limiter.limit("30/minute")
-def export_project_pdf(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> HTMLResponse:
+def export_project_pdf(p_id: str, doc_type: str, auditeur: str = "", cabinet: str = "", current_user: User = Depends(get_current_user), request: Request = None) -> Response:
     p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
     p_dir = PROJECTS_DIR / p_id
     if not p_dir.exists():

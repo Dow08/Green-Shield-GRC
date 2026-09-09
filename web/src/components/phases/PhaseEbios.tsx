@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertCircle, Award, BookOpen, CheckCircle2, Gauge, Plus, RefreshCw, Shield, Trash2 } from "lucide-react";
+import { AlertCircle, Award, BookOpen, CheckCircle2, Gauge, Pencil, Plus, RefreshCw, Shield, Trash2 } from "lucide-react";
 import { nextId } from "../../lib/ids";
 import type { CouvertureTechnique, ProjectState, RedouteEvent, RiskSource, OperationalScenario, CaseStudy } from "../../types";
 
@@ -9,12 +9,14 @@ interface Props {
   handleSaveProject: () => void;
   handleFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleTriggerAudit: () => void;
+  handleDeleteFile: (filename: string) => void;
   uploading: boolean;
   auditing: boolean;
+  deletingFile: string | null;
   couverture: CouvertureTechnique | null;
 }
 
-const _NOUVEL_EVENEMENT: RedouteEvent = { id: "", event: "", gravity: 3, impact: "" };
+const _NOUVEL_EVENEMENT: RedouteEvent = { id: "", event: "", gravity: 3, impact: "", source: "" };
 const _NOUVELLE_SOURCE: RiskSource = { id: "", name: "", objective: "" };
 const _NOUVEAU_SCENARIO: OperationalScenario = {
   id: "", event: "", gravity: 3, likelihood: 3, mitigation: "",
@@ -32,11 +34,15 @@ const _NOUVEAU_CAS: CaseStudy = { case: "", lessons: "" };
  *  `create_default_state`), aucun écran ne permettant à un consultant d'en
  *  saisir sur une mission réelle — l'analyse de risque était donc
  *  consultable, jamais réalisable de bout en bout. */
-export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, handleFileUpload, handleTriggerAudit, uploading, auditing, couverture }: Props) {
+export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, handleFileUpload, handleTriggerAudit, handleDeleteFile, uploading, auditing, deletingFile, couverture }: Props) {
   const [newEvenement, setNewEvenement] = useState<RedouteEvent>(_NOUVEL_EVENEMENT);
+  const [editingEvenementIndex, setEditingEvenementIndex] = useState<number | null>(null);
   const [newSource, setNewSource] = useState<RiskSource>(_NOUVELLE_SOURCE);
+  const [editingSourceIndex, setEditingSourceIndex] = useState<number | null>(null);
   const [newScenario, setNewScenario] = useState<OperationalScenario>(_NOUVEAU_SCENARIO);
+  const [editingScenarioIndex, setEditingScenarioIndex] = useState<number | null>(null);
   const [newCas, setNewCas] = useState<CaseStudy>(_NOUVEAU_CAS);
+  const [editingCasIndex, setEditingCasIndex] = useState<number | null>(null);
 
   const evenements = activeProject.steps.ebios?.redoute_events || [];
   const sources = activeProject.steps.ebios?.risk_sources || [];
@@ -79,6 +85,27 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                   {(!activeProject.steps.collecte?.files || activeProject.steps.collecte.files.length === 0) && (
                     <div className="text-xs text-[var(--amber)] bg-[rgba(255,207,107,0.06)] border border-dashed border-[rgba(255,207,107,0.3)] p-3 rounded-xl flex items-center gap-2">
                       <AlertCircle size={14} /> Aucun fichier de configuration n'est déposé. Pour tester l'analyseur sur des fichiers réels vulnérables, déposez les fichiers du lab (ex: `sshd_config` de `lab_target`).
+                    </div>
+                  )}
+
+                  {/* Fichiers cibles importés — retrait possible (ex: fichier de lab importé par erreur) */}
+                  {activeProject.steps.collecte?.files && activeProject.steps.collecte.files.length > 0 && (
+                    <div className="flex flex-col gap-1.5">
+                      {activeProject.steps.collecte.files.map((f) => (
+                        <div key={f} className="flex items-center justify-between text-xs bg-white/[0.02] border border-white/[0.03] rounded-xl px-3 py-1.5">
+                          <span className="font-mono text-[var(--faint)]">{f}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteFile(f)}
+                            disabled={deletingFile === f}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg disabled:opacity-40"
+                            aria-label={`Retirer ${f}`}
+                            title="Retirer ce fichier"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
 
@@ -139,21 +166,41 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                           <span className="font-bold text-[var(--ink)]">{e.event}</span>
                           <span className="ml-2 text-[9px] font-extrabold rounded-full px-1.5 py-0.5 bg-white/5 text-[var(--soft)]">G:{e.gravity}</span>
                           {e.impact && <span className="text-[11px] text-[var(--soft)] ml-2">— {e.impact}</span>}
+                          {e.source && <div className="text-[10px] text-[var(--faint)] italic mt-0.5">Source : {e.source}</div>}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...evenements]; list.splice(idx, 1);
-                            updateStepData("ebios", "redoute_events", list);
-                          }}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                          aria-label={`Supprimer l'événement redouté ${e.event}`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingEvenementIndex(idx); setNewEvenement(e); }}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Modifier l'événement redouté ${e.event}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...evenements]; list.splice(idx, 1);
+                              updateStepData("ebios", "redoute_events", list);
+                              if (editingEvenementIndex === idx) { setEditingEvenementIndex(null); setNewEvenement(_NOUVEL_EVENEMENT); }
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer l'événement redouté ${e.event}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
+                  {editingEvenementIndex !== null && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] font-bold text-[var(--g1)]">Modification de {newEvenement.id}</span>
+                      <button type="button" onClick={() => { setEditingEvenementIndex(null); setNewEvenement(_NOUVEL_EVENEMENT); }} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+                        Annuler l'édition
+                      </button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
                     <input
                       type="text" placeholder="ID (ex: ER-05)" value={newEvenement.id}
@@ -182,15 +229,24 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                         type="button"
                         onClick={() => {
                           if (!newEvenement.id.trim() || !newEvenement.event.trim()) return;
-                          const list = [...evenements, newEvenement];
+                          const list = [...evenements];
+                          if (editingEvenementIndex !== null) { list[editingEvenementIndex] = newEvenement; } else { list.push(newEvenement); }
                           updateStepData("ebios", "redoute_events", list);
                           setNewEvenement({ ..._NOUVEL_EVENEMENT, id: nextId("ER", list.map((x) => x.id)) });
+                          setEditingEvenementIndex(null);
                         }}
                         className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                        aria-label={editingEvenementIndex !== null ? "Mettre à jour l'événement" : "Ajouter l'événement"}
                       >
-                        <Plus size={15} />
+                        {editingEvenementIndex !== null ? <Pencil size={15} /> : <Plus size={15} />}
                       </button>
                     </div>
+                    <input
+                      type="text" placeholder="Source du constat (ex: QCM section 3, entretien du 12/08, scan technique...)"
+                      value={newEvenement.source}
+                      onChange={(e) => setNewEvenement({ ...newEvenement, source: e.target.value })}
+                      className="md:col-span-4 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[11px]"
+                    />
                   </div>
                 </div>
 
@@ -205,20 +261,39 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                           <span className="font-bold text-[var(--ink)]">{s.name}</span>
                           {s.objective && <span className="text-[11px] text-[var(--soft)] ml-2">— {s.objective}</span>}
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...sources]; list.splice(idx, 1);
-                            updateStepData("ebios", "risk_sources", list);
-                          }}
-                          className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
-                          aria-label={`Supprimer la source de risque ${s.name}`}
-                        >
-                          <Trash2 size={13} />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingSourceIndex(idx); setNewSource(s); }}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Modifier la source de risque ${s.name}`}
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...sources]; list.splice(idx, 1);
+                              updateStepData("ebios", "risk_sources", list);
+                              if (editingSourceIndex === idx) { setEditingSourceIndex(null); setNewSource(_NOUVELLE_SOURCE); }
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer la source de risque ${s.name}`}
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
+                  {editingSourceIndex !== null && (
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-[10px] font-bold text-[var(--g1)]">Modification de {newSource.id}</span>
+                      <button type="button" onClick={() => { setEditingSourceIndex(null); setNewSource(_NOUVELLE_SOURCE); }} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+                        Annuler l'édition
+                      </button>
+                    </div>
+                  )}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
                     <input
                       type="text" placeholder="ID (ex: SR-03)" value={newSource.id}
@@ -240,13 +315,16 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                         type="button"
                         onClick={() => {
                           if (!newSource.id.trim() || !newSource.name.trim()) return;
-                          const list = [...sources, newSource];
+                          const list = [...sources];
+                          if (editingSourceIndex !== null) { list[editingSourceIndex] = newSource; } else { list.push(newSource); }
                           updateStepData("ebios", "risk_sources", list);
                           setNewSource({ ..._NOUVELLE_SOURCE, id: nextId("SR", list.map((x) => x.id)) });
+                          setEditingSourceIndex(null);
                         }}
                         className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                        aria-label={editingSourceIndex !== null ? "Mettre à jour la source" : "Ajouter la source"}
                       >
-                        <Plus size={15} />
+                        {editingSourceIndex !== null ? <Pencil size={15} /> : <Plus size={15} />}
                       </button>
                     </div>
                   </div>
@@ -294,9 +372,18 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                             <span className="bg-white/5 rounded px-2 py-0.5 text-[9px] text-[var(--soft)]">G:{s.gravity} · V:{s.likelihood}</span>
                             <button
                               type="button"
+                              onClick={() => { setEditingScenarioIndex(idx); setNewScenario(s); }}
+                              className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                              aria-label={`Modifier le scénario ${s.event}`}
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => {
                                 const list = [...scenarios]; list.splice(idx, 1);
                                 updateStepData("ebios", "operational_scenarios", list);
+                                if (editingScenarioIndex === idx) { setEditingScenarioIndex(null); setNewScenario(_NOUVEAU_SCENARIO); }
                               }}
                               className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
                               aria-label={`Supprimer le scénario ${s.event}`}
@@ -317,6 +404,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                             <span><strong className="text-[var(--faint)]">Résiduel :</strong> G:{s.gravite_residuelle} · V:{s.vraisemblance_residuelle}</span>
                           )}
                           {s.statut && <span><strong className="text-[var(--faint)]">Statut :</strong> {s.statut}</span>}
+                          {s.date_revue && <span><strong className="text-[var(--faint)]">Revue :</strong> {s.date_revue}</span>}
                         </div>
                       </div>
                     ))}
@@ -325,6 +413,14 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                   {/* Add scenario form — deux lignes : cadrage du scénario, puis
                       chaîne de traitement (propriétaire, résiduel, décision). */}
                   <div className="lg:col-span-3 flex flex-col gap-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
+                    {editingScenarioIndex !== null && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-[var(--g1)]">Modification de {newScenario.id}</span>
+                        <button type="button" onClick={() => { setEditingScenarioIndex(null); setNewScenario(_NOUVEAU_SCENARIO); }} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+                          Annuler l'édition
+                        </button>
+                      </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                       <input
                         type="text" placeholder="ID (ex: SO-05)" value={newScenario.id}
@@ -368,7 +464,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
+                    <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
                       <select
                         value={newScenario.gravite_residuelle ?? ""}
                         onChange={(e) => setNewScenario({ ...newScenario, gravite_residuelle: e.target.value ? Number(e.target.value) : undefined })}
@@ -407,17 +503,26 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                         <option value="Traité">Traité</option>
                         <option value="Clos">Clos</option>
                       </select>
+                      <input
+                        type="date" value={newScenario.date_revue ?? ""}
+                        onChange={(e) => setNewScenario({ ...newScenario, date_revue: e.target.value })}
+                        title="Date de revue du risque"
+                        aria-label="Date de revue du risque"
+                        className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[var(--ink)]"
+                      />
                       <button
                         type="button"
                         onClick={() => {
                           if (!newScenario.id.trim() || !newScenario.event.trim()) return;
-                          const list = [...scenarios, newScenario];
+                          const list = [...scenarios];
+                          if (editingScenarioIndex !== null) { list[editingScenarioIndex] = newScenario; } else { list.push(newScenario); }
                           updateStepData("ebios", "operational_scenarios", list);
                           setNewScenario({ ..._NOUVEAU_SCENARIO, id: nextId("SO", list.map((x) => x.id)) });
+                          setEditingScenarioIndex(null);
                         }}
                         className="flex items-center justify-center gap-1 bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90 font-bold"
                       >
-                        <Plus size={15} /> Ajouter
+                        {editingScenarioIndex !== null ? <><Pencil size={15} /> Mettre à jour</> : <><Plus size={15} /> Ajouter</>}
                       </button>
                     </div>
                   </div>
@@ -429,17 +534,28 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {casReels.map((c: CaseStudy, idx: number) => (
                       <div key={idx} className="bg-white/[0.02] border border-white/5 rounded-xl p-3 text-xs animate-fade-in relative group">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const list = [...casReels]; list.splice(idx, 1);
-                            updateStepData("ebios", "case_studies", list);
-                          }}
-                          className="absolute top-2 right-2 text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                          aria-label={`Supprimer le cas réel ${c.case}`}
-                        >
-                          <Trash2 size={12} />
-                        </button>
+                        <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition">
+                          <button
+                            type="button"
+                            onClick={() => { setEditingCasIndex(idx); setNewCas(c); }}
+                            className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Modifier le cas réel ${c.case}`}
+                          >
+                            <Pencil size={12} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const list = [...casReels]; list.splice(idx, 1);
+                              updateStepData("ebios", "case_studies", list);
+                              if (editingCasIndex === idx) { setEditingCasIndex(null); setNewCas(_NOUVEAU_CAS); }
+                            }}
+                            className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                            aria-label={`Supprimer le cas réel ${c.case}`}
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </div>
                         <div className="font-bold text-[var(--sky)] mb-1 flex items-center gap-1 pr-5">
                           <BookOpen size={12} /> {c.case}
                         </div>
@@ -463,12 +579,16 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                         type="button"
                         onClick={() => {
                           if (!newCas.case.trim()) return;
-                          updateStepData("ebios", "case_studies", [...casReels, newCas]);
+                          const list = [...casReels];
+                          if (editingCasIndex !== null) { list[editingCasIndex] = newCas; } else { list.push(newCas); }
+                          updateStepData("ebios", "case_studies", list);
                           setNewCas(_NOUVEAU_CAS);
+                          setEditingCasIndex(null);
                         }}
                         className="bg-[var(--g1)] text-[#04150e] p-1.5 rounded-xl hover:opacity-90"
+                        aria-label={editingCasIndex !== null ? "Mettre à jour le cas" : "Ajouter le cas"}
                       >
-                        <Plus size={15} />
+                        {editingCasIndex !== null ? <Pencil size={15} /> : <Plus size={15} />}
                       </button>
                     </div>
                   </div>

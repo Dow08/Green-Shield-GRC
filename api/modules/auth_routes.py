@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Security, status
 from fastapi.security import HTTPAuthorizationCredentials
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from datetime import timedelta
 
@@ -21,9 +22,14 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 def register(request: Request, data: RegisterRequest, db: Session = Depends(get_db)):
     validate_password(data.password)
 
-    if db.query(User).filter(User.email == data.email).first():
+    # Même correction qu'au login (func.lower) : RegisterRequest normalise déjà
+    # `data.email` en minuscules, mais un compte existant créé avant l'ajout de
+    # ce validateur peut avoir conservé une casse différente en base — sans ce
+    # `func.lower`, l'unicité échoue à le détecter et un doublon (même adresse,
+    # casse différente) devient possible.
+    if db.query(User).filter(func.lower(User.email) == data.email.strip().lower()).first():
         raise HTTPException(status_code=400, detail="Cet email est déjà utilisé")
-        
+
     user = User(
         email=data.email,
         password_hash=get_password_hash(data.password),
@@ -33,16 +39,23 @@ def register(request: Request, data: RegisterRequest, db: Session = Depends(get_
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     return {"message": "Utilisateur créé avec succès"}
 
 @router.post("/login", response_model=LoginResponse)
 @limiter.limit("5/minute")
 def login(request: Request, data: LoginRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == data.email).first()
+    # Comparaison insensible à la casse : `register` normalise l'email en
+    # minuscules (schemas.py::email_format), mais des comptes créés avant
+    # l'ajout de ce validateur (ou importés) peuvent conserver une casse
+    # d'origine en base. Sans ce `func.lower`, un utilisateur qui retape son
+    # email tel qu'il l'a toujours saisi échoue silencieusement si la casse
+    # stockée diffère — l'erreur générique "Email ou mot de passe incorrect"
+    # ne distingue pas ce cas d'un vrai mot de passe faux.
+    user = db.query(User).filter(func.lower(User.email) == data.email.strip().lower()).first()
     if not user or not verify_password(data.password, user.password_hash):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
-        
+
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
         data={"sub": user.email, "role": user.role}, expires_delta=access_token_expires

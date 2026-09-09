@@ -13,6 +13,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+import main  # noqa: E402
 from modules import aipd, report_builder, revue_export, schema_migration  # noqa: E402
 
 
@@ -46,6 +47,41 @@ def test_seule_la_consultation_prealable_est_conditionnelle():
 def test_le_referentiel_ne_recopie_pas_le_texte_du_reglement():
     """F3 : identifiants et intitulés courts reformulés, jamais le texte."""
     assert all(len(o["libelle"]) < 90 for o in aipd.OBLIGATIONS)
+
+
+def test_le_referentiel_expose_les_champs_attendus_par_le_frontend():
+    """`ReferenceObligationAIPD` (web/src/types.ts) attend id/libelle/reference/
+    aide/conditionnelle — jamais `satisfait` ni `commentaire`, propres à une
+    mission (voir `obligations_par_defaut`)."""
+    referentiel = aipd.referentiel_obligations()
+    assert len(referentiel) == 5
+    assert all(set(o) == {"id", "libelle", "reference", "aide", "conditionnelle"} for o in referentiel)
+
+
+def test_deux_appels_au_referentiel_ne_partagent_pas_le_meme_dict():
+    a, b = aipd.referentiel_obligations(), aipd.referentiel_obligations()
+    a[0]["libelle"] = "modifié"
+    assert b[0]["libelle"] != "modifié"
+
+
+# --- La route ----------------------------------------------------------------
+# Appel direct de la fonction de route, comme le reste de la suite (pattern
+# documenté dans conftest.py) plutôt que via un client HTTP.
+
+def test_la_route_obligations_renvoie_le_referentiel_complet():
+    from modules.database.models import User
+    utilisateur = User(id=0, email="test@test.local", password_hash="", role="user", is_premium=False)
+    reponse = main.aipd_obligations(_user=utilisateur)
+    assert {o["id"] for o in reponse} == {"DPO", "PERSONNES", "LISTES_CNIL", "REEXAMEN", "ART36"}
+
+
+def test_la_route_obligations_est_protegee_par_get_current_user():
+    """Comme `/api/modules` (main.py) : `_user` est un `Depends(get_current_user)`,
+    donc FastAPI refuse l'appel sans jeton valide avant même d'atteindre la fonction."""
+    import inspect
+    from modules.auth import get_current_user
+    parametre = inspect.signature(main.aipd_obligations).parameters["_user"]
+    assert parametre.default.dependency is get_current_user
 
 
 def test_les_obligations_par_defaut_sont_non_traitees():

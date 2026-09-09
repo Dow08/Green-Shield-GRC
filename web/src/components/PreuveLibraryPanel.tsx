@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Plus, Trash2, Search, Link as LinkIcon } from "lucide-react";
+import { FileText, Pencil, Plus, Trash2, Search, Link as LinkIcon } from "lucide-react";
 import { nextId } from "../lib/ids";
 import type { LienControle, ManualControl, Preuve, SuggestionPreuve } from "../types";
 import { api } from "../lib/api";
@@ -30,6 +30,7 @@ function lienEgal(a: LienControle, b: LienControle): boolean {
  */
 export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChange }: Props) {
   const [nouvelle, setNouvelle] = useState<Omit<Preuve, "id">>(NOUVELLE);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<SuggestionPreuve[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
 
@@ -146,14 +147,30 @@ export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChang
                 )}
                 {p.description && <p className="text-[10px] text-[var(--faint)] mt-0.5">{p.description}</p>}
               </div>
-              <button
-                type="button"
-                onClick={() => { const list = [...preuves]; list.splice(idx, 1); onChange(list); }}
-                className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg flex-shrink-0"
-                aria-label={`Supprimer la preuve ${p.id}`}
-              >
-                <Trash2 size={13} />
-              </button>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingIndex(idx);
+                    setNouvelle({ libelle: p.libelle, description: p.description, document_reference: p.document_reference, date: p.date, controles_lies: p.controles_lies });
+                  }}
+                  className="text-[var(--soft)] hover:bg-white/5 p-1 rounded-lg"
+                  aria-label={`Modifier la preuve ${p.id}`}
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const list = [...preuves]; list.splice(idx, 1); onChange(list);
+                    if (editingIndex === idx) { setEditingIndex(null); setNouvelle(NOUVELLE); }
+                  }}
+                  className="text-[var(--rose)] hover:bg-white/5 p-1 rounded-lg"
+                  aria-label={`Supprimer la preuve ${p.id}`}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
             <div className="flex flex-wrap gap-1.5">
               {p.controles_lies.length === 0 && (
@@ -173,6 +190,14 @@ export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChang
       </div>
 
       <div className="flex flex-col gap-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
+        {editingIndex !== null && (
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-[var(--g1)]">Modification de la preuve</span>
+            <button type="button" onClick={() => { setEditingIndex(null); setNouvelle(NOUVELLE); }} className="text-[10px] text-[var(--soft)] hover:text-[var(--ink)] underline">
+              Annuler l'édition
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <input
             type="text" placeholder="Intitulé de la preuve (ex : PSSI signée)" value={nouvelle.libelle}
@@ -233,13 +258,20 @@ export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChang
           type="button"
           onClick={() => {
             if (!nouvelle.libelle.trim()) return;
-            const id = nextId("PRV", preuves.map((p) => p.id));
-            onChange([...preuves, { ...nouvelle, id }]);
+            if (editingIndex !== null) {
+              const list = [...preuves];
+              list[editingIndex] = { ...nouvelle, id: list[editingIndex].id };
+              onChange(list);
+              setEditingIndex(null);
+            } else {
+              const id = nextId("PRV", preuves.map((p) => p.id));
+              onChange([...preuves, { ...nouvelle, id }]);
+            }
             setNouvelle(NOUVELLE);
           }}
           className="self-end flex items-center gap-1.5 bg-[var(--g1)] text-[#04150e] px-3 py-1.5 rounded-xl hover:opacity-90 font-bold"
         >
-          <Plus size={14} /> Ajouter la preuve
+          {editingIndex !== null ? <><Pencil size={14} /> Mettre à jour</> : <><Plus size={14} /> Ajouter la preuve</>}
         </button>
       </div>
     </div>

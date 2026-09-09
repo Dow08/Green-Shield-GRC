@@ -229,6 +229,50 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       />
                     </div>
                     <div>
+                      <span className="flex items-center justify-between text-[10px] font-bold text-[var(--amber)] mb-1">
+                        E2 - Éviction (Reprise de contrôle)
+                        <BoutonDictee
+                          libelle="Éviction"
+                          onTexte={(t) => {
+                            const actuel = activeProject.steps.resilience?.e3r?.eviction || "";
+                            const e3r = { ...activeProject.steps.resilience?.e3r, eviction: actuel ? `${actuel} ${t}` : t };
+                            updateStepData("resilience", "e3r", e3r);
+                          }}
+                        />
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={activeProject.steps.resilience?.e3r?.eviction || ""}
+                        onChange={(e) => {
+                          const e3r = { ...activeProject.steps.resilience?.e3r, eviction: e.target.value };
+                          updateStepData("resilience", "e3r", e3r);
+                        }}
+                        className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div>
+                      <span className="flex items-center justify-between text-[10px] font-bold text-[var(--sky)] mb-1">
+                        E3 - Éradication (Suppression des accès résiduels)
+                        <BoutonDictee
+                          libelle="Éradication"
+                          onTexte={(t) => {
+                            const actuel = activeProject.steps.resilience?.e3r?.eradication || "";
+                            const e3r = { ...activeProject.steps.resilience?.e3r, eradication: actuel ? `${actuel} ${t}` : t };
+                            updateStepData("resilience", "e3r", e3r);
+                          }}
+                        />
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={activeProject.steps.resilience?.e3r?.eradication || ""}
+                        onChange={(e) => {
+                          const e3r = { ...activeProject.steps.resilience?.e3r, eradication: e.target.value };
+                          updateStepData("resilience", "e3r", e3r);
+                        }}
+                        className="w-full bg-white/[0.02] border border-[var(--stroke)] rounded-xl p-2 text-xs focus:outline-none"
+                      />
+                    </div>
+                    <div>
                       <span className="flex items-center justify-between text-[10px] font-bold text-[var(--g1)] mb-1">
                         R - Reconstruction (IaC &amp; Durcissement)
                         <BoutonDictee

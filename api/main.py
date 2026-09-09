@@ -13,6 +13,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
 from modules.auth import get_current_user, limiter
 from modules import ressources
+from modules import aipd
 from fastapi.middleware.cors import CORSMiddleware
 
 from modules import auditcraft_grc
@@ -40,10 +41,17 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 # limite s'applique aux routes qui n'ont pas de décorateur explicite.
 app.add_middleware(SlowAPIMiddleware)
 
-# Le frontend (SPA) est servi sur http://localhost:8080 en prod
+# Origines autorisées : 8080 = SPA servie par nginx en production, 5175 = serveur
+# de développement Vite.
+#
+# 09/09/2026 : la liste mentionnait 5173, port par défaut de Vite — mais
+# `web/vite.config.ts` fixe `port: 5175` en `strictPort`. L'écart passait
+# inaperçu parce que le développement passe par le proxy `/api` de Vite, donc en
+# même origine : CORS n'entre jamais en jeu. Tout appel direct au backend depuis
+# le navigateur aurait pourtant été refusé, sans que rien n'explique pourquoi.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "http://localhost:5173"],
+    allow_origins=["http://localhost:8080", "http://localhost:5175"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -91,6 +99,14 @@ def health() -> dict:
 def list_modules(_user=Depends(get_current_user)) -> list[dict]:
     """Registre : la nav du shell est construite à partir de cette liste."""
     return MODULES
+
+
+@app.get("/api/aipd/obligations")
+def aipd_obligations(_user=Depends(get_current_user)) -> list[dict]:
+    """Référentiel des cinq obligations de conduite de l'AIPD (§14.2.1) : pas
+    l'état d'une mission, seulement le libellé, l'article et l'aide de
+    chacune — d'où l'appel à `aipd.py` plutôt qu'à une mission stockée."""
+    return aipd.referentiel_obligations()
 
 
 @app.get("/api/auditcraft/run")

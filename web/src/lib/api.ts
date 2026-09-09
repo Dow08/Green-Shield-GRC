@@ -107,6 +107,21 @@ export async function errorDetail(res: Response): Promise<string> {
   return `HTTP ${res.status}`;
 }
 
+// --- Reprise des lectures transitoirement en échec ---
+// Un redémarrage de l'API la rend injoignable quelques secondes, et un seul
+// échec suffisait à figer un bandeau d'erreur rouge jusqu'au prochain
+// rechargement complet. Les GET étant idempotents, on réessaie.
+//
+// 500 est volontairement EXCLU (09/09/2026) : un 500 signifie que le serveur a
+// répondu et qu'il a un problème — typiquement ici un pool de connexions
+// saturé, où chaque requête attend 30 s avant d'échouer. Les rejouer triplait
+// la charge exactement au moment où le serveur suffoquait, transformant une
+// saturation passagère en cascade. On ne reprend que sur une injoignabilité
+// réseau franche et sur les erreurs de passerelle.
+const GET_STATUTS_A_REESSAYER = new Set([502, 503, 504]);
+const GET_DELAIS_REPRISE_MS = [700, 1500];
+const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 async function get<T>(path: string): Promise<T> {
   const logId = crypto.randomUUID();
   const startTime = performance.now();
@@ -114,15 +129,32 @@ async function get<T>(path: string): Promise<T> {
   let errorMsg: string | undefined;
 
   try {
-    // `no-store` : ces routes décrivent un état vivant (missions en cours,
-    // matériel du poste, modèles installés). Sans cette consigne, le
-    // navigateur ressert sa copie et l'utilisateur voit un état périmé après
-    // avoir cliqué — constaté en recette le 05/08/2026 sur la détection
-    // matérielle, qui renvoyait la réponse précédente.
-    const res = await fetch(path, { headers: getHeaders(), cache: "no-store" });
-    status = res.status;
-    await handleResponse(res);
-    return res.json() as Promise<T>;
+    for (let tentative = 0; ; tentative++) {
+      const reprisePossible = tentative < GET_DELAIS_REPRISE_MS.length;
+      let res: Response;
+      try {
+        // `no-store` : ces routes décrivent un état vivant (missions en cours,
+        // matériel du poste, modèles installés). Sans cette consigne, le
+        // navigateur ressert sa copie et l'utilisateur voit un état périmé après
+        // avoir cliqué — constaté en recette le 05/08/2026 sur la détection
+        // matérielle, qui renvoyait la réponse précédente.
+        res = await fetch(path, { headers: getHeaders(), cache: "no-store" });
+      } catch (err) {
+        // Échec réseau : API injoignable, pas une réponse d'erreur métier.
+        if (reprisePossible) {
+          await pause(GET_DELAIS_REPRISE_MS[tentative]);
+          continue;
+        }
+        throw err;
+      }
+      status = res.status;
+      if (GET_STATUTS_A_REESSAYER.has(res.status) && reprisePossible) {
+        await pause(GET_DELAIS_REPRISE_MS[tentative]);
+        continue;
+      }
+      await handleResponse(res);
+      return (await res.json()) as T;
+    }
   } catch (err) {
     errorMsg = err instanceof Error ? err.message : String(err);
     throw err;
@@ -358,6 +390,7 @@ export const api = {
     update: (id: string, state: ProjectState) => put<ProjectState>(`/api/projects/${id}`, state),
     delete: (id: string) => deleteReq<{ status: string; message: string }>(`/api/projects/${id}`),
     upload: (id: string, file: File) => uploadFile<ProjectState>(`/api/projects/${id}/upload`, file),
+    deleteFile: (id: string, filename: string) => deleteReq<ProjectState>(`/api/projects/${id}/files/${encodeURIComponent(filename)}`),
     runAudit: (id: string) => post<ProjectState>(`/api/projects/${id}/audit`, {}),
     revue: (id: string) => get<RevueExportResult>(`/api/projects/${id}/revue`),
     couverture: (id: string) => get<CouvertureTechnique>(`/api/projects/${id}/couverture`),
@@ -373,11 +406,15 @@ export const api = {
       post<ProjectState>(`/api/projects/${id}/snapshots/${nom}/restore`, {}),
     addTemps: (id: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
       post<ProjectState>(`/api/projects/${id}/temps`, entry),
+    updateTemps: (id: string, entryId: string, entry: { phase: PhaseTemps; minutes: number; date?: string; note?: string }) =>
+      put<ProjectState>(`/api/projects/${id}/temps/${entryId}`, entry),
     getSuggestions: (id: string) => get<SuggestionPreuve[]>(`/api/projects/${id}/preuves/suggestions`),
     // TPRM : le navigateur n'envoie que les curseurs. La notation appartient au
     // serveur, sans quoi deux copies de la formule finissent par diverger.
     addTiers: (id: string, tiers: { name: string; dependence: number; penetration: number; maturity: number; trust: number }) =>
       post<ProjectState>(`/api/projects/${id}/tprm/tiers`, tiers),
+    updateTiers: (id: string, index: number, tiers: { name: string; dependence: number; penetration: number; maturity: number; trust: number }) =>
+      put<ProjectState>(`/api/projects/${id}/tprm/tiers/${index}`, tiers),
     setExigenceTiers: (id: string, index: number, exigenceId: string, valeur: { satisfait: boolean; preuve?: string }) =>
       put<ProjectState>(`/api/projects/${id}/tprm/tiers/${index}/exigences/${exigenceId}`, valeur),
     recalculerTprm: (id: string) =>
@@ -441,7 +478,7 @@ export const api = {
     updateDemandePreuve: (
       id: string,
       demandeId: string,
-      data: { statut: StatutDemande; note?: string; preuve_id?: string },
+      data: { statut?: StatutDemande; note?: string; preuve_id?: string; libelle?: string; destinataire?: string; echeance?: string },
     ) => patch<ProjectState>(`/api/projects/${id}/demandes-preuves/${demandeId}`, data),
     deleteDemandePreuve: (id: string, demandeId: string) =>
       deleteReq<ProjectState>(`/api/projects/${id}/demandes-preuves/${demandeId}`),

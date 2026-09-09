@@ -65,6 +65,13 @@ def obligations_par_defaut() -> list[dict]:
     return [{"id": o["id"], "satisfait": False, "commentaire": ""} for o in OBLIGATIONS]
 
 
+def referentiel_obligations() -> list[dict]:
+    """Le référentiel servi au frontend : libellé, article et aide de chaque
+    obligation — jamais l'état (`satisfait`, `commentaire`), propre à une
+    mission et qui ne se stocke que dans son AIPD (`obligations_par_defaut`)."""
+    return [dict(o) for o in OBLIGATIONS]
+
+
 def _index(aipd: dict) -> dict[str, dict]:
     return {o.get("id"): o for o in (aipd.get("obligations") or [])}
 

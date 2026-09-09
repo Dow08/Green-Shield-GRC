@@ -274,15 +274,21 @@ class AddDemandePreuveRequest(BaseModel):
 
 
 class UpdateDemandePreuveRequest(BaseModel):
-    """Changement de statut d'une demande (relance, réception, refus)."""
-    statut: str
+    """Changement de statut d'une demande (relance, réception, refus), ou correction de sa saisie."""
+    statut: Optional[str] = None
     note: Optional[str] = Field(default=None, max_length=500)
     # Renseigné à la réception : rattache la demande à la preuve créée.
     preuve_id: Optional[str] = None
+    # Correction d'une saisie erronée — n'entraîne aucun changement de statut.
+    libelle: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    destinataire: Optional[str] = Field(default=None, max_length=120)
+    echeance: Optional[str] = None
 
     @field_validator("statut")
     @classmethod
-    def statut_valide(cls, v: str) -> str:
+    def statut_valide(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
         from .demandes_preuves import STATUTS
         if v not in STATUTS:
             raise ValueError(f"statut invalide : {v}")

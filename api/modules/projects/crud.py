@@ -1,4 +1,5 @@
 from __future__ import annotations
+import atexit
 import os
 import json
 import logging
@@ -23,12 +24,49 @@ from ..schemas import (
     ImportFrameworkRequest, DocxExportRequest,
 )
 
+_SESSION_SECOURS: Session | None = None
+
+
+def _fermer_session_secours() -> None:
+    global _SESSION_SECOURS
+    if _SESSION_SECOURS is not None:
+        try:
+            _SESSION_SECOURS.close()
+        finally:
+            _SESSION_SECOURS = None
+
+
+def _session_de_secours() -> Session:
+    """Session unique prêtée aux appels directs en Python (tests hors patcheur).
+
+    Elle ne peut pas être refermée par un `try/finally` local : l'appelant s'en
+    sert *après* le retour de `_resolve_test_deps`. On en garde donc **une
+    seule** pour tout le processus au lieu d'en créer une par appel — c'était
+    cette accumulation qui épuisait le pool, `atexit` ne refermant qu'à l'arrêt
+    du processus. Le `rollback` avant chaque prêt repart d'une transaction
+    propre et rend la connexion au pool : au repos, cette session ne retient
+    rien.
+    """
+    global _SESSION_SECOURS
+    from ..database.session import SessionLocal
+    if _SESSION_SECOURS is None:
+        _SESSION_SECOURS = SessionLocal()
+        atexit.register(_fermer_session_secours)
+    else:
+        _SESSION_SECOURS.rollback()
+    return _SESSION_SECOURS
+
+
 def _resolve_test_deps(current_user, db):
+    """Filet de secours pour les tests qui appellent une route directement en
+    Python (sans passer par FastAPI, donc `current_user`/`db` restent le
+    sentinel `Depends(...)` jamais résolu). Ne doit jamais se déclencher lors
+    d'une vraie requête HTTP : FastAPI a déjà résolu `db` en session réelle
+    avant d'atteindre le corps de la route."""
     if hasattr(current_user, "dependency") or type(current_user).__name__ == "Depends":
         current_user = User(id=0, email="test@test.local", role="user", is_premium=False)
     if hasattr(db, "dependency") or type(db).__name__ == "Depends":
-        from ..database.session import SessionLocal
-        db = SessionLocal()
+        db = _session_de_secours()
     return current_user, db
 
 def _get_project_db_or_disk(p_id: str, db: Session | None = None) -> tuple[Project | None, dict | None]:
@@ -795,6 +833,40 @@ async def upload_file(p_id: str, file: UploadFile = File(...),
     audit_log.record("project.upload", target=p_id, detail=f"file={safe_filename}")
     return state
 
+@router.delete("/projects/{p_id}/files/{filename}")
+def delete_project_file(p_id: str, filename: str,
+                         current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Retire un fichier cible importé par erreur (ex: le fichier de démo du lab
+    AuditCraft) — sans ça, rien ne permettait de revenir en arrière après un
+    import une fois la mission passée en conditions réelles."""
+    current_user, db = _resolve_test_deps(current_user, db)
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    safe_filename = path_safety.safe_filename(filename)
+    p_dir = PROJECTS_DIR / p_id
+    if not p_dir.exists():
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+
+    files_list = state.setdefault("steps", {}).setdefault("collecte", {}).setdefault("files", [])
+    if safe_filename not in files_list:
+        raise HTTPException(status_code=404, detail="Fichier introuvable dans ce projet")
+    files_list.remove(safe_filename)
+    (p_dir / "targets" / safe_filename).unlink(missing_ok=True)
+
+    # Un résultat de scan technique déjà calculé pouvait reposer sur ce fichier :
+    # s'il ne reste plus aucune cible, on l'efface pour ne jamais laisser un
+    # résultat obsolète (ex: sur le fichier de démo) s'exporter dans le rapport.
+    if not files_list:
+        state.get("steps", {}).get("evaluation", {}).pop("technical_results", None)
+
+    state["progress"] = calculate_progress(state)
+    update_project_db(p_id, state, db)
+    audit_log.record("project.file_delete", target=p_id, detail=f"file={safe_filename}")
+    return state
+
 @router.post("/projects/{p_id}/audit")
 def run_project_audit(p_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     current_user, db = _resolve_test_deps(current_user, db)
@@ -1008,6 +1080,39 @@ def add_tprm_tier(p_id: str, data: AddTiersRequest, current_user: User = Depends
     return state
 
 
+@router.put("/projects/{p_id}/tprm/tiers/{index}")
+def update_tprm_tier(p_id: str, index: int, data: AddTiersRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Modifie un tiers existant — même règle que l'ajout : le serveur seul note.
+
+    Les exigences de conformité déjà cochées (volet GRC) sont préservées :
+    modifier le nom ou les curseurs d'un tiers ne doit pas effacer le travail
+    de revue déjà fait dessus.
+    """
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    data = coerce(AddTiersRequest, data)
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    tiers = _tprm_tiers(state)
+    if not 0 <= index < len(tiers):
+        raise HTTPException(status_code=404, detail="Tiers introuvable")
+
+    criteres = {"dependence": data.dependence, "penetration": data.penetration,
+                "maturity": data.maturity, "trust": data.trust}
+    existant = tiers[index]
+    tier = {"name": data.name, **criteres}
+    if state.get("type") == "grc":
+        tier["exigences"] = existant.get("exigences", tprm.exigences_par_defaut())
+    else:
+        tier.update(tprm.ratio_anssi(**criteres))
+
+    tiers[index] = tier
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    update_project_db(p_id, state, db)
+    return state
+
+
 @router.put("/projects/{p_id}/tprm/tiers/{index}/exigences/{exigence_id}")
 def update_tprm_exigence(p_id: str, index: int, exigence_id: str, data: UpdateExigenceTiersRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
     """Coche (ou décoche) une exigence de conformité d'un tiers, volet GRC."""
@@ -1174,6 +1279,31 @@ def add_temps_entry(p_id: str, data: AddTempsRequest, current_user: User = Depen
     state["progress"] = calculate_progress(state)
     update_project_db(p_id, state, db)
     audit_log.record("temps.add", target=p_id, detail=f"{entree['id']} phase={data.phase} minutes={data.minutes}")
+    return state
+
+
+@router.put("/projects/{p_id}/temps/{entry_id}")
+def update_temps_entry(p_id: str, entry_id: str, data: AddTempsRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
+    """Corrige une entrée de temps existante (phase, durée, date, note)."""
+    data = coerce(AddTempsRequest, data)
+    p_id = path_safety.safe_path_component(p_id, "identifiant de mission")
+    entry_id = path_safety.safe_path_component(entry_id, "identifiant d'entrée de temps")
+    current_user, db = _resolve_test_deps(current_user, db)
+    p, state = _get_project_db_or_disk(p_id, db)
+    if not state:
+        raise HTTPException(status_code=404, detail="Projet introuvable")
+    temps = state.setdefault("socle", {}).setdefault("temps", {"entrees": []})
+    entrees = temps.setdefault("entrees", [])
+    cible = next((e for e in entrees if e.get("id") == entry_id), None)
+    if cible is None:
+        raise HTTPException(status_code=404, detail="Entrée de temps introuvable")
+    cible["phase"] = data.phase
+    cible["minutes"] = data.minutes
+    cible["date"] = data.date or cible.get("date")
+    cible["note"] = (data.note or "")[:200]
+    state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
+    update_project_db(p_id, state, db)
+    audit_log.record("temps.update", target=p_id, detail=f"{entry_id} phase={data.phase} minutes={data.minutes}")
     return state
 
 
@@ -1463,22 +1593,31 @@ def update_demande_preuve(p_id: str, demande_id: str, data: UpdateDemandePreuveR
         raise HTTPException(status_code=404, detail="Demande introuvable")
 
     aujourdhui = date.today().isoformat()
-    demande["statut"] = data.statut
-    # Chaque transition horodate son propre champ : la date de relance sert à
-    # recompter le délai d'attente, celle de réponse à clore le suivi.
-    if data.statut == "relancee":
-        demande["date_relance"] = aujourdhui
-    elif data.statut in ("recue", "refusee"):
-        demande["date_reponse"] = aujourdhui
+    if data.statut is not None:
+        demande["statut"] = data.statut
+        # Chaque transition horodate son propre champ : la date de relance sert à
+        # recompter le délai d'attente, celle de réponse à clore le suivi.
+        if data.statut == "relancee":
+            demande["date_relance"] = aujourdhui
+        elif data.statut in ("recue", "refusee"):
+            demande["date_reponse"] = aujourdhui
     if data.note is not None:
         demande["note"] = data.note.strip()
     if data.preuve_id is not None:
         demande["preuve_id"] = data.preuve_id
+    # Correction d'une saisie erronée (libellé, destinataire, échéance) : ne
+    # touche à aucune date de suivi, contrairement à un changement de statut.
+    if data.libelle is not None:
+        demande["libelle"] = data.libelle.strip()
+    if data.destinataire is not None:
+        demande["destinataire"] = data.destinataire.strip()
+    if data.echeance is not None:
+        demande["echeance"] = data.echeance
 
     state["updated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")
     update_project_db(p_id, state, db)
     audit_log.record("demande_preuve.update", target=p_id,
-                     detail=f"{demande_id} statut={data.statut}")
+                     detail=f"{demande_id} statut={data.statut or demande['statut']}")
     return state
 
 
