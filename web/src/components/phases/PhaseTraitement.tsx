@@ -196,14 +196,20 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         </button>
                       </div>
                     )}
+                    {/* Grille de saisie dense : un intitulé visible par champ casserait la
+                        mise en page, chacun porte donc un aria-label. Le placeholder seul
+                        n'est pas une étiquette (WCAG 2.1 AA 1.3.1 et 3.3.2) — il disparaît
+                        dès la saisie et n'est pas restitué de façon fiable par les lecteurs
+                        d'écran ; il reste ici comme exemple de saisie. — 09/09/2026 */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                       <input
-                        type="text" placeholder="ID (ex: REM-05)" value={newRemediation.id}
+                        type="text" aria-label="ID de la mesure de remédiation" placeholder="ID (ex: REM-05)" value={newRemediation.id}
                         onChange={(e) => setNewRemediation({ ...newRemediation, id: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <select
                         value={newRemediation.axe}
+                        aria-label="Axe NIST de la mesure"
                         onChange={(e) => setNewRemediation({ ...newRemediation, axe: e.target.value as Remediation["axe"] })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -214,6 +220,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                       </select>
                       <select
                         value={newRemediation.priority}
+                        aria-label="Priorité de la mesure"
                         onChange={(e) => setNewRemediation({ ...newRemediation, priority: e.target.value as Remediation["priority"] })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -223,24 +230,25 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <option value="Faible">Faible</option>
                       </select>
                       <input
-                        type="text" placeholder="Mesure de sécurité à appliquer" value={newRemediation.measure}
+                        type="text" aria-label="Intitulé de la mesure de sécurité" placeholder="Mesure de sécurité à appliquer" value={newRemediation.measure}
                         onChange={(e) => setNewRemediation({ ...newRemediation, measure: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                       <input
-                        type="text" placeholder="Responsable" value={newRemediation.responsable}
+                        type="text" aria-label="Responsable de la mesure" placeholder="Responsable" value={newRemediation.responsable}
                         onChange={(e) => setNewRemediation({ ...newRemediation, responsable: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <input
-                        type="date" value={newRemediation.echeance}
+                        type="date" aria-label="Échéance de la mesure" value={newRemediation.echeance}
                         onChange={(e) => setNewRemediation({ ...newRemediation, echeance: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[var(--ink)]"
                       />
                       <select
                         value={newRemediation.statut}
+                        aria-label="Statut de la mesure"
                         onChange={(e) => setNewRemediation({ ...newRemediation, statut: e.target.value as Remediation["statut"] })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -249,13 +257,13 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <option value="Fait">Fait</option>
                       </select>
                       <input
-                        type="text" placeholder="Coût estimé" value={newRemediation.cout_estime}
+                        type="text" aria-label="Coût estimé de la mesure" placeholder="Coût estimé" value={newRemediation.cout_estime}
                         onChange={(e) => setNewRemediation({ ...newRemediation, cout_estime: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <div className="flex gap-2">
                         <input
-                          type="text" placeholder="Risque lié (ex: SO-01)" value={newRemediation.risque_lie}
+                          type="text" aria-label="Risque lié à la mesure" placeholder="Risque lié (ex: SO-01)" value={newRemediation.risque_lie}
                           onChange={(e) => setNewRemediation({ ...newRemediation, risque_lie: e.target.value })}
                           className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                         />
@@ -334,6 +342,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                   <div className="flex gap-2 mt-2.5">
                     <input
                       type="text"
+                      aria-label="Nouvelle mesure d'hygiène prioritaire"
                       placeholder="Ajouter une mesure d'hygiène prioritaire"
                       value={nouvelleMesureCyberdepart}
                       onChange={(e) => setNouvelleMesureCyberdepart(e.target.value)}
@@ -362,6 +371,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                     <div className="flex gap-2">
                       <input
                         type="text"
+                        aria-label="Demande adressée au copilote IA"
                         placeholder="ex: Propose une stratégie PSSI, ou une analyse de risques EBIOS..."
                         value={copilotPrompt}
                         onChange={(e) => setCopilotPrompt(e.target.value)}

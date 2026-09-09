@@ -295,6 +295,7 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <input
             type="text"
+            aria-label="Document réclamé"
             placeholder="Document réclamé"
             value={libelle}
             onChange={(e) => setLibelle(e.target.value)}
@@ -302,6 +303,7 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
           />
           <input
             type="text"
+            aria-label="Auprès de (rôle)"
             placeholder="Auprès de (rôle)"
             value={destinataire}
             onChange={(e) => setDestinataire(e.target.value)}
@@ -309,8 +311,9 @@ export function DemandesPreuvesPanel({ projectId, onProjectUpdate }: Props) {
           />
         </div>
         <div className="flex items-center gap-2">
-          <label className="text-[10.5px] text-[var(--faint)]">Échéance (optionnelle)</label>
+          <label htmlFor="demande-echeance" className="text-[10.5px] text-[var(--faint)]">Échéance (optionnelle)</label>
           <input
+            id="demande-echeance"
             type="date"
             value={echeance}
             onChange={(e) => setEcheance(e.target.value)}

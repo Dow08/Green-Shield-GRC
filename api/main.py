@@ -9,6 +9,15 @@ import logging
 import os
 from pathlib import Path
 
+# Journalisation configurée AVANT tout autre import de `modules` : plusieurs de
+# ces modules journalisent dès l'import (secret JWT illisible, clé de
+# chiffrement non persistable…). Configurée plus bas, ces alertes de démarrage
+# repasseraient par le `lastResort` de Python, sans horodatage ni origine —
+# c'est précisément l'angle mort relevé par l'audit du 09/09/2026.
+from modules import logging_config
+
+logging_config.configurer()
+
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.responses import FileResponse
 from modules.auth import get_current_user, limiter
@@ -17,6 +26,7 @@ from modules import aipd
 from fastapi.middleware.cors import CORSMiddleware
 
 from modules import auditcraft_grc
+from modules import journal_requetes
 from modules.projects.router import router as projects_router
 from modules import collecte_technique
 from modules import copilot_grc
@@ -77,6 +87,21 @@ async def ajouter_en_tetes_securite(request: Request, call_next):
     reponse.headers["Referrer-Policy"] = "no-referrer"
     reponse.headers["Content-Security-Policy"] = _CSP
     return reponse
+
+
+# Journal d'accès HTTP avec durée par requête (audit du 09/09/2026 : c'est la
+# donnée qui manquait pendant la saturation du pool — sans durée, impossible de
+# distinguer l'endpoint fuyant de ses victimes).
+#
+# Inscrit en DERNIER volontairement : `add_middleware` empile en tête de liste,
+# le dernier inscrit est donc le middleware le plus EXTERNE. Le chronomètre
+# englobe ainsi les en-têtes de sécurité, CORS et le limiteur de débit — un
+# rejet 429 de slowapi ou une préflight refusée produisent eux aussi leur ligne,
+# ce qui ne serait pas le cas s'il était inscrit plus tôt.
+#
+# Ce module muselle au passage la ligne d'accès d'uvicorn, qu'il remplace plutôt
+# que de la doubler : voir son en-tête pour le détail du raisonnement.
+journal_requetes.installer(app)
 
 
 # Enregistrement des routes projets/frameworks/collecte technique/copilote GRC (sécurisées)

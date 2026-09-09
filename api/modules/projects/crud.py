@@ -546,6 +546,12 @@ def list_projects(current_user: User = Depends(get_current_user), db: Session = 
         try:
             db_projects = db.query(Project).all()
         except Exception:
+            # WARNING (09/09/2026) : c'est exactement l'échec qui s'est produit
+            # pendant la saturation du pool (36 requêtes en échec sur 224). Le
+            # repli sur le disque faisait que la liste s'affichait quand même,
+            # donc rien ne paraissait cassé côté interface — et rien du tout
+            # n'était écrit côté serveur. Le repli est conservé tel quel.
+            _log.warning("Lecture des missions en base impossible, repli sur le disque.", exc_info=True)
             db_projects = []
 
     res = {p.id: p.to_dict() for p in db_projects}
@@ -556,7 +562,14 @@ def list_projects(current_user: User = Depends(get_current_user), db: Session = 
                     st = _read_state(d / "project.json")
                     res[d.name] = st
                 except Exception:
-                    pass
+                    # WARNING (09/09/2026) : une mission illisible sur disque
+                    # (JSON corrompu, clé de chiffrement changée, migration de
+                    # schéma en échec) disparaissait purement et simplement de
+                    # la liste. Côté utilisateur, la mission « n'existe plus » ;
+                    # côté journal, rien. C'est une perte de donnée apparente,
+                    # pas un meilleur effort. Le flot reste inchangé : la
+                    # mission est toujours ignorée, on dit seulement laquelle.
+                    _log.warning("Mission illisible, exclue de la liste (dossier=%s).", d.name, exc_info=True)
     toutes = sorted(list(res.values()), key=lambda x: x.get("updated_at") or "", reverse=True)
     if limit is None:
         return toutes[offset:] if offset else toutes
@@ -577,7 +590,16 @@ def get_project_db(project_id: str, db: Session | None = None) -> dict | None:
             try:
                 db.close()
             except Exception:
-                pass
+                # Meilleur effort dans un `finally` : lever ici écraserait
+                # l'exception (ou la valeur de retour) de la fonction, donc on
+                # continue de tout absorber. DEBUG plutôt que WARNING car
+                # `Session.close()` ne remonte pratiquement jamais.
+                # À garder en tête pour l'incident du 08-09/09/2026 : si une
+                # saturation du pool réapparaît, ce sont ces lignes-là qu'il
+                # faut relire en premier — une session non refermée est une
+                # connexion retenue (09/09/2026).
+                _log.debug("Fermeture de session en échec (get_project_db, mission=%s).",
+                           project_id, exc_info=True)
 
 def update_project_db(project_id: str, state: dict, db: Session | None = None):
     """Helper synchrone pour la sauvegarde depuis d'autres modules."""
@@ -601,13 +623,33 @@ def update_project_db(project_id: str, state: dict, db: Session | None = None):
             p.updated_at = datetime.now().strftime("%Y-%m-%d %H:%M")
             db.commit()
     except Exception:
+        # ERROR (09/09/2026) : ce `rollback()` muet est le pire des deux mondes.
+        # Le JSON disque a déjà été écrit quelques lignes plus haut, donc en cas
+        # d'échec ici la base et le disque divergent sans que rien ne le signale
+        # — et l'appelant, lui, croit la sauvegarde réussie.
+        #
+        # Révision d'audit : ERROR et non WARNING. `list_projects` amorce sa
+        # liste depuis la base et ne comble avec le disque que les missions
+        # absentes : après cet échec, l'utilisateur continue donc de voir
+        # indéfiniment la version périmée de sa mission, pas celle qu'il vient
+        # d'enregistrer. C'est une divergence durable et invisible, pas un
+        # incident passager.
+        #
+        # Le rollback est fait AVANT la trace : si la journalisation échoue à
+        # son tour (disque plein), la session doit malgré tout être rendue dans
+        # un état propre, sans quoi sa connexion resterait retenue.
         db.rollback()
+        _log.error("Sauvegarde en base annulée, seul le disque est à jour (mission=%s).",
+                   project_id, exc_info=True)
     finally:
         if close_after:
             try:
                 db.close()
             except Exception:
-                pass
+                # Même arbitrage que get_project_db ci-dessus : meilleur effort
+                # dans un `finally`, donc DEBUG.
+                _log.debug("Fermeture de session en échec (update_project_db, mission=%s).",
+                           project_id, exc_info=True)
 
 @router.post("/projects")
 def create_project(data: CreateProjectRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> dict:
@@ -1405,7 +1447,13 @@ def list_frameworks(current_user: User = Depends(get_current_user)) -> list[dict
                     "is_custom": False,
                 })
         except Exception:
-            pass
+            # WARNING (09/09/2026) : un référentiel livré avec l'outil qui ne
+            # se charge pas (YAML mal formé, encodage) disparaît de la liste
+            # proposée à l'utilisateur, qui ne peut donc plus créer de mission
+            # dessus — sans le moindre message. Symptôme classiquement
+            # rapporté comme « ISO 27001 a disparu ». Fichier ignoré comme
+            # avant, on nomme seulement le coupable.
+            _log.warning("Référentiel illisible, absent de la liste (%s).", path.name, exc_info=True)
     custom_dir = FRAMEWORKS_DIR / "custom"
     if custom_dir.exists():
         for path in custom_dir.glob("*.yaml"):
@@ -1420,7 +1468,11 @@ def list_frameworks(current_user: User = Depends(get_current_user)) -> list[dict
                         "is_custom": True,
                     })
             except Exception:
-                pass
+                # Même raison que ci-dessus, et plus grave encore ici : un
+                # référentiel *personnalisé* est un travail de l'utilisateur.
+                # Le voir disparaître sans explication est inacceptable.
+                _log.warning("Référentiel personnalisé illisible, absent de la liste (%s).",
+                             path.name, exc_info=True)
     return fws
 
 @router.get("/frameworks/{fw_id}/detail")

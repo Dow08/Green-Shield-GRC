@@ -51,6 +51,7 @@ export function Auth({ view, setView, onLogin }: { view: "login" | "register", s
               <Mail className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <input
                 type="email"
+                aria-label="Adresse email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -64,6 +65,7 @@ export function Auth({ view, setView, onLogin }: { view: "login" | "register", s
               <Lock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
               <input
                 type="password"
+                aria-label="Mot de passe"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

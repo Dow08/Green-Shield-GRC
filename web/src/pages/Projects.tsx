@@ -679,8 +679,9 @@ export function Projects() {
               <div className="text-sm font-bold text-[var(--g3)] mb-1">Paramètres de la Mission</div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--soft)] mb-1">Nom de la mission *</label>
+                  <label htmlFor="mission-nom" className="block text-xs font-bold text-[var(--soft)] mb-1">Nom de la mission *</label>
                   <input
+                    id="mission-nom"
                     type="text"
                     required
                     placeholder="ex: Accompagnement ISO 27001"
@@ -690,8 +691,9 @@ export function Projects() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[var(--soft)] mb-1">Client / Entreprise</label>
+                  <label htmlFor="mission-client" className="block text-xs font-bold text-[var(--soft)] mb-1">Client / Entreprise</label>
                   <input
+                    id="mission-client"
                     type="text"
                     placeholder="ex: Banque Populaire"
                     value={newProjectClient}
@@ -703,8 +705,8 @@ export function Projects() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-[var(--soft)] mb-1">Type d'Accompagnement</label>
-                  <div className="flex gap-2">
+                  <span className="block text-xs font-bold text-[var(--soft)] mb-1">Type d'Accompagnement</span>
+                  <div className="flex gap-2" role="group" aria-label="Type d'accompagnement">
                     <button
                       type="button"
                       onClick={() => setNewProjectType("consulting")}
@@ -727,10 +729,10 @@ export function Projects() {
 
                 {newProjectType === "grc" && (
                   <div>
-                    <label className="block text-xs font-bold text-[var(--soft)] mb-1">
+                    <span className="block text-xs font-bold text-[var(--soft)] mb-1">
                       Référentiel(s) GRC actif(s) — le premier coché est le référentiel pivot
-                    </label>
-                    <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-[var(--stroke)] rounded-xl p-2 bg-[var(--bg2)]">
+                    </span>
+                    <div className="flex flex-col gap-1.5 max-h-40 overflow-y-auto border border-[var(--stroke)] rounded-xl p-2 bg-[var(--bg2)]" role="group" aria-label="Référentiels GRC actifs">
                       {frameworks.map((f) => (
                         <label key={f.id} className="flex items-center gap-2 text-xs text-[var(--ink)] cursor-pointer">
                           <input

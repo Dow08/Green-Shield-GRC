@@ -42,7 +42,9 @@ def _storage_key_persistante() -> str:
         try:
             os.chmod(chemin, 0o600)
         except (OSError, NotImplementedError):
-            pass
+            # Même arbitrage que auth.py::_secret_persistant (09/09/2026) :
+            # meilleur effort, échec nominal sous Windows, donc DEBUG.
+            _log.debug("Droits de la clé de chiffrement non restreints (%s).", chemin, exc_info=True)
     except OSError as exc:
         _log.warning("Écriture de la clé de chiffrement impossible (%s), clé volatile générée.", exc)
     return nouvelle
@@ -107,7 +109,17 @@ def _migrate_legacy_projects() -> None:
             encoding="utf-8",
         )
     except OSError:
-        pass
+        # WARNING et non DEBUG (09/09/2026) : ce marqueur est la seule chose qui
+        # empêche la migration de se rejouer. Sans lui, `_migrate_legacy_projects`
+        # repart à chaque démarrage et re-parcourt l'ancien répertoire — les
+        # missions déjà migrées sont épargnées par le `if target.exists()`, mais
+        # le symptôme (démarrage qui traîne, arborescence relue) n'avait aucune
+        # explication dans les journaux. C'est une anomalie durable, pas un
+        # meilleur effort ponctuel.
+        _log.warning(
+            "Marqueur de migration non écrit (%s) — la migration des anciennes "
+            "missions sera retentée à chaque démarrage.", marqueur, exc_info=True
+        )
 
 PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
 _migrate_legacy_projects()

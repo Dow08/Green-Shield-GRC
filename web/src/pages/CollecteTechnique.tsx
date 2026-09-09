@@ -93,13 +93,14 @@ export function CollecteTechnique() {
         {/* INPUT */}
         <div className="glass p-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-[var(--faint)] uppercase tracking-wide">Fichier de configuration à analyser</span>
+            <label htmlFor="collecte-nom-fichier" className="text-[10px] font-bold text-[var(--faint)] uppercase tracking-wide">Fichier de configuration à analyser</label>
             <label className="cursor-pointer text-[9px] font-bold bg-white/5 hover:bg-white/10 text-[var(--sky)] px-2 py-1 rounded transition">
               Importer CSV / JSON / Texte
               <input type="file" accept=".json,.csv,.txt,.conf,.yml,.yaml,.cnf" className="hidden" onChange={handleFileUpload} />
             </label>
           </div>
           <input
+            id="collecte-nom-fichier"
             type="text"
             placeholder="Nom du fichier (ex: sshd_config, nginx.conf, export_splunk.json...)"
             value={filename}
@@ -107,6 +108,7 @@ export function CollecteTechnique() {
             className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] font-mono focus:outline-none focus:border-[var(--g1)]"
           />
           <textarea
+            aria-label="Contenu du fichier de configuration à analyser"
             placeholder="Collez ici le contenu réel du fichier de configuration ou importez un export SIEM/EDR (Tronqué à 1000 lignes automatiquement)…"
             value={content}
             onChange={(e) => setContent(e.target.value)}
@@ -154,8 +156,9 @@ export function CollecteTechnique() {
                 )}
               </div>
 
-              <span className="text-[10px] font-bold text-[var(--faint)] uppercase tracking-wide mt-1">Ajouter au registre (Biens Supports)</span>
+              <label htmlFor="collecte-mission" className="block text-[10px] font-bold text-[var(--faint)] uppercase tracking-wide mt-1">Ajouter au registre (Biens Supports)</label>
               <select
+                id="collecte-mission"
                 value={targetProjectId}
                 onChange={(e) => setTargetProjectId(e.target.value)}
                 className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
@@ -167,6 +170,7 @@ export function CollecteTechnique() {
               </select>
               <input
                 type="text"
+                aria-label="Nom du bien support"
                 placeholder="Nom de l'actif"
                 value={asset.name}
                 onChange={(e) => setAsset({ ...asset, name: e.target.value })}
@@ -174,6 +178,7 @@ export function CollecteTechnique() {
               />
               <div className="grid grid-cols-2 gap-2">
                 <select
+                  aria-label="Type de bien support"
                   value={asset.type}
                   onChange={(e) => setAsset({ ...asset, type: e.target.value })}
                   className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-3 py-2 text-xs text-[var(--ink)] focus:outline-none focus:border-[var(--g1)]"
@@ -182,6 +187,7 @@ export function CollecteTechnique() {
                 </select>
                 <input
                   type="text"
+                  aria-label="Propriétaire du bien support"
                   placeholder="Propriétaire (RSSI, DSI...)"
                   value={asset.owner}
                   onChange={(e) => setAsset({ ...asset, owner: e.target.value })}
@@ -189,6 +195,7 @@ export function CollecteTechnique() {
                 />
               </div>
               <textarea
+                aria-label="Description du bien support"
                 placeholder="Description"
                 value={asset.description}
                 onChange={(e) => setAsset({ ...asset, description: e.target.value })}

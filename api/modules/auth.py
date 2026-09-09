@@ -75,7 +75,13 @@ def _secret_persistant() -> str:
         try:
             os.chmod(chemin, 0o600)
         except (OSError, NotImplementedError):
-            pass
+            # 09/09/2026 : DEBUG assumé, pas WARNING. Sous Windows — cible
+            # principale de l'outil — ce `chmod` est sans effet utile et son
+            # échec est le cas nominal, pas une anomalie. Une alerte se
+            # déclencherait au premier démarrage de chaque poste et
+            # apprendrait à ignorer les alertes de ce module. La trace reste
+            # disponible pour qui enquête sur les droits du fichier de secret.
+            _log.debug("Droits du secret JWT non restreints (%s).", chemin, exc_info=True)
     except OSError as exc:
         _log.warning(
             "Secret JWT non persistable (%s) — les sessions ne survivront pas "

@@ -109,45 +109,51 @@ export function ViolationsPanel({ violations, onChange }: Props) {
             </button>
           </div>
         )}
+        {/* Grille de saisie dense : un intitulé visible par champ casserait la mise
+            en page, chacun porte donc un aria-label. Le placeholder seul n'est pas une
+            étiquette (WCAG 2.1 AA 1.3.1 et 3.3.2) — il disparaît dès la saisie et n'est
+            pas restitué de façon fiable par les lecteurs d'écran ; il reste ici comme
+            exemple de saisie. Les deux champs date, eux, avaient déjà un intitulé
+            visible : ils sont reliés par htmlFor. — 09/09/2026 */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <input
-            type="text" placeholder="ID (ex: VIO-01)" value={nouvelle.id}
+            type="text" aria-label="Identifiant de la violation" placeholder="ID (ex: VIO-01)" value={nouvelle.id}
             onChange={(e) => setNouvelle({ ...nouvelle, id: e.target.value })}
             className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
           <input
-            type="text" placeholder="Nature de la violation" value={nouvelle.nature}
+            type="text" aria-label="Nature de la violation" placeholder="Nature de la violation" value={nouvelle.nature}
             onChange={(e) => setNouvelle({ ...nouvelle, nature: e.target.value })}
             className="md:col-span-2 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <input
-            type="text" placeholder="Catégories de données concernées" value={nouvelle.categories_donnees}
+            type="text" aria-label="Catégories de données concernées" placeholder="Catégories de données concernées" value={nouvelle.categories_donnees}
             onChange={(e) => setNouvelle({ ...nouvelle, categories_donnees: e.target.value })}
             className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
           <input
-            type="text" placeholder="Nombre de personnes affectées (approx.)" value={nouvelle.nb_personnes}
+            type="text" aria-label="Nombre de personnes affectées" placeholder="Nombre de personnes affectées (approx.)" value={nouvelle.nb_personnes}
             onChange={(e) => setNouvelle({ ...nouvelle, nb_personnes: e.target.value })}
             className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
           <input
-            type="text" placeholder="Conséquences probables" value={nouvelle.consequences}
+            type="text" aria-label="Conséquences probables" placeholder="Conséquences probables" value={nouvelle.consequences}
             onChange={(e) => setNouvelle({ ...nouvelle, consequences: e.target.value })}
             className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
         </div>
         <input
-          type="text" placeholder="Mesures prises" value={nouvelle.mesures}
+          type="text" aria-label="Mesures prises" placeholder="Mesures prises" value={nouvelle.mesures}
           onChange={(e) => setNouvelle({ ...nouvelle, mesures: e.target.value })}
           className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
         />
         <div className="grid grid-cols-1 md:grid-cols-4 gap-2 items-center">
           <div>
-            <label className="block text-[9px] font-bold text-[var(--faint)] mb-0.5">Date de constat</label>
+            <label className="block text-[9px] font-bold text-[var(--faint)] mb-0.5" htmlFor="violation-date-constat">Date de constat</label>
             <input
-              type="date" value={nouvelle.date_constat}
+              id="violation-date-constat" type="date" value={nouvelle.date_constat}
               onChange={(e) => setNouvelle({ ...nouvelle, date_constat: e.target.value })}
               className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[var(--ink)]"
             />
@@ -162,16 +168,16 @@ export function ViolationsPanel({ violations, onChange }: Props) {
           </label>
           {nouvelle.notifiee_cnil ? (
             <div>
-              <label className="block text-[9px] font-bold text-[var(--faint)] mb-0.5">Date de notification</label>
+              <label className="block text-[9px] font-bold text-[var(--faint)] mb-0.5" htmlFor="violation-date-notification">Date de notification</label>
               <input
-                type="date" value={nouvelle.date_notification_cnil}
+                id="violation-date-notification" type="date" value={nouvelle.date_notification_cnil}
                 onChange={(e) => setNouvelle({ ...nouvelle, date_notification_cnil: e.target.value })}
                 className="w-full bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[var(--ink)]"
               />
             </div>
           ) : (
             <input
-              type="text" placeholder="Justification de non-notification" value={nouvelle.justification}
+              type="text" aria-label="Justification de non-notification à la CNIL" placeholder="Justification de non-notification" value={nouvelle.justification}
               onChange={(e) => setNouvelle({ ...nouvelle, justification: e.target.value })}
               className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
             />

@@ -67,8 +67,9 @@ export function ProjectWizard({ frameworks, onComplete, onCancel }: ProjectWizar
             >
               <h2 className="text-xl font-bold mb-2">Informations de base</h2>
               <div>
-                <label className="block text-sm font-medium text-[var(--soft)] mb-1">Nom du projet</label>
+                <label htmlFor="wizard-nom" className="block text-sm font-medium text-[var(--soft)] mb-1">Nom du projet</label>
                 <input
+                  id="wizard-nom"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -78,10 +79,11 @@ export function ProjectWizard({ frameworks, onComplete, onCancel }: ProjectWizar
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--soft)] mb-1">Client / Organisation</label>
+                <label htmlFor="wizard-client" className="block text-sm font-medium text-[var(--soft)] mb-1">Client / Organisation</label>
                 <div className="relative">
                   <Building2 size={16} className="absolute left-3 top-3 text-[var(--faint)]" />
                   <input
+                    id="wizard-client"
                     type="text"
                     value={client}
                     onChange={(e) => setClient(e.target.value)}

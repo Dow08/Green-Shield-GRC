@@ -201,19 +201,26 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                       </button>
                     </div>
                   )}
+                  {/* Grilles de saisie denses : ajouter un intitulé visible au-dessus de
+                      chaque champ casserait la mise en page. Chacun porte donc un
+                      aria-label explicite — le placeholder seul n'est pas une étiquette
+                      (WCAG 2.1 AA 1.3.1 et 3.3.2) : il disparaît dès la saisie et n'est
+                      pas restitué de façon fiable par les lecteurs d'écran. Le
+                      placeholder reste en place comme exemple de saisie. — 09/09/2026 */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
                     <input
-                      type="text" placeholder="ID (ex: ER-05)" value={newEvenement.id}
+                      type="text" aria-label="ID de l'événement redouté" placeholder="ID (ex: ER-05)" value={newEvenement.id}
                       onChange={(e) => setNewEvenement({ ...newEvenement, id: e.target.value })}
                       className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                     />
                     <input
-                      type="text" placeholder="Événement redouté" value={newEvenement.event}
+                      type="text" aria-label="Intitulé de l'événement redouté" placeholder="Événement redouté" value={newEvenement.event}
                       onChange={(e) => setNewEvenement({ ...newEvenement, event: e.target.value })}
                       className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                     />
                     <select
                       value={newEvenement.gravity}
+                      aria-label="Gravité de l'événement redouté"
                       onChange={(e) => setNewEvenement({ ...newEvenement, gravity: Number(e.target.value) })}
                       className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                     >
@@ -221,7 +228,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                     </select>
                     <div className="flex gap-2">
                       <input
-                        type="text" placeholder="Impacts (financier, juridique...)" value={newEvenement.impact}
+                        type="text" aria-label="Impacts de l'événement redouté" placeholder="Impacts (financier, juridique...)" value={newEvenement.impact}
                         onChange={(e) => setNewEvenement({ ...newEvenement, impact: e.target.value })}
                         className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
@@ -242,7 +249,8 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                       </button>
                     </div>
                     <input
-                      type="text" placeholder="Source du constat (ex: QCM section 3, entretien du 12/08, scan technique...)"
+                      type="text" aria-label="Source du constat de l'événement redouté"
+                      placeholder="Source du constat (ex: QCM section 3, entretien du 12/08, scan technique...)"
                       value={newEvenement.source}
                       onChange={(e) => setNewEvenement({ ...newEvenement, source: e.target.value })}
                       className="md:col-span-4 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[11px]"
@@ -296,18 +304,18 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
                     <input
-                      type="text" placeholder="ID (ex: SR-03)" value={newSource.id}
+                      type="text" aria-label="ID de la source de risque" placeholder="ID (ex: SR-03)" value={newSource.id}
                       onChange={(e) => setNewSource({ ...newSource, id: e.target.value })}
                       className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                     />
                     <input
-                      type="text" placeholder="Source de risque (ex: Cybercriminels)" value={newSource.name}
+                      type="text" aria-label="Intitulé de la source de risque" placeholder="Source de risque (ex: Cybercriminels)" value={newSource.name}
                       onChange={(e) => setNewSource({ ...newSource, name: e.target.value })}
                       className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                     />
                     <div className="flex gap-2">
                       <input
-                        type="text" placeholder="Objectif visé" value={newSource.objective}
+                        type="text" aria-label="Objectif visé par la source de risque" placeholder="Objectif visé" value={newSource.objective}
                         onChange={(e) => setNewSource({ ...newSource, objective: e.target.value })}
                         className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
@@ -423,17 +431,18 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                     )}
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-2">
                       <input
-                        type="text" placeholder="ID (ex: SO-05)" value={newScenario.id}
+                        type="text" aria-label="ID du scénario opérationnel" placeholder="ID (ex: SO-05)" value={newScenario.id}
                         onChange={(e) => setNewScenario({ ...newScenario, id: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <input
-                        type="text" placeholder="Scénario opérationnel" value={newScenario.event}
+                        type="text" aria-label="Intitulé du scénario opérationnel" placeholder="Scénario opérationnel" value={newScenario.event}
                         onChange={(e) => setNewScenario({ ...newScenario, event: e.target.value })}
                         className="md:col-span-2 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <select
                         value={newScenario.gravity}
+                        aria-label="Gravité du scénario opérationnel"
                         onChange={(e) => setNewScenario({ ...newScenario, gravity: Number(e.target.value) })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -441,6 +450,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                       </select>
                       <select
                         value={newScenario.likelihood}
+                        aria-label="Vraisemblance du scénario opérationnel"
                         onChange={(e) => setNewScenario({ ...newScenario, likelihood: Number(e.target.value) })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -449,17 +459,17 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                       <input
-                        type="text" placeholder="Actif concerné" value={newScenario.actif_concerne}
+                        type="text" aria-label="Actif concerné par le scénario" placeholder="Actif concerné" value={newScenario.actif_concerne}
                         onChange={(e) => setNewScenario({ ...newScenario, actif_concerne: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <input
-                        type="text" placeholder="Mesures d'atténuation" value={newScenario.mitigation}
+                        type="text" aria-label="Mesures d'atténuation du scénario" placeholder="Mesures d'atténuation" value={newScenario.mitigation}
                         onChange={(e) => setNewScenario({ ...newScenario, mitigation: e.target.value })}
                         className="md:col-span-2 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
                       <input
-                        type="text" placeholder="Propriétaire du risque" value={newScenario.owner}
+                        type="text" aria-label="Propriétaire du risque" placeholder="Propriétaire du risque" value={newScenario.owner}
                         onChange={(e) => setNewScenario({ ...newScenario, owner: e.target.value })}
                         className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />
@@ -467,6 +477,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
                       <select
                         value={newScenario.gravite_residuelle ?? ""}
+                        aria-label="Gravité résiduelle après traitement"
                         onChange={(e) => setNewScenario({ ...newScenario, gravite_residuelle: e.target.value ? Number(e.target.value) : undefined })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -475,6 +486,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                       </select>
                       <select
                         value={newScenario.vraisemblance_residuelle ?? ""}
+                        aria-label="Vraisemblance résiduelle après traitement"
                         onChange={(e) => setNewScenario({ ...newScenario, vraisemblance_residuelle: e.target.value ? Number(e.target.value) : undefined })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -483,6 +495,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                       </select>
                       <select
                         value={newScenario.strategie_traitement}
+                        aria-label="Stratégie de traitement (ISO 27001 6.1.3)"
                         onChange={(e) => setNewScenario({ ...newScenario, strategie_traitement: e.target.value as OperationalScenario["strategie_traitement"] })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -494,6 +507,7 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                       </select>
                       <select
                         value={newScenario.statut}
+                        aria-label="Statut du scénario opérationnel"
                         onChange={(e) => setNewScenario({ ...newScenario, statut: e.target.value as OperationalScenario["statut"] })}
                         className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2 py-1.5 focus:outline-none text-[var(--ink)]"
                       >
@@ -565,13 +579,13 @@ export function PhaseEbios({ activeProject, updateStepData, handleSaveProject, h
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mt-2 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-3 rounded-xl text-xs">
                     <input
-                      type="text" placeholder="Cas réel (ex: Norsk Hydro)" value={newCas.case}
+                      type="text" aria-label="Cas réel de référence" placeholder="Cas réel (ex: Norsk Hydro)" value={newCas.case}
                       onChange={(e) => setNewCas({ ...newCas, case: e.target.value })}
                       className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                     />
                     <div className="md:col-span-2 flex gap-2">
                       <input
-                        type="text" placeholder="Enseignement retenu pour ce client" value={newCas.lessons}
+                        type="text" aria-label="Enseignement retenu pour ce client" placeholder="Enseignement retenu pour ce client" value={newCas.lessons}
                         onChange={(e) => setNewCas({ ...newCas, lessons: e.target.value })}
                         className="flex-1 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
                       />

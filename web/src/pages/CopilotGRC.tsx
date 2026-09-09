@@ -151,6 +151,7 @@ export function CopilotGRC({ onNavigate }: Props) {
         <div className="flex gap-2">
           <input
             type="text"
+            aria-label="Question posée au copilote GRC"
             placeholder="ex: Quelles sont mes 3 priorités cette semaine ?"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

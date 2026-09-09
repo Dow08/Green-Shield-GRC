@@ -131,8 +131,9 @@ export function BugTracker() {
           </h3>
           <form onSubmit={handleAddBug} className="flex flex-col gap-3">
             <div>
-              <label className="text-xs font-bold text-[var(--soft)] mb-1 block">Titre (Court)</label>
+              <label htmlFor="bug-titre" className="text-xs font-bold text-[var(--soft)] mb-1 block">Titre (Court)</label>
               <input
+                id="bug-titre"
                 required
                 value={nouveauTitre}
                 onChange={(e) => setNouveauTitre(e.target.value)}
@@ -142,8 +143,9 @@ export function BugTracker() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--soft)] mb-1 block">Sévérité</label>
+              <label htmlFor="bug-severite" className="text-xs font-bold text-[var(--soft)] mb-1 block">Sévérité</label>
               <select
+                id="bug-severite"
                 value={nouvelleSeverite}
                 onChange={(e) => setNouvelleSeverite(e.target.value as BugReport["severite"])}
                 className="w-full rounded-lg border border-[var(--stroke)] bg-[var(--bg2)] px-3 py-2 text-sm text-[var(--ink)] focus:border-[var(--g1)] focus:outline-none"
@@ -156,8 +158,9 @@ export function BugTracker() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--soft)] mb-1 block">Description détaillée</label>
+              <label htmlFor="bug-description" className="text-xs font-bold text-[var(--soft)] mb-1 block">Description détaillée</label>
               <textarea
+                id="bug-description"
                 value={nouvelleDescription}
                 onChange={(e) => setNouvelleDescription(e.target.value)}
                 placeholder="Que s'est-il passé ?"
@@ -166,11 +169,12 @@ export function BugTracker() {
             </div>
 
             <div>
-              <label className="text-xs font-bold text-[var(--soft)] mb-1 block">Étapes pour reproduire</label>
+              <label htmlFor="bug-etapes" className="text-xs font-bold text-[var(--soft)] mb-1 block">Étapes pour reproduire</label>
               <textarea
+                id="bug-etapes"
                 value={nouvellesEtapes}
                 onChange={(e) => setNouvellesEtapes(e.target.value)}
-                placeholder="1. Clic sur le bouton\n2. Saisie texte\n3. Erreur"
+                placeholder={"1. Clic sur le bouton\n2. Saisie texte\n3. Erreur"}
                 className="w-full h-24 resize-none rounded-lg border border-[var(--stroke)] bg-[var(--bg2)] px-3 py-2 text-sm text-[var(--ink)] placeholder:text-white/20 focus:border-[var(--g1)] focus:outline-none font-mono text-xs"
               />
             </div>

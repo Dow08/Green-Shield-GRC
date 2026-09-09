@@ -117,7 +117,6 @@ function EtapeCard({
         {/* Gros bouton tap-friendly : cible tactile large (tablette en entretien). */}
         <button
           type="button"
-          role="button"
           disabled={isApiValidated}
           aria-label={`Statut de « ${etape.titre} » : ${STATUT_LABELS[statut]} — appuyer pour changer`}
           onClick={cyclerStatut}

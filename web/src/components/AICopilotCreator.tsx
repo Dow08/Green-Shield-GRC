@@ -128,6 +128,7 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
 
       <div className="flex-1 flex flex-col gap-4 relative">
         <textarea
+          aria-label="Description de la mission à créer"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Ex: Je dois faire un audit de conformité ISO 27001 pour la Banque Populaire la semaine prochaine..."

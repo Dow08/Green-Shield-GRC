@@ -161,8 +161,9 @@ export function Settings() {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
             <div>
-              <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Prénom / Nom de l'auditeur</label>
+              <label htmlFor="profil-nom" className="block text-[11px] font-bold text-[var(--soft)] mb-1">Prénom / Nom de l'auditeur</label>
               <input
+                id="profil-nom"
                 type="text"
                 placeholder="ex : Camille Martin"
                 value={name}
@@ -171,8 +172,9 @@ export function Settings() {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Cabinet / Entreprise de conseil</label>
+              <label htmlFor="profil-cabinet" className="block text-[11px] font-bold text-[var(--soft)] mb-1">Cabinet / Entreprise de conseil</label>
               <input
+                id="profil-cabinet"
                 type="text"
                 placeholder="ex : Martin Cyber Audit"
                 value={company}
@@ -181,8 +183,9 @@ export function Settings() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Adresse Email professionnelle</label>
+              <label htmlFor="profil-email" className="block text-[11px] font-bold text-[var(--soft)] mb-1">Adresse Email professionnelle</label>
               <input
+                id="profil-email"
                 type="email"
                 placeholder="ex : contact@martin-cyber-audit.fr"
                 value={email}
@@ -191,7 +194,7 @@ export function Settings() {
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Logo du cabinet (page de garde des rapports Word)</label>
+              <span className="block text-[11px] font-bold text-[var(--soft)] mb-1">Logo du cabinet (page de garde des rapports Word)</span>
               <div className="flex items-center gap-3">
                 <div className="grid h-12 w-12 flex-shrink-0 place-items-center rounded-xl border border-[var(--stroke)] bg-[#04150e] overflow-hidden">
                   {logoBase64 ? (
@@ -211,6 +214,16 @@ export function Settings() {
                     type="file"
                     accept="image/png,image/jpeg"
                     onChange={handleLogoChange}
+                    // 09/09/2026 : le `<label>` englobant ne nomme le champ que
+                    // « Déposer un logo », le titre du groupe étant un `<span>`
+                    // voisin. Hors contexte visuel, on ignore de quel logo il
+                    // s'agit. L'intitulé reprend le texte visible (WCAG 2.5.3,
+                    // « Label in Name » : sans quoi la commande vocale
+                    // « déposer un logo » ne cible plus le champ) et lui ajoute
+                    // le complément porté par le titre du groupe.
+                    aria-label={logoBase64
+                      ? "Changer le logo du cabinet (page de garde des rapports Word)"
+                      : "Déposer un logo du cabinet (page de garde des rapports Word)"}
                     className="hidden"
                   />
                 </label>
@@ -247,6 +260,7 @@ export function Settings() {
           <div className="flex gap-2">
             <input
               type="text"
+              aria-label="Clé de licence premium"
               placeholder="Ex: GS-PRO-XXXX-YYYY"
               value={licenseKey}
               onChange={(e) => setLicenseKey(e.target.value)}

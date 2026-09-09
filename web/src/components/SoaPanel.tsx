@@ -100,6 +100,7 @@ export function SoaPanel({ soa, onChange }: Props) {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-1.5">
                 {entree.applicable === true && (
                   <select
+                    aria-label={`Statut de la mesure ${entree.code}`}
                     value={entree.statut ?? ""}
                     onChange={(e) => majEntree(entree.code, { statut: (e.target.value || null) as EntreeSoa["statut"] })}
                     className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-lg px-1.5 py-1 focus:outline-none text-[var(--ink)]"
@@ -111,19 +112,25 @@ export function SoaPanel({ soa, onChange }: Props) {
                   </select>
                 )}
                 <input
-                  type="text" placeholder="Justification"
+                  type="text" aria-label={`Justification pour la mesure ${entree.code}`} placeholder="Justification"
                   value={entree.justification}
                   onChange={(e) => majEntree(entree.code, { justification: e.target.value })}
                   className={`bg-white/[0.03] border border-white/5 rounded-lg px-1.5 py-1 focus:outline-none ${entree.applicable === true ? "" : "md:col-span-2"}`}
                 />
                 <input
-                  type="text" placeholder="Document de référence"
+                  type="text" aria-label={`Document de référence pour la mesure ${entree.code}`} placeholder="Document de référence"
                   value={entree.document_reference}
                   onChange={(e) => majEntree(entree.code, { document_reference: e.target.value })}
                   className="bg-white/[0.03] border border-white/5 rounded-lg px-1.5 py-1 focus:outline-none"
                 />
                 <input
-                  type="text" placeholder="Owner"
+                  // 09/09/2026 : le placeholder disait « Owner » quand l'intitulé
+                  // accessible dit « Responsable ». WCAG 2.5.3 impose que le nom
+                  // accessible contienne le texte visible, faute de quoi la
+                  // commande vocale ne cible plus le champ. Corrigé côté visible :
+                  // « Owner » était de toute façon le seul mot anglais d'une
+                  // interface en français.
+                  type="text" aria-label={`Responsable de la mesure ${entree.code}`} placeholder="Responsable"
                   value={entree.owner}
                   onChange={(e) => majEntree(entree.code, { owner: e.target.value })}
                   className="bg-white/[0.03] border border-white/5 rounded-lg px-1.5 py-1 focus:outline-none"

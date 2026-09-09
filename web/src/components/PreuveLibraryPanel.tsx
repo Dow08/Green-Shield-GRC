@@ -200,25 +200,25 @@ export function PreuveLibraryPanel({ projectId, preuves, manualControls, onChang
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           <input
-            type="text" placeholder="Intitulé de la preuve (ex : PSSI signée)" value={nouvelle.libelle}
+            type="text" aria-label="Intitulé de la preuve" placeholder="Intitulé de la preuve (ex : PSSI signée)" value={nouvelle.libelle}
             onChange={(e) => setNouvelle({ ...nouvelle, libelle: e.target.value })}
             className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
           <input
-            type="text" placeholder="Référence du document" value={nouvelle.document_reference}
+            type="text" aria-label="Référence du document" placeholder="Référence du document" value={nouvelle.document_reference}
             onChange={(e) => setNouvelle({ ...nouvelle, document_reference: e.target.value })}
             className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
           />
         </div>
         <input
-          type="text" placeholder="Description (optionnel)" value={nouvelle.description}
+          type="text" aria-label="Description de la preuve" placeholder="Description (optionnel)" value={nouvelle.description}
           onChange={(e) => setNouvelle({ ...nouvelle, description: e.target.value })}
           className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none"
         />
         <div>
-          <label className="block text-[9px] font-bold text-[var(--faint)] mb-0.5">Date</label>
+          <label htmlFor="preuve-date" className="block text-[9px] font-bold text-[var(--faint)] mb-0.5">Date</label>
           <input
-            type="date" value={nouvelle.date}
+            id="preuve-date" type="date" value={nouvelle.date}
             onChange={(e) => setNouvelle({ ...nouvelle, date: e.target.value })}
             className="w-40 bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 focus:outline-none text-[var(--ink)]"
           />

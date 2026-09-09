@@ -84,6 +84,7 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                                     </div>
                                     <input
                                       type="text"
+                                      aria-label={`Observations pour le contrôle ${ctrl.id} — ${ctrl.title}`}
                                       placeholder="Observations, constats, preuves d'audit..."
                                       value={ctrl.notes}
                                       onChange={(e) => {
@@ -220,6 +221,7 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       </span>
                       <textarea
                         rows={2}
+                        aria-label="E1 - Endiguement (Isolement d'urgence)"
                         value={activeProject.steps.resilience?.e3r?.endiguement || ""}
                         onChange={(e) => {
                           const e3r = { ...activeProject.steps.resilience?.e3r, endiguement: e.target.value };
@@ -242,6 +244,7 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       </span>
                       <textarea
                         rows={2}
+                        aria-label="E2 - Éviction (Reprise de contrôle)"
                         value={activeProject.steps.resilience?.e3r?.eviction || ""}
                         onChange={(e) => {
                           const e3r = { ...activeProject.steps.resilience?.e3r, eviction: e.target.value };
@@ -264,6 +267,7 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       </span>
                       <textarea
                         rows={2}
+                        aria-label="E3 - Éradication (Suppression des accès résiduels)"
                         value={activeProject.steps.resilience?.e3r?.eradication || ""}
                         onChange={(e) => {
                           const e3r = { ...activeProject.steps.resilience?.e3r, eradication: e.target.value };
@@ -286,6 +290,7 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       </span>
                       <textarea
                         rows={2}
+                        aria-label="R - Reconstruction (IaC & Durcissement)"
                         value={activeProject.steps.resilience?.e3r?.reconstruction || ""}
                         onChange={(e) => {
                           const e3r = { ...activeProject.steps.resilience?.e3r, reconstruction: e.target.value };
@@ -305,8 +310,9 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                   </p>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <span className="block text-[10px] font-bold text-[var(--amber)] mb-1">Urgence de redémarrage</span>
+                      <label htmlFor="strategie-urgence" className="block text-[10px] font-bold text-[var(--amber)] mb-1">Urgence de redémarrage</label>
                       <textarea
+                        id="strategie-urgence"
                         rows={2}
                         placeholder="Ce qui pousse à redémarrer vite : impact métier, contractuel, réglementaire..."
                         value={activeProject.steps.resilience?.strategie_remediation?.urgence_redemarrage || ""}
@@ -318,8 +324,9 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       />
                     </div>
                     <div>
-                      <span className="block text-[10px] font-bold text-[var(--amber)] mb-1">Coûts et risques d'un redémarrage précipité</span>
+                      <label htmlFor="strategie-couts" className="block text-[10px] font-bold text-[var(--amber)] mb-1">Coûts et risques d'un redémarrage précipité</label>
                       <textarea
+                        id="strategie-couts"
                         rows={2}
                         placeholder="Ré-infection, perte de la piste d'investigation, absence de garanties d'éradication..."
                         value={activeProject.steps.resilience?.strategie_remediation?.couts_risques_redemarrage || ""}
@@ -331,8 +338,9 @@ export function PhaseResilience({ activeProject, updateStepData, handleSaveProje
                       />
                     </div>
                     <div className="md:col-span-2">
-                      <span className="block text-[10px] font-bold text-[var(--g1)] mb-1">Décision retenue et autorité qui tranche</span>
+                      <label htmlFor="strategie-decision" className="block text-[10px] font-bold text-[var(--g1)] mb-1">Décision retenue et autorité qui tranche</label>
                       <textarea
+                        id="strategie-decision"
                         rows={2}
                         placeholder="Arbitrage rendu, par qui, et le délai accepté."
                         value={activeProject.steps.resilience?.strategie_remediation?.decision_direction || ""}

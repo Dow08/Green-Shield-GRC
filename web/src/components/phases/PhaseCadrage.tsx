@@ -35,8 +35,9 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   <div>
-                    <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Périmètre technique de l'audit</label>
+                    <label htmlFor="cadrage-scope" className="block text-[11px] font-bold text-[var(--soft)] mb-1">Périmètre technique de l'audit</label>
                     <input
+                      id="cadrage-scope"
                       type="text"
                       value={activeProject.steps.cadrage?.scope || ""}
                       onChange={(e) => updateStepData("cadrage", "scope", e.target.value)}
@@ -44,8 +45,9 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">Missions & Finalités de l'entreprise</label>
+                    <label htmlFor="cadrage-missions" className="block text-[11px] font-bold text-[var(--soft)] mb-1">Missions & Finalités de l'entreprise</label>
                     <input
+                      id="cadrage-missions"
                       type="text"
                       value={activeProject.steps.cadrage?.client_missions || ""}
                       onChange={(e) => updateStepData("cadrage", "client_missions", e.target.value)}
@@ -70,6 +72,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                   </div>
                   <textarea
                     rows={4}
+                    aria-label="Texte de l'accord de confidentialité (NDA)"
                     value={activeProject.steps.cadrage?.nda_text || ""}
                     onChange={(e) => updateStepData("cadrage", "nda_text", e.target.value)}
                     className="w-full bg-white/[0.01] border border-white/5 rounded-xl p-3 text-[11px] text-[var(--soft)] font-mono focus:outline-none"
@@ -188,9 +191,15 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       className="glass p-3 border border-dashed border-[var(--stroke)] rounded-xl mt-2 flex flex-col gap-2.5 text-xs animate-fade-in"
                     >
                       <div className="font-bold text-[var(--g1)]">{editingMetierIndex !== null ? "Modifier la Valeur Métier" : "Saisie de Valeur Métier Personnalisée"}</div>
+                      {/* Grille de saisie dense : un intitulé visible par champ casserait
+                          la mise en page, chacun porte donc un aria-label. Le placeholder
+                          seul n'est pas une étiquette (WCAG 2.1 AA 1.3.1 et 3.3.2) — il
+                          disparaît dès la saisie et n'est pas restitué de façon fiable par
+                          les lecteurs d'écran ; il reste ici comme exemple. — 09/09/2026 */}
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                         <input
                           type="text"
+                          aria-label="Nom de la valeur métier"
                           placeholder="Nom de la valeur métier"
                           value={customMetierData.name}
                           onChange={(e) => setCustomMetierData({ ...customMetierData, name: e.target.value })}
@@ -198,6 +207,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                         />
                         <input
                           type="text"
+                          aria-label="Description de la valeur métier"
                           placeholder="Description"
                           value={customMetierData.description}
                           onChange={(e) => setCustomMetierData({ ...customMetierData, description: e.target.value })}
@@ -372,12 +382,14 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                         <input
                           type="text"
+                          aria-label="Nom du bien support"
                           placeholder="Nom de l'actif"
                           value={customSupportData.name}
                           onChange={(e) => setCustomSupportData({ ...customSupportData, name: e.target.value })}
                           className="bg-white/[0.04] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--ink)] focus:outline-none"
                         />
                         <select
+                          aria-label="Type de bien support"
                           value={customSupportData.type}
                           onChange={(e) => setCustomSupportData({ ...customSupportData, type: e.target.value })}
                           className="bg-[var(--bg2)] border border-[var(--stroke)] rounded-xl px-2.5 py-1.5 text-xs text-[var(--ink)] focus:outline-none"
@@ -390,6 +402,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                         </select>
                         <input
                           type="text"
+                          aria-label="Propriétaire du bien support"
                           placeholder="Propriétaire (DSI, RSSI...)"
                           value={customSupportData.owner}
                           onChange={(e) => setCustomSupportData({ ...customSupportData, owner: e.target.value })}
@@ -397,6 +410,7 @@ export function PhaseCadrage({ activeProject, updateStepData, handleSaveProject 
                         />
                         <input
                           type="text"
+                          aria-label="Description ou finalité du bien support"
                           placeholder="Description ou finalité"
                           value={customSupportData.description}
                           onChange={(e) => setCustomSupportData({ ...customSupportData, description: e.target.value })}

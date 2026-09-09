@@ -222,6 +222,7 @@ export function RadarMaturiteNist({ projectId, onProjectUpdate }: Props) {
               </div>
 
               <textarea
+                aria-label="Justification de la note de maturité"
                 value={brouillonJustification}
                 onChange={(e) => setBrouillonJustification(e.target.value)}
                 placeholder="Justification (optionnelle)"

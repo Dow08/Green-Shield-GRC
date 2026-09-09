@@ -48,10 +48,11 @@ export function Login({ onSuccess }: LoginProps) {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-[var(--soft)] mb-1">
+            <label htmlFor="login-token" className="block text-sm font-medium text-[var(--soft)] mb-1">
               Jeton d'accès (Bearer Token)
             </label>
             <input
+              id="login-token"
               type="password"
               value={token}
               onChange={(e) => setToken(e.target.value)}

@@ -83,6 +83,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                     </p>
                     <textarea
                       rows={5}
+                      aria-label="Notes sur la politique de sécurité (PSSI)"
                       value={activeProject.steps.diagnostic?.notes_pssi ?? GABARIT_NOTES_PSSI}
                       onChange={(e) => updateStepData("diagnostic", "notes_pssi", e.target.value)}
                       onClick={(e) => e.stopPropagation()}
@@ -109,6 +110,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                     </p>
                     <textarea
                       rows={5}
+                      aria-label="Notes sur la gouvernance cyber"
                       value={activeProject.steps.diagnostic?.notes_governance ?? GABARIT_NOTES_GOUVERNANCE}
                       onChange={(e) => updateStepData("diagnostic", "notes_governance", e.target.value)}
                       onClick={(e) => e.stopPropagation()}
@@ -136,6 +138,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                     </p>
                     <textarea
                       rows={5}
+                      aria-label="Notes sur la gestion des vulnérabilités"
                       value={activeProject.steps.diagnostic?.notes_vulnerabilities ?? GABARIT_NOTES_VULNERABILITES}
                       onChange={(e) => updateStepData("diagnostic", "notes_vulnerabilities", e.target.value)}
                       onClick={(e) => e.stopPropagation()}
@@ -306,9 +309,15 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                       className="glass p-3 border border-dashed border-[var(--stroke)] rounded-xl mt-2 flex flex-col gap-2.5 text-xs animate-fade-in"
                     >
                       <div className="font-bold text-[var(--g1)]">{editingRgpdIndex !== null ? "Modifier l'Activité de Traitement RGPD" : "Saisie d'Activité de Traitement RGPD"}</div>
+                      {/* Grille de saisie dense : un intitulé visible par champ casserait
+                          la mise en page, chacun porte donc un aria-label. Le placeholder
+                          seul n'est pas une étiquette (WCAG 2.1 AA 1.3.1 et 3.3.2) — il
+                          disparaît dès la saisie et n'est pas restitué de façon fiable par
+                          les lecteurs d'écran ; il reste ici comme exemple. — 09/09/2026 */}
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
                         <input
                           type="text"
+                          aria-label="Nom de l'activité de traitement"
                           placeholder="Nom de l'activité"
                           value={customRgpdData.name}
                           onChange={(e) => setCustomRgpdData({ ...customRgpdData, name: e.target.value })}
@@ -316,6 +325,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                         <input
                           type="text"
+                          aria-label="Finalité opérationnelle du traitement"
                           placeholder="Finalité opérationnelle"
                           value={customRgpdData.purpose}
                           onChange={(e) => setCustomRgpdData({ ...customRgpdData, purpose: e.target.value })}
@@ -323,6 +333,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                         <input
                           type="text"
+                          aria-label="Catégories de données traitées"
                           placeholder="Données (Nom, NIR...)"
                           value={customRgpdData.data_categories}
                           onChange={(e) => setCustomRgpdData({ ...customRgpdData, data_categories: e.target.value })}
@@ -330,6 +341,7 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                         <input
                           type="text"
+                          aria-label="Durée de rétention des données"
                           placeholder="Rétention (ex: 5 ans)"
                           value={customRgpdData.retention}
                           onChange={(e) => setCustomRgpdData({ ...customRgpdData, retention: e.target.value })}
@@ -406,8 +418,9 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                       className="flex flex-col gap-3.5 bg-white/[0.01] border border-dashed border-[var(--stroke)] p-4 rounded-2xl text-xs"
                     >
                       <div>
-                        <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">1. Description systématique et finalités du traitement</label>
+                        <label htmlFor="aipd-description" className="block text-[11px] font-bold text-[var(--soft)] mb-1">1. Description systématique et finalités du traitement</label>
                         <textarea
+                          id="aipd-description"
                           rows={2}
                           value={activeProject.steps.diagnostic?.aipd?.treatment_description || ""}
                           onChange={(e) => {
@@ -418,8 +431,9 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">2. Évaluation de la nécessité et de la proportionnalité</label>
+                        <label htmlFor="aipd-necessite" className="block text-[11px] font-bold text-[var(--soft)] mb-1">2. Évaluation de la nécessité et de la proportionnalité</label>
                         <textarea
+                          id="aipd-necessite"
                           rows={2}
                           value={activeProject.steps.diagnostic?.aipd?.necessity_eval || ""}
                           onChange={(e) => {
@@ -430,8 +444,9 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">3. Évaluation des risques pour les droits et libertés des personnes (Impacts & Gravité CNIL)</label>
+                        <label htmlFor="aipd-risques" className="block text-[11px] font-bold text-[var(--soft)] mb-1">3. Évaluation des risques pour les droits et libertés des personnes (Impacts & Gravité CNIL)</label>
                         <textarea
+                          id="aipd-risques"
                           rows={2}
                           value={activeProject.steps.diagnostic?.aipd?.risks_eval || ""}
                           onChange={(e) => {
@@ -442,8 +457,9 @@ export function PhaseDiagnostic({ activeProject, updateStepData, handleSaveProje
                         />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-bold text-[var(--soft)] mb-1">4. Mesures d'atténuation et de sécurité (Chiffrement, MFA, logs...)</label>
+                        <label htmlFor="aipd-mesures" className="block text-[11px] font-bold text-[var(--soft)] mb-1">4. Mesures d'atténuation et de sécurité (Chiffrement, MFA, logs...)</label>
                         <textarea
+                          id="aipd-mesures"
                           rows={2}
                           value={activeProject.steps.diagnostic?.aipd?.mitigation_measures || ""}
                           onChange={(e) => {

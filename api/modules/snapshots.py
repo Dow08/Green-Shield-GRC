@@ -13,10 +13,13 @@ l'historique voyage avec la mission.
 from __future__ import annotations
 
 import json
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
+
+_log = logging.getLogger("greenshield.snapshots")
 
 # Au-delà, les plus anciens sont supprimés : l'historique sert à rattraper une
 # erreur récente, pas à archiver indéfiniment (l'archive chiffrée est faite
@@ -69,7 +72,13 @@ def _elaguer(dossier: Path) -> None:
         try:
             vieux.unlink()
         except OSError:
-            pass
+            # Élagage de meilleur effort : un fichier verrouillé (antivirus,
+            # explorateur ouvert sur le dossier) sera repris au prochain
+            # passage, et dépasser transitoirement MAX_SNAPSHOTS n'a aucune
+            # conséquence métier. DEBUG, donc — mais plus « rien du tout »,
+            # pour qu'un dossier qui gonfle anormalement soit explicable
+            # (09/09/2026).
+            _log.debug("Instantané non élagué (%s).", vieux, exc_info=True)
 
 
 def lister(p_dir: Path) -> list[dict]:
