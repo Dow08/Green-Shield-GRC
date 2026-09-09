@@ -101,18 +101,38 @@ jobs:
           path: api/dist/GreenShield.exe
           retention-days: 30
 
+      # 09/09/2026 : publication par `gh` plutôt que par `softprops/action-gh-release`.
+      #
+      # Signalé par zizmor : « action functionality is already included by the
+      # runner ». L'enjeu est la chaîne d'approvisionnement — cette étape tourne
+      # avec `contents: write` et manipule le binaire que les clients
+      # téléchargeront. Y faire intervenir un tiers, fût-il épinglé par SHA,
+      # ajoute un maillon de confiance là où le runner fournit déjà l'outil.
+      # La meilleure dépendance reste celle qu'on n'a pas.
+      #
+      # Le corps de la release passe par un fichier : `gh` attend `--notes-file`,
+      # et le texte contient des caractères (`%APPDATA%`, backticks, chevrons de
+      # citation) qu'un passage en ligne de commande PowerShell mutilerait. Le
+      # here-string `@'…'@` est littéral — aucune interpolation, contrairement à
+      # `@"…"@` — et son marqueur de fin doit rester en colonne 0.
       - name: Publier la Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
-        with:
-          files: api/dist/GreenShield.exe
-          body: |
-            **GreenShield.exe** — application de bureau autonome pour Windows.
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          @'
+          **GreenShield.exe** — application de bureau autonome pour Windows.
 
-            Aucune installation requise : téléchargez, double-cliquez, votre
-            navigateur s'ouvre sur l'application. Tout reste local (`127.0.0.1`).
+          Aucune installation requise : téléchargez, double-cliquez, votre
+          navigateur s'ouvre sur l'application. Tout reste local (`127.0.0.1`).
 
-            > Les missions sont chiffrées au repos par défaut (clé générée et
-            > conservée localement dans `%APPDATA%\GreenShield`). Le
-            > chiffrement du disque (BitLocker) reste recommandé en défense
-            > en profondeur — voir le README.
+          > Les missions sont chiffrées au repos par défaut (clé générée et
+          > conservée localement dans `%APPDATA%\GreenShield`). Le
+          > chiffrement du disque (BitLocker) reste recommandé en défense
+          > en profondeur — voir le README.
+          '@ | Set-Content -Path notes-release.md -Encoding utf8
+
+          gh release create "$env:GITHUB_REF_NAME" `
+            api/dist/GreenShield.exe `
+            --title "$env:GITHUB_REF_NAME" `
+            --notes-file notes-release.md

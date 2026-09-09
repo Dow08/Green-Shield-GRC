@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Mic, MicOff, Send, Bot, Sparkles, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
+import { notifier } from "../lib/notifications";
 import { obtenirConstructeurReconnaissance, type SpeechRecognitionLike } from "../types/speech";
 
 interface AICopilotCreatorProps {
@@ -105,7 +106,10 @@ export function AICopilotCreator({ onProjectGenerated, onCancel }: AICopilotCrea
       
     } catch (error) {
       console.error(error);
-      alert("Le pré-remplissage du formulaire a échoué.");
+      // Reformulé après audit (09/09/2026) : l'échec est réel, mais la mission
+      // reste créable. Un message qui s'arrête au constat laisse l'utilisateur
+      // sans issue ; on lui dit donc quoi faire.
+      notifier.erreur("Le pré-remplissage du formulaire a échoué — saisissez les champs manuellement.");
     } finally {
       setIsLoading(false);
     }

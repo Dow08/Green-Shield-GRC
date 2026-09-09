@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Link2, CheckCircle2, AlertCircle, Loader2, ShieldAlert, Upload } from "lucide-react";
 import { api } from "../lib/api";
+import { notifier } from "../lib/notifications";
 import type { ProjectState } from "../types";
 
 interface Props {
@@ -44,7 +45,7 @@ export function ConnectorsPanel({ project, onChange }: Props) {
       onChange(updatedProject);
     } catch (e) {
       console.error(e);
-      alert("Fichier JSON invalide ou erreur réseau.");
+      notifier.erreur("Fichier JSON invalide ou erreur réseau.");
     } finally {
       setScanning(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

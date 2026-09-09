@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Radar, ScanLine, Loader2, PlusCircle, CheckCircle2, FileWarning } from "lucide-react";
 import { api } from "../lib/api";
+import { messageErreur, notifier } from "../lib/notifications";
 import type { FingerprintResult, ProjectState, SuggestedAsset } from "../types";
 
 const ASSET_TYPES = ["Logiciel", "Matériel", "Réseau", "Locaux", "RH"];
@@ -60,7 +61,7 @@ export function CollecteTechnique() {
     api.collecte
       .importAsset(targetProjectId, asset)
       .then(() => setImported(true))
-      .catch((err) => alert("Échec de l'import : " + err.message))
+      .catch((err) => notifier.erreur("Échec de l'import : " + messageErreur(err, "cause inconnue")))
       .finally(() => setImporting(false));
   };
 

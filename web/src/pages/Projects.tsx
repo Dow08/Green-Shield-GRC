@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { FolderKanban, Plus, ArrowLeft, Trash2, Save, Shield, Check, FlaskConical, Clock, AlertTriangle, Wand2, Bot, Link2 } from "lucide-react";
 import { api } from "../lib/api";
+import { messageErreur, notifier } from "../lib/notifications";
 import { formatDuree } from "../lib/duree";
 import { ProjectWizard } from "../components/ProjectWizard";
 import { AICopilotCreator } from "../components/AICopilotCreator";
@@ -26,6 +27,9 @@ import type { ProjectState, Framework, PhaseTemps, RevueExportResult, SnapshotIn
 
 /** Inactivité au-delà de laquelle les modifications en attente sont enregistrées seules. */
 const DELAI_SAUVEGARDE_AUTO_MS = 60_000;
+
+/** Clé de dédoublonnage de la notification d'échec de sauvegarde automatique. */
+const CLE_SAUVEGARDE_AUTO = "sauvegarde-auto";
 
 export function Projects() {
   const [projects, setProjects] = useState<ProjectState[]>([]);
@@ -152,7 +156,7 @@ export function Projects() {
       setCurrentStep(1);
       loadProjectsAndFrameworks();
     })
-    .catch((err) => alert(err instanceof Error ? err.message : "Échec de la création"));
+    .catch((err) => notifier.erreur(messageErreur(err, "Échec de la création")));
   };
 
   const handleWizardComplete = (data: { name: string; client: string; type: "grc" | "consulting"; framework_ids?: string[] }) => {
@@ -163,7 +167,7 @@ export function Projects() {
       setCurrentStep(1);
       loadProjectsAndFrameworks();
     })
-    .catch((err) => alert(err instanceof Error ? err.message : "Échec de la création"));
+    .catch((err) => notifier.erreur(messageErreur(err, "Échec de la création")));
   };
 
   const handleDeleteProject = (id: string, e: React.MouseEvent) => {
@@ -177,7 +181,7 @@ export function Projects() {
           setActiveProject(null);
         }
       })
-      .catch((err) => alert("Échec suppression : " + (err instanceof Error ? err.message : String(err))));
+      .catch((err) => notifier.erreur("Échec suppression : " + messageErreur(err, "cause inconnue")));
   };
 
   const handleSelectProject = (id: string) => {
@@ -191,7 +195,7 @@ export function Projects() {
         // de formulaire) est réinitialisé par le remontage des composants de
         // phase, dont la `key` est l'identifiant de mission.
       })
-      .catch((err) => alert(err instanceof Error ? err.message : "Échec d'ouverture"));
+      .catch((err) => notifier.erreur(messageErreur(err, "Échec d'ouverture")));
   };
 
   // La revue reflète l'état enregistré : on la recharge à l'ouverture d'une
@@ -239,13 +243,20 @@ export function Projects() {
         setCurrentStep(1);
         chargerRevue(demo.id);
       })
-      .catch((err) => alert("Échec de la création de la démo : " + err.message));
+      .catch((err) => notifier.erreur("Échec de la création de la démo : " + messageErreur(err, "cause inconnue")));
   };
 
-  // `auto` : déclenchement par la sauvegarde automatique. L'échec y reste
-  // silencieux — une alerte bloquante toutes les 60 s pendant une panne d'API
-  // serait ingérable. Le témoin de modifications reste allumé, donc rien n'est
-  // perdu et la prochaine tentative reprendra.
+  // `auto` : déclenchement par la sauvegarde automatique. Son échec était
+  // silencieux tant que le seul canal était `alert()` : une modale bloquante
+  // toutes les 60 s pendant une panne d'API aurait été ingérable. Depuis le
+  // passage aux notifications non bloquantes (09/09/2026), le silence n'a plus
+  // de raison d'être — un consultant qui croit son travail enregistré alors
+  // que l'API est tombée est le pire des deux maux. L'échec est donc annoncé
+  // dans les deux cas, mais la notification automatique porte une clé de
+  // dédoublonnage : une panne prolongée rafraîchit la même carte à chaque
+  // tentative au lieu d'en empiler une par minute. Elle est refermée dès qu'un
+  // enregistrement réussit, et son texte dit ce qui compte — rien n'est perdu,
+  // les modifications restent en attente.
   const handleSaveProject = (auto = false) => {
     if (!activeProject) return;
     setSaving(true);
@@ -255,11 +266,22 @@ export function Projects() {
         setModificationsEnAttente(false);
         loadProjectsAndFrameworks();
         chargerRevue(updated.id);
+        notifier.fermerParCle(CLE_SAUVEGARDE_AUTO);
         if (minuteurConfirmation.current) clearTimeout(minuteurConfirmation.current);
         setSauvegardeConfirmee(true);
         minuteurConfirmation.current = setTimeout(() => setSauvegardeConfirmee(false), 2500);
       })
-      .catch((err) => { if (!auto) alert("Erreur sauvegarde: " + err.message); })
+      .catch((err) => {
+        const motif = messageErreur(err, "cause inconnue");
+        if (auto) {
+          notifier.erreur(
+            `Sauvegarde automatique impossible : ${motif}. Vos modifications sont conservées à l'écran et seront réessayées.`,
+            { cle: CLE_SAUVEGARDE_AUTO },
+          );
+        } else {
+          notifier.erreur("Erreur sauvegarde: " + motif);
+        }
+      })
       .finally(() => setSaving(false));
   };
   refSauvegarde.current = () => handleSaveProject(true);
@@ -281,7 +303,7 @@ export function Projects() {
       .then((updated) => {
         setActiveProject(updated);
       })
-      .catch((err) => alert("Échec téléversement : " + err.message))
+      .catch((err) => notifier.erreur("Échec téléversement : " + messageErreur(err, "cause inconnue")))
       .finally(() => setUploading(false));
   };
 
@@ -292,7 +314,7 @@ export function Projects() {
       .then((updated) => {
         setActiveProject(updated);
       })
-      .catch((err) => alert("Échec audit technique : " + err.message))
+      .catch((err) => notifier.erreur("Échec audit technique : " + messageErreur(err, "cause inconnue")))
       .finally(() => setAuditing(false));
   };
 
@@ -304,7 +326,7 @@ export function Projects() {
       .then((updated) => {
         setActiveProject(updated);
       })
-      .catch((err) => alert("Échec de la suppression : " + err.message))
+      .catch((err) => notifier.erreur("Échec de la suppression : " + messageErreur(err, "cause inconnue")))
       .finally(() => setDeletingFile(null));
   };
 
@@ -320,7 +342,7 @@ export function Projects() {
         a.click();
         URL.revokeObjectURL(url);
       })
-      .catch((err) => alert("Échec de la génération : " + err.message));
+      .catch((err) => notifier.erreur("Échec de la génération : " + messageErreur(err, "cause inconnue")));
   };
 
   // Le backend renvoie la mission entière après mutation : on réaligne l'état
@@ -335,7 +357,7 @@ export function Projects() {
     try {
       setActiveProject(await api.projects.deleteTemps(activeProject.id, entryId));
     } catch (err) {
-      alert("Échec de la suppression : " + (err instanceof Error ? err.message : String(err)));
+      notifier.erreur("Échec de la suppression : " + messageErreur(err, "cause inconnue"));
     }
   };
 
@@ -344,7 +366,7 @@ export function Projects() {
     try {
       setActiveProject(await api.projects.updateTemps(activeProject.id, entryId, entry));
     } catch (err) {
-      alert("Échec de la mise à jour : " + (err instanceof Error ? err.message : String(err)));
+      notifier.erreur("Échec de la mise à jour : " + messageErreur(err, "cause inconnue"));
     }
   };
 

@@ -8,6 +8,7 @@ import { BoutonDictee } from "../BoutonDictee";
 import type { ProjectState, Remediation } from "../../types";
 import { api } from "../../lib/api";
 import { safeGetItem } from "../../lib/storage";
+import { messageErreur, notifier } from "../../lib/notifications";
 import type { CopilotSource, RevueExportResult } from "../../types";
 
 interface Props {
@@ -49,7 +50,15 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
   // 30/07/2026, pour que le logo personnalisé du cabinet (Réglages) puisse
   // transiter dans le corps de la requête plutôt que dans une URL.
   const handleDownloadDocx = (telecharger: (id: string) => Promise<void>) => {
-    telecharger(activeProject.id).catch((err) => alert("Export Word indisponible : " + err.message));
+    telecharger(activeProject.id).catch((err) => notifier.erreur("Export Word indisponible : " + messageErreur(err, "cause inconnue")));
+  };
+
+  // Six boutons ouvraient le même appel avec la même gestion d'erreur recopiée
+  // en ligne ; un seul point de passage depuis la bascule vers les
+  // notifications non bloquantes (09/09/2026).
+  const ouvrirPdf = (type: string) => {
+    api.projects.openPdf(activeProject.id, type)
+      .catch((e) => notifier.erreur(messageErreur(e, "Ouverture du PDF impossible")));
   };
 
   const handleRunCopilot = () => {
@@ -72,7 +81,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
       setCopilotResponse(data.response || "Réponse indisponible");
       setCopilotSource(data.source ?? null);
     })
-    .catch((err) => alert("Copilote indisponible : " + err.message))
+    .catch((err) => notifier.erreur("Copilote indisponible : " + messageErreur(err, "cause inconnue")))
     .finally(() => setCopilotLoading(false));
   };
 
@@ -424,7 +433,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => api.projects.openPdf(activeProject.id, "nda").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
+                        onClick={() => ouvrirPdf("nda")}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -445,7 +454,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => api.projects.openPdf(activeProject.id, "ebios").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
+                        onClick={() => ouvrirPdf("ebios")}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -466,7 +475,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => api.projects.openPdf(activeProject.id, "pssi_pri").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
+                        onClick={() => ouvrirPdf("pssi_pri")}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -487,7 +496,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => api.projects.openPdf(activeProject.id, "aipd").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
+                        onClick={() => ouvrirPdf("aipd")}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF
@@ -510,7 +519,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                           <FileDown size={13} /> Word (.docx)
                         </button>
                         <button
-                          onClick={() => api.projects.openPdf(activeProject.id, "soa").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
+                          onClick={() => ouvrirPdf("soa")}
                           className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                         >
                           <FileDown size={13} /> PDF
@@ -534,7 +543,7 @@ export function PhaseTraitement({ activeProject, updateStepData, handleSaveProje
                         <FileDown size={13} /> Word (.docx)
                       </button>
                       <button
-                        onClick={() => api.projects.openPdf(activeProject.id, "audit_report").catch((e) => alert(e instanceof Error ? e.message : "Ouverture du PDF impossible"))}
+                        onClick={() => ouvrirPdf("audit_report")}
                         className="flex items-center gap-1.5 rounded-xl bg-gradient-to-br from-red-500 to-red-600 px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition"
                       >
                         <FileDown size={13} /> PDF

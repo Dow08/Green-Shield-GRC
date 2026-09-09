@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Bot, ShieldAlert, AlertTriangle, XCircle, ArrowUpRight, Gauge, Loader2 } from "lucide-react";
 import { api } from "../lib/api";
 import { safeGetItem } from "../lib/storage";
+import { messageErreur, notifier } from "../lib/notifications";
 import { CopilotSourceBadge } from "../components/CopilotSourceBadge";
 import type { CopilotContext, CopilotSource, FournisseurLLM } from "../types";
 
@@ -51,7 +52,7 @@ export function CopilotGRC({ onNavigate }: Props) {
         setFournisseurUtilise(data.fournisseur);
         if (data.context) setContext(data.context);
       })
-      .catch((err) => alert("Copilote indisponible : " + err.message))
+      .catch((err) => notifier.erreur("Copilote indisponible : " + messageErreur(err, "cause inconnue")))
       .finally(() => setAsking(false));
   };
 

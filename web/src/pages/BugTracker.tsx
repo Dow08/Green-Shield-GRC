@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Bug, Download, Trash2, PlusCircle, AlertCircle, Activity } from "lucide-react";
 import { apiLogs, subscribeToApiLogs, type ApiLog } from "../lib/api";
+import { notifier } from "../lib/notifications";
 
 interface BugReport {
   id: string;
@@ -69,7 +70,7 @@ export function BugTracker() {
 
   const handleDownload = () => {
     if (bugs.length === 0) {
-      alert("Aucun bug à exporter.");
+      notifier.info("Aucun bug à exporter.");
       return;
     }
 
