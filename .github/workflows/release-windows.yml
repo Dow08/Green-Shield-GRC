@@ -95,7 +95,7 @@ jobs:
           if (-not $ok) { throw "L'exécutable n'a pas répondu sur /health." }
           Write-Host "Démarrage vérifié."
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: GreenShield-windows
           path: api/dist/GreenShield.exe
